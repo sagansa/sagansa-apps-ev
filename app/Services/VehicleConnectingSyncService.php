@@ -8,6 +8,7 @@ use App\Models\ModelVehicle;
 use App\Models\TypeVehicle;
 use App\Models\Vehicle;
 use App\Models\VehicleConnecting;
+use App\Models\VehicleNameMapping;
 use App\Models\VehicleSalesStat;
 use Filament\Actions\Imports\Models\Import;
 use Illuminate\Support\Facades\DB;
@@ -36,13 +37,18 @@ class VehicleConnectingSyncService
     public function applyToCatalog(): array
     {
         $norm = fn (?string $v): string => mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $v)) ?? '');
+        // Kunci brand lewat NAMA KANONIK (alias, mis. MITSUBISHI MOTORS →
+        // MITSUBISHI) — sama dengan jalur impor, agar model baru menempel
+        // ke brand kanonik dan tidak menduplikasi brand dari ejaan mentah.
+        $matcher = app(VehicleSalesMatcher::class);
+        $canon = fn (?string $v): string => $norm($matcher->canonicalBrandName($v ?? ''));
 
         $rows = VehicleConnecting::whereNotNull('brand_name')->whereNotNull('model_name')->get();
 
         // Group per keluarga (brand + model).
         $groups = [];
         foreach ($rows as $row) {
-            $bKey = $norm($row->brand_name);
+            $bKey = $canon($row->brand_name);
             $mKey = $bKey.'|'.$norm($row->model_name);
             $g = $groups[$mKey] ??= [
                 'brand_name' => $row->brand_name,
@@ -53,14 +59,14 @@ class VehicleConnectingSyncService
             $groups[$mKey] = $g;
         }
 
-        $brands = BrandVehicle::all()->keyBy(fn (BrandVehicle $b) => $norm($b->name));
-        $models = ModelVehicle::all()->keyBy(fn (ModelVehicle $m) => $norm($m->brandVehicle?->name ?? '').'|'.$norm($m->name));
+        $brands = BrandVehicle::all()->keyBy(fn (BrandVehicle $b) => $canon($b->name));
+        $models = ModelVehicle::all()->keyBy(fn (ModelVehicle $m) => $canon($m->brandVehicle?->name ?? '').'|'.$norm($m->name));
 
         $stats = ['brands' => 0, 'models' => 0, 'types' => 0, 'categoriesUpdated' => 0];
         $conflicts = [];
 
         foreach ($groups as $g) {
-            $bKey = $norm($g['brand_name']);
+            $bKey = $canon($g['brand_name']);
             $mKey = $bKey.'|'.$norm($g['model_name']);
 
             $brand = $brands[$bKey] ?? null;
@@ -512,6 +518,11 @@ class VehicleConnectingSyncService
                 continue;
             }
 
+            // Mapping kurasi yang menunjuk type ini kehilangan sasaran —
+            // type_vehicle_id nullable, cukup dilepas tanpa buang barisnya.
+            VehicleNameMapping::where('type_vehicle_id', $type->id)
+                ->update(['type_vehicle_id' => null]);
+
             $type->delete();
             $typesDeleted++;
         }
@@ -523,6 +534,7 @@ class VehicleConnectingSyncService
         $modelsDeleted = 0;
         $modelsExempt = [];
         $statsDetached = 0;
+        $mappingsDetached = 0;
         foreach (ModelVehicle::with('brandVehicle')->get() as $model) {
             $mKey = $this->normKey($model->brandVehicle?->name).'|'.$this->normKey($model->name);
 
@@ -540,6 +552,11 @@ class VehicleConnectingSyncService
 
             $statsDetached += VehicleSalesStat::where('model_vehicle_id', $model->id)
                 ->update(['model_vehicle_id' => null, 'type_vehicle_id' => null]);
+
+            // Mapping kurasi yang menunjuk model ini: model_vehicle_id NOT NULL
+            // sehingga tak bisa dilepas — barisnya dihapus. Matcher tetap bisa
+            // menemukan raw name lewat alias/fuzzy; mapping bisa dibuat ulang.
+            $mappingsDetached += VehicleNameMapping::where('model_vehicle_id', $model->id)->delete();
 
             TypeVehicle::where('model_vehicle_id', $model->id)->delete();
             $model->delete();
@@ -559,6 +576,7 @@ class VehicleConnectingSyncService
             'modelsDeleted' => $modelsDeleted,
             'modelsExempt' => $modelsExempt,
             'statsDetached' => $statsDetached,
+            'mappingsDetached' => $mappingsDetached,
             'brandsDeleted' => $brandsDeleted,
         ];
     }

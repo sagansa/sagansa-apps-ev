@@ -73,10 +73,18 @@ class VehicleSalesStat extends Model
     public function scopePowertrain(Builder $query, ?string $powertrain): Builder
     {
         if ($powertrain && strtoupper($powertrain) !== 'ALL') {
-            $allowed = ['BEV', 'PHEV', 'HEV', 'ICE'];
+            $pt = strtoupper($powertrain);
 
-            return in_array(strtoupper($powertrain), $allowed)
-                ? $query->where('powertrain', strtoupper($powertrain))
+            // 'ICE' = bucket konvensional (legacy + pecahan G/D/CNG) supaya
+            // filter lama tetap bermakna setelah pemecahan powertrain.
+            if ($pt === 'ICE') {
+                return $query->whereIn('powertrain', ['ICE', 'G', 'D', 'CNG']);
+            }
+
+            $allowed = ['BEV', 'PHEV', 'HEV', 'G', 'D', 'CNG', 'FCEV'];
+
+            return in_array($pt, $allowed)
+                ? $query->where('powertrain', $pt)
                 : $query->whereIn('powertrain', ['BEV', 'PHEV']); // default "EV"
         }
 

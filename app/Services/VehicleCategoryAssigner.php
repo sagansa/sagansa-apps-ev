@@ -15,7 +15,8 @@ use App\Support\VehicleCategories;
  *  3. Aturan pola nama (kode truk HINO/ISUZU/UD/FUSO/Scania/MB bus, dsb.).
  *  Selain itu: category null + confidence "low" → masuk file review manusia.
  *
- * POWERTRAIN dipakai apa adanya bila sudah valid (BEV/PHEV/HEV/ICE); bila
+ * POWERTRAIN dipakai apa adanya bila sudah valid (BEV/PHEV/HEV/G/D/CNG/FCEV/
+ * ICE); bila
  * tidak, derivasi dari FUEL; bila FUEL kosong/rusak, kamus model BEV.
  */
 class VehicleCategoryAssigner
@@ -653,20 +654,24 @@ class VehicleCategoryAssigner
 
     /**
      * POWERTRAIN final: nilai valid → pakai; FUEL map; kamus BEV; null.
+     * Sejak 2026-09 konvensional dipecah: G/D/CNG (+FCEV) — fuel bensin
+     * memetakan ke 'G', solar ke 'D', bukan lagi 'ICE' generik.
      */
     protected function resolvePowertrain(string $modelKey, ?string $fuel, ?string $powertrain): ?string
     {
         $pt = strtoupper(trim((string) $powertrain));
 
-        if (in_array($pt, ['BEV', 'PHEV', 'HEV', 'ICE'], true)) {
+        if (in_array($pt, ['BEV', 'PHEV', 'HEV', 'ICE', 'G', 'D', 'CNG', 'FCEV'], true)) {
             return $pt;
         }
 
         $fuelKey = strtoupper(trim((string) $fuel));
 
         $mapped = match (true) {
-            in_array($fuelKey, ['G', 'B', 'BENZIN', 'GASOLINE', 'PETROL'], true) => 'ICE',
-            in_array($fuelKey, ['D', 'DIESEL'], true) => 'ICE',
+            in_array($fuelKey, ['G', 'B', 'BENZIN', 'GASOLINE', 'PETROL'], true) => 'G',
+            in_array($fuelKey, ['D', 'DIESEL'], true) => 'D',
+            $fuelKey === 'CNG' => 'CNG',
+            in_array($fuelKey, ['FCEV', 'H2', 'HYDROGEN'], true) => 'FCEV',
             in_array($fuelKey, ['EV', 'BEV'], true) => 'BEV',
             in_array($fuelKey, ['HEV', 'HYBRID'], true) => 'HEV',
             $fuelKey === 'PHEV' => 'PHEV',

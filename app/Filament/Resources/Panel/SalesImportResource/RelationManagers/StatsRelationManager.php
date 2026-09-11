@@ -32,7 +32,9 @@ class StatsRelationManager extends RelationManager
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('powertrain')->options([
-                    'BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV', 'ICE' => 'ICE',
+                    'BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV',
+                    'G' => 'G', 'D' => 'D', 'CNG' => 'CNG', 'FCEV' => 'FCEV',
+                    'ICE' => 'ICE (legacy)',
                 ]),
             ])
             ->headerActions([])

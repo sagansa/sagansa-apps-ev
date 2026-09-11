@@ -22,7 +22,7 @@ class VehicleCategoryAssignerTest extends TestCase
         $this->assertSame('MPV', $r['category']);
         $this->assertSame('Small', $r['size']);
         $this->assertSame('exact', $r['confidence']);
-        $this->assertSame('ICE', $r['powertrain']);
+        $this->assertSame('G', $r['powertrain']);
     }
 
     public function test_override_brand_menang_atas_kamus_model(): void
@@ -99,8 +99,8 @@ class VehicleCategoryAssignerTest extends TestCase
     public function test_powertrain_diderivasi_dari_fuel(): void
     {
         $cases = [
-            ['G', 'ICE'], ['D', 'ICE'], ['EV', 'BEV'],
-            ['HYBRID', 'HEV'], ['HEV', 'HEV'], ['PHEV', 'PHEV'],
+            ['G', 'G'], ['D', 'D'], ['CNG', 'CNG'], ['FCEV', 'FCEV'],
+            ['EV', 'BEV'], ['HYBRID', 'HEV'], ['HEV', 'HEV'], ['PHEV', 'PHEV'],
         ];
 
         foreach ($cases as [$fuel, $expected]) {

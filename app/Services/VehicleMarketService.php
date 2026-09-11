@@ -19,6 +19,15 @@ class VehicleMarketService
     public const TTL = 86400;
 
     /**
+     * Bucket agregasi komposisi. Sejak 2026-09 powertrain dipecah: ICE →
+     * G/D (+ CNG, FCEV). Bucket KONVENSIONAL menampung legacy `ICE` dan
+     * nilai pecahan baru sehingga stats lama tetap terhitung; FCEV berdiri
+     * sendiri (field API `fcev_units`, additive — app lama aman).
+     */
+    public const CONVENTIONAL_POWERTRAINS = ['ICE', 'G', 'D', 'CNG'];
+    public const FCEV_POWERTRAINS = ['FCEV'];
+
+    /**
      * Meta data untuk klien cek apakah ada data baru (Revisi 2, poin 5).
      * Query murah: 2 agregat + version counter cache.
      */
@@ -70,8 +79,9 @@ class VehicleMarketService
                 $bev = (int) $byPower->where('powertrain', 'BEV')->sum('units');
                 $phev = (int) $byPower->where('powertrain', 'PHEV')->sum('units');
                 $hev = (int) $byPower->where('powertrain', 'HEV')->sum('units');
-                $ice = (int) $byPower->where('powertrain', 'ICE')->sum('units');
-                $parsed = $bev + $phev + $hev + $ice;
+                $ice = (int) $byPower->whereIn('powertrain', self::CONVENTIONAL_POWERTRAINS)->sum('units');
+                $fcev = (int) $byPower->whereIn('powertrain', self::FCEV_POWERTRAINS)->sum('units');
+                $parsed = $bev + $phev + $hev + $ice + $fcev;
                 $officialTotal = $official[$year]['total'] ?? null;
                 $base = $officialTotal ?? $parsed;
 
@@ -83,6 +93,7 @@ class VehicleMarketService
                     'phev_units' => $phev,
                     'hev_units' => $hev,
                     'ice_units' => $ice,
+                    'fcev_units' => $fcev,
                     'bev_share' => $base > 0 ? round($bev / $base, 4) : null,
                     'is_full_year' => ($monthCoverage[$year] ?? 0) >= 12,
                 ];
@@ -160,8 +171,9 @@ class VehicleMarketService
                 $bev = (int) $byPower->where('powertrain', 'BEV')->sum('units');
                 $phev = (int) $byPower->where('powertrain', 'PHEV')->sum('units');
                 $hev = (int) $byPower->where('powertrain', 'HEV')->sum('units');
-                $ice = (int) $byPower->where('powertrain', 'ICE')->sum('units');
-                if ($bev + $phev + $hev + $ice === 0 && ! isset($officialMonths[$m])) {
+                $ice = (int) $byPower->whereIn('powertrain', self::CONVENTIONAL_POWERTRAINS)->sum('units');
+                $fcev = (int) $byPower->whereIn('powertrain', self::FCEV_POWERTRAINS)->sum('units');
+                if ($bev + $phev + $hev + $ice + $fcev === 0 && ! isset($officialMonths[$m])) {
                     continue;
                 }
                 $months[] = [
@@ -170,7 +182,8 @@ class VehicleMarketService
                     'phev_units' => $phev,
                     'hev_units' => $hev,
                     'ice_units' => $ice,
-                    'market_total' => $officialMonths[$m] ?? ($bev + $phev + $hev + $ice),
+                    'fcev_units' => $fcev,
+                    'market_total' => $officialMonths[$m] ?? ($bev + $phev + $hev + $ice + $fcev),
                 ];
             }
 
@@ -211,7 +224,8 @@ class VehicleMarketService
             $bev = (int) $byMonth->where('powertrain', 'BEV')->sum('units');
             $phev = (int) $byMonth->where('powertrain', 'PHEV')->sum('units');
             $hev = (int) $byMonth->where('powertrain', 'HEV')->sum('units');
-            $ice = (int) $byMonth->where('powertrain', 'ICE')->sum('units');
+            $ice = (int) $byMonth->whereIn('powertrain', self::CONVENTIONAL_POWERTRAINS)->sum('units');
+            $fcev = (int) $byMonth->whereIn('powertrain', self::FCEV_POWERTRAINS)->sum('units');
 
             // Satu (year, month) bisa punya beberapa baris powertrain —
             // agregasi per TAHUN dulu, baru share per tahun dirata-ratakan.
@@ -236,7 +250,8 @@ class VehicleMarketService
                 'phev_units' => $phev,
                 'hev_units' => $hev,
                 'ice_units' => $ice,
-                'market_total' => $bev + $phev + $hev + $ice,
+                'fcev_units' => $fcev,
+                'market_total' => $bev + $phev + $hev + $ice + $fcev,
                 'avg_share' => $shares === [] ? null : round(array_sum($shares) / count($shares), 4),
                 'avg_units' => $shares === [] ? null : (int) round($unitsSum / count($shares)),
                 'years_counted' => count($shares),
@@ -254,20 +269,25 @@ class VehicleMarketService
      *
      * Revisi 2, poin 7: scope forecast = powertrain (default BEV).
      *
-     * @param array<int, array{month: int, bev_units: int, phev_units: int, hev_units: int, ice_units: int, market_total: int}> $months
+     * @param array<int, array{month: int, bev_units: int, phev_units: int, hev_units: int, ice_units: int, fcev_units?: int, market_total: int}> $months
      */
     protected function forecastFor(array $months, ?string $brand = null, ?string $model = null, string $powertrain = 'BEV'): ?array
     {
         $dataMonths = [];
         $ytd = 0;
         foreach ($months as $m) {
-            // Revisi 2, poin 7: hitung YTD berdasarkan powertrain scope
+            // Revisi 2, poin 7: hitung YTD berdasarkan powertrain scope.
+            // Scope 'ICE' = bucket konvensional (ICE+G+D+CNG) karena angka
+            // per bulan sudah diagregasi per bucket; scope granular G/D/CNG
+            // tidak punya field bucket sendiri → jatuh ke default (BEV).
+            $fcevUnits = $m['fcev_units'] ?? 0;
             $units = match ($powertrain) {
                 'BEV' => $m['bev_units'],
                 'PHEV' => $m['phev_units'],
                 'HEV' => $m['hev_units'],
                 'ICE' => $m['ice_units'],
-                'ALL' => $m['bev_units'] + $m['phev_units'] + $m['hev_units'] + $m['ice_units'],
+                'FCEV' => $fcevUnits,
+                'ALL' => $m['bev_units'] + $m['phev_units'] + $m['hev_units'] + $m['ice_units'] + $fcevUnits,
                 'EV' => $m['bev_units'] + $m['phev_units'],
                 default => $m['bev_units'],
             };

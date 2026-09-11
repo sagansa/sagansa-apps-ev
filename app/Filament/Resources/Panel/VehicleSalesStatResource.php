@@ -52,7 +52,7 @@ class VehicleSalesStatResource extends Resource
             \Filament\Schemas\Components\Section::make('Koreksi')->schema([
                 Select::make('powertrain')
                     ->label('Powertrain')
-                    ->options(['BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV', 'ICE' => 'ICE'])
+                    ->options(['BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV', 'G' => 'G', 'D' => 'D', 'CNG' => 'CNG', 'FCEV' => 'FCEV', 'ICE' => 'ICE (legacy)'])
                     ->required(),
 
                 Select::make('brand_vehicle_id')
@@ -113,7 +113,7 @@ class VehicleSalesStatResource extends Resource
                 Tables\Filters\SelectFilter::make('year')->label('Tahun')
                     ->options(fn () => VehicleSalesStat::query()->distinct()->orderByDesc('year')->pluck('year', 'year')->all()),
                 Tables\Filters\SelectFilter::make('powertrain')->label('Powertrain')
-                    ->options(['BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV', 'ICE' => 'ICE']),
+                    ->options(['BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV', 'G' => 'G', 'D' => 'D', 'CNG' => 'CNG', 'FCEV' => 'FCEV', 'ICE' => 'ICE (legacy)']),
                 Tables\Filters\SelectFilter::make('segment')->label('Segment')
                     ->options(fn () => VehicleSalesStat::query()->whereNotNull('segment')->distinct()->pluck('segment', 'segment')->all()),
                 Tables\Filters\TernaryFilter::make('matched')->label('Sudah match katalog')
@@ -134,7 +134,7 @@ class VehicleSalesStatResource extends Resource
                         ->icon('heroicon-o-bolt')
                         ->form([
                             Select::make('powertrain')
-                                ->options(['BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV', 'ICE' => 'ICE'])
+                                ->options(['BEV' => 'BEV', 'PHEV' => 'PHEV', 'HEV' => 'HEV', 'G' => 'G', 'D' => 'D', 'CNG' => 'CNG', 'FCEV' => 'FCEV', 'ICE' => 'ICE (legacy)'])
                                 ->required(),
                         ])
                         ->action(function (array $data, \Illuminate\Support\Collection $records) {

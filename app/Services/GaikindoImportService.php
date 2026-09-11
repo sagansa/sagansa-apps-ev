@@ -753,6 +753,20 @@ class GaikindoImportService
             if ($fuelUpper === 'EV' || str_contains($fuelUpper, 'BEV') || str_contains($fuelUpper, 'ELECTRIC')) {
                 return 'BEV';
             }
+            // Pemecahan konvensional (2026-09): exact match agar 'D' tidak
+            // tertangkap substring lain; selain ini tetap 'ICE'.
+            if (in_array($fuelUpper, ['G', 'BENZIN', 'GASOLINE', 'PETROL'], true)) {
+                return 'G';
+            }
+            if (in_array($fuelUpper, ['D', 'DIESEL'], true)) {
+                return 'D';
+            }
+            if ($fuelUpper === 'CNG') {
+                return 'CNG';
+            }
+            if (in_array($fuelUpper, ['FCEV', 'H2', 'HYDROGEN'], true)) {
+                return 'FCEV';
+            }
 
             return 'ICE';
         }
