@@ -78,7 +78,65 @@ class SpkluLocationController extends Controller
         $locations = $query->paginate($perPage, ['*'], 'page', $page);
 
         return SpkluLocationResource::collection($locations)
-            ->additional(['status' => 'success']);
+            ->additional([
+                'status' => 'success',
+                'meta' => [
+                    'data_version' => $this->computeDataVersion(),
+                ],
+            ]);
+    }
+
+    /**
+     * Versi dataset — dipakai mobile utk memutuskan perlu fetch penuh atau tidak.
+     * Format: md5(count + '|' + max(updated_at))
+     */
+    private function computeDataVersion(): string
+    {
+        $stats = ChargingStation::where('source', config('spklu.serving_source'))
+            ->selectRaw('COUNT(*) as cnt, MAX(updated_at) as latest')
+            ->first();
+
+        $raw = ($stats->cnt ?? 0) . '|' . ($stats->latest ?? '');
+
+        return md5($raw);
+    }
+
+    /**
+     * Marker sinkronisasi delta klien — hanya berubah saat ada penambahan/
+     * penghapusan lokasi atau edit master data (bukan perubahan status
+     * availabilitas). Nilai timestamp dari DB (naive UTC) di-normalize ke
+     * ISO-8601 UTC.
+     *
+     * @return array{count: int, max_created_at: string|null, max_updated_at: string|null}
+     */
+    private function computeSyncMarkers(): array
+    {
+        $stats = ChargingStation::query()
+            ->where('source', config('spklu.serving_source'))
+            ->selectRaw('COUNT(*) AS cnt, MAX(created_at) AS max_created, MAX(updated_at) AS max_updated')
+            ->first();
+
+        return [
+            'count' => (int) ($stats->cnt ?? 0),
+            'max_created_at' => $stats->max_created
+                ? \Illuminate\Support\Carbon::rawParse($stats->max_created, 'UTC')->toISOString()
+                : null,
+            'max_updated_at' => $stats->max_updated
+                ? \Illuminate\Support\Carbon::rawParse($stats->max_updated, 'UTC')->toISOString()
+                : null,
+        ];
+    }
+
+    /**
+     * Manifest sinkron ringan (< 1 KB) — dibandingkan klien dengan marker
+     * lokal untuk memutuskan perlu delta/full fetch atau tidak.
+     */
+    public function syncManifest()
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => $this->computeSyncMarkers(),
+        ]);
     }
 
     /**
@@ -145,6 +203,7 @@ class SpkluLocationController extends Controller
                 'charge_types' => $chargeTypes->values(),
                 'kategori_tol' => $kategoriTol->values(),
                 'kategori_lokasi' => $kategoriLokasi->values(),
+                'data_version' => $this->computeDataVersion(),
             ],
         ]);
     }

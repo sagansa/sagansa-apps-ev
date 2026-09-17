@@ -19,14 +19,21 @@ use App\Http\Controllers\Api\V1\ProviderController;
 use App\Http\Controllers\Api\V1\ScrapeIngestController;
 use App\Http\Controllers\Api\V1\SocialAuthController;
 use App\Http\Controllers\Api\V1\SpkluLocationController;
+use App\Http\Controllers\Api\V1\SpkluSourceComparisonController;
 use App\Http\Controllers\Api\V1\StateOfHealthController;
 use App\Http\Controllers\Api\V1\StationPhotoController;
 use App\Http\Controllers\Api\V1\StationReviewController;
 use App\Http\Controllers\Api\V1\TesterController;
 use App\Http\Controllers\Api\V1\SavedStationController;
+use App\Http\Controllers\Api\V1\ServiceLogController;
+use App\Http\Controllers\Api\V1\OcmNearbyController;
 use App\Http\Controllers\Api\V1\UserChargerLocationController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Api\V1\VehicleMarketController;
+use App\Http\Controllers\Api\V1\ObdAccessController;
+use App\Http\Controllers\Api\V1\ObdProfileController;
+use App\Http\Controllers\Api\V1\ObdCompatibilityReportController;
+use App\Http\Controllers\Api\V1\ObdAdapterProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +56,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/spklu', [SpkluLocationController::class, 'index']);
     Route::get('/spklu/{id}', [SpkluLocationController::class, 'show']);
     Route::get('/meta/filters', [SpkluLocationController::class, 'metaFilters']);
+    Route::get('/meta/spklu-sync', [SpkluLocationController::class, 'syncManifest']);
+
+    // OpenChargeMap nearby — serve lokal + auto-harvest titik baru (lazy-sync)
+    Route::get('/ocm/nearby', [OcmNearbyController::class, 'nearby']);
 
     // Data pasar kendaraan (sumber: import GAIKINDO) — dipindah ke auth:sanctum (Revisi 2, poin 4)
 
@@ -103,6 +114,8 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('vehicles', VehicleController::class);
         Route::apiResource('charging-locations', ChargerLocationController::class)->except(['index', 'show']);
         Route::apiResource('my/charging-locations', UserChargerLocationController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::post('/my/charging-locations/{chargingLocation}/chargers', [UserChargerLocationController::class, 'addCharger']);
+        Route::get('/my/charger-references', [UserChargerLocationController::class, 'references']);
         Route::get('/charging-sessions/analytics', [ChargingSessionController::class, 'analytics']);
         Route::get('/charging-sessions/latest', [ChargingSessionController::class, 'latest']);
         Route::get('/charging-sessions/journey', [ChargingSessionController::class, 'journey']);
@@ -111,6 +124,7 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('state-of-health', StateOfHealthController::class);
         Route::get('/state-of-health/{vehicleId}/trend-analysis', [StateOfHealthController::class, 'trendAnalysis']);
         Route::apiResource('batteries', BatteryController::class);
+        Route::apiResource('service-logs', ServiceLogController::class);
         Route::post('/vehicles/{vehicle}/swap-battery', [BatteryController::class, 'swap']);
         Route::apiResource('home-charging-discounts', HomeChargingDiscountController::class);
         Route::post('/home-charging-discounts/apply', [HomeChargingDiscountController::class, 'apply']);
@@ -131,11 +145,14 @@ Route::prefix('v1')->group(function () {
             Route::get('/locations/duplicates', [DualSourceLocationController::class, 'detectDuplicates']);
             Route::post('/locations/consolidate', [DualSourceLocationController::class, 'consolidateLocations']);
 
-            // Location reports
+// Location reports
             Route::get('/reports/pending', [LocationReportController::class, 'getPendingReports']);
 
             // Scrape ingestion (Chrome extension)
             Route::post('/scrape/ingest', [ScrapeIngestController::class, 'ingest']);
+
+            // Source comparison (admin)
+            Route::get('/spklu-source-comparison', [SpkluSourceComparisonController::class, 'index']);
         });
 
         // Community location submission
@@ -179,6 +196,14 @@ Route::prefix('v1')->group(function () {
 
         // Testing funnel — register tester (auth)
         Route::post('/testers/register', [TesterController::class, 'register'])->middleware('throttle:10,1');
+
+        // OBD2 routes (murni aditif, kill switch via config/obd.php)
+        Route::prefix('obd')->group(function () {
+            Route::get('/access', [ObdAccessController::class, 'index']);
+            Route::get('/profiles', [ObdProfileController::class, 'index']);
+            Route::post('/compatibility-reports', [ObdCompatibilityReportController::class, 'store']);
+            Route::get('/adapter-products', [ObdAdapterProductController::class, 'index']);
+        });
     });
 });
 
