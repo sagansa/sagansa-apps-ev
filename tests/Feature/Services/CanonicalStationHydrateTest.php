@@ -94,7 +94,10 @@ class CanonicalStationHydrateTest extends TestCase
 
         $stats = $service->hydrateFromEsdm();
 
-        $this->assertSame(1, $stats['updated']);
+        // Change-aware: re-run tanpa perubahan master = nol penulisan
+        // (updated_at stabil — prasyarat marker delta sync).
+        $this->assertSame(0, $stats['updated']);
+        $this->assertSame(1, $stats['unchanged']);
         $this->assertSame(0, $stats['created']);
         $this->assertDatabaseCount('charging_stations', 1);
         $this->assertDatabaseCount('charging_station_chargers', 1);
