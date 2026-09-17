@@ -148,7 +148,7 @@ class CanonicalStationHydrateService
         $guesser = new ScrapeDedupService;
         $plnProvider = Provider::where('name', 'PLN Mobile')->first();
 
-        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'chargers' => 0];
+        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'chargers' => 0];
 
         DB::connection('ev')->transaction(function () use ($stations, $statusMap, $guesser, $plnProvider, &$stats) {
             foreach ($stations as $station) {
@@ -161,13 +161,21 @@ class CanonicalStationHydrateService
                     continue;
                 }
 
-                $canonical = ChargingStation::updateOrCreate(
-                    ['source' => self::SOURCE_ESDM, 'source_station_id' => $station->esdm_id],
+                [$canonical, $masterChanged] = $this->upsertCanonicalStation(
+                    self::SOURCE_ESDM,
+                    $station->esdm_id,
                     $data
                 );
-                $stats[$canonical->wasRecentlyCreated ? 'created' : 'updated']++;
+                $stats[$canonical->wasRecentlyCreated
+                    ? 'created'
+                    : ($masterChanged ? 'updated' : 'unchanged')]++;
 
-                $stats['chargers'] += $this->replaceChargers($canonical, $station);
+                [$chargersWritten, $chargersChanged] = $this->replaceChargersIfChanged($canonical, $station);
+                $stats['chargers'] += $chargersWritten;
+
+                if ($chargersChanged && ! $canonical->wasRecentlyCreated) {
+                    $canonical->touch();
+                }
             }
         });
 
@@ -190,8 +198,10 @@ class CanonicalStationHydrateService
      *
      * Satu lokasi PLN → satu stasiun canonical; satu detail charger aktif →
      * satu child charging_station_chargers (tanpa connectors — PLN tidak
-     * melacak plug individual). Idempoten & re-runnable: upsert by (source,
-     * source_station_id), child charger di-replace per stasiun.
+     * melacak plug individual). Idempoten & re-runnable: upsert change-aware
+     * by (source, source_station_id) — baris yang tidak berubah tidak
+     * ditulis ulang (updated_at stabil), child charger disinkronkan by
+     * source_charger_id.
      *
      * Setelah upsert, stasiun canonical source='pln' yang lokasinya sudah tidak
      * punya detail charger aktif (hilang dari CSV / semua non-aktif) di-prune
@@ -200,7 +210,7 @@ class CanonicalStationHydrateService
      * Data ESDM di tabel charging_stations TIDAK disentuh (source berbeda);
      * serving bisa dialihkan via config spklu.serving_source.
      *
-     * @return array{processed: int, created: int, updated: int, skipped: int, chargers: int, pruned: int}
+     * @return array{processed: int, created: int, updated: int, unchanged: int, skipped: int, chargers: int, pruned: int}
      */
     public function hydrateFromPln(): array
     {
@@ -219,7 +229,7 @@ class CanonicalStationHydrateService
             })
             ->get();
 
-        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'chargers' => 0, 'pruned' => 0];
+        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'chargers' => 0, 'pruned' => 0];
 
         DB::connection('ev')->transaction(function () use ($locations, &$stats) {
             foreach ($locations as $location) {
@@ -232,13 +242,23 @@ class CanonicalStationHydrateService
                     continue;
                 }
 
-                $canonical = ChargingStation::updateOrCreate(
-                    ['source' => self::SOURCE_PLN, 'source_station_id' => $location->id],
+                [$canonical, $masterChanged] = $this->upsertCanonicalStation(
+                    self::SOURCE_PLN,
+                    $location->id,
                     $data
                 );
-                $stats[$canonical->wasRecentlyCreated ? 'created' : 'updated']++;
+                $stats[$canonical->wasRecentlyCreated
+                    ? 'created'
+                    : ($masterChanged ? 'updated' : 'unchanged')]++;
 
-                $stats['chargers'] += $this->replacePlnChargers($canonical, $location);
+                [$chargersWritten, $chargersChanged] = $this->syncPlnChargers($canonical, $location);
+                $stats['chargers'] += $chargersWritten;
+
+                // Perubahan nested charger adalah perubahan master — touch
+                // stasiun induk supaya tertangkap delta sync klien.
+                if ($chargersChanged && ! $canonical->wasRecentlyCreated) {
+                    $canonical->touch();
+                }
             }
 
             $stats['pruned'] = $this->pruneStalePlnStations($locations);
@@ -288,6 +308,7 @@ class CanonicalStationHydrateService
         foreach ($rows as $row) {
             ChargingStationConnector::query()
                 ->where('source_connector_id', $row->connector_esdm_id)
+                ->toBase() // mass update tanpa auto updated_at (status ≠ master).
                 ->update([
                     'status_konektor' => $row->status_konektor,
                     'status' => $row->status,
@@ -333,6 +354,7 @@ class CanonicalStationHydrateService
         ChargingStation::query()
             ->where('source', self::SOURCE_ESDM)
             ->where('source_station_id', $stationEsdmId)
+            ->toBase() // mass update tanpa auto updated_at (status ≠ master).
             ->update([
                 'availability_level' => $aggregate['availability_level'],
                 'available_count' => $aggregate['available_count'],
@@ -385,6 +407,7 @@ class CanonicalStationHydrateService
 
             ChargingStationCharger::query()
                 ->where('source_charger_id', $row->installation_esdm_id)
+                ->toBase() // mass update tanpa auto updated_at (status ≠ master).
                 ->update([
                     'availability_level' => $level,
                     'available_count' => $avail,
@@ -421,6 +444,82 @@ class CanonicalStationHydrateService
         }
 
         return 'offline';
+    }
+
+    /**
+     * Atribut availabilitas — ditulis TANPA menaikkan updated_at (status
+     * real-time tidak boleh memicu delta sync klien).
+     */
+    private const AVAILABILITY_KEYS = [
+        'availability_level',
+        'available_count',
+        'charging_count',
+        'finishing_count',
+        'status_updated_at',
+    ];
+
+    /** Perbandingan longgar nilai lama vs baru (float utk numerik, == utk array). */
+    private function looseDifferent(mixed $current, mixed $new): bool
+    {
+        if (is_numeric($current) && is_numeric($new)) {
+            return (float) $current !== (float) $new;
+        }
+        if (is_array($current) || is_array($new)) {
+            return $current != $new;
+        }
+
+        return (string) $current !== (string) $new;
+    }
+
+    /**
+     * Upsert stasiun kanonik change-aware: hanya menulis bila ada perubahan
+     * atribut master; atribut availabilitas ditulis tanpa timestamps.
+     *
+     * @return array{0: ChargingStation, 1: bool} [station, masterChanged]
+     */
+    private function upsertCanonicalStation(string $source, int|string $sourceStationId, array $data): array
+    {
+        $station = ChargingStation::query()
+            ->where('source', $source)
+            ->where('source_station_id', $sourceStationId)
+            ->first();
+
+        if ($station === null) {
+            return [
+                ChargingStation::create(array_merge($data, [
+                    'source' => $source,
+                    'source_station_id' => $sourceStationId,
+                ])),
+                true,
+            ];
+        }
+
+        $masterChanged = false;
+        $availabilityDirty = false;
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, self::AVAILABILITY_KEYS, true)) {
+                if ($this->looseDifferent($station->{$key}, $value)) {
+                    $availabilityDirty = true;
+                    $station->{$key} = $value;
+                }
+                continue;
+            }
+            if ($this->looseDifferent($station->{$key}, $value)) {
+                $masterChanged = true;
+                $station->{$key} = $value;
+            }
+        }
+
+        if ($masterChanged) {
+            $station->save(); // updated_at ter-bump — memang perubahan master.
+        } elseif ($availabilityDirty) {
+            $station->timestamps = false;
+            $station->save(); // status saja — jangan sentuh updated_at.
+            $station->timestamps = true;
+        }
+
+        return [$station, $masterChanged];
     }
 
     // ─── Roll-up master data ────────────────────────────────────────────────
@@ -538,6 +637,102 @@ class CanonicalStationHydrateService
         return $inserted;
     }
 
+    /**
+     * Bangun snapshot desired charger+connector ESDM (tanpa menulis DB).
+     *
+     * @return array<int, array{charger: array<string, mixed>, connectors: list<array<string, mixed>>}>
+     */
+    private function buildDesiredEsdmChargers(EsdmSinggatSpkluStation $station): array
+    {
+        $desired = [];
+        foreach ($station->installations as $inst) {
+            $connectors = $inst->connectors;
+            $firstConnector = $connectors->first();
+
+            $desired[] = [
+                'charger' => [
+                    'source_charger_id' => $inst->esdm_id,
+                    'chargerbox_id' => $inst->nomor_identitas,
+                    'type_charge' => $inst->jenis_pengisian_spklu,
+                    'nama' => $inst->merek_mesin,
+                    'watt' => isset(self::TYPE_CHARGE_WATT[$inst->jenis_pengisian_spklu])
+                        ? self::TYPE_CHARGE_WATT[$inst->jenis_pengisian_spklu]
+                        : null,
+                    'jumlah_charger' => 1,
+                    'jumlah_konektor' => $connectors->count(),
+                    'icon' => null,
+                    'gambar' => $firstConnector?->img_path,
+                    'harga_pengisian' => $inst->harga_pengisian_raw,
+                    'harga_layanan' => $inst->harga_layanan_raw,
+                ],
+                'connectors' => $connectors->map(fn ($kon) => [
+                    'source_connector_id' => $kon->esdm_id,
+                    'nama_konektor' => $kon->nama_konektor,
+                    'img_path' => $kon->img_path,
+                ])->all(),
+            ];
+        }
+
+        return $desired;
+    }
+
+    /** Snapshot existing charger+connector ESDM utk perbandingan. */
+    private function buildExistingEsdmChargers(ChargingStation $canonical): array
+    {
+        return $canonical->chargers()->with('connectors')->get()->map(fn ($charger) => [
+            'charger' => [
+                'source_charger_id' => $charger->source_charger_id,
+                'chargerbox_id' => $charger->chargerbox_id,
+                'type_charge' => $charger->type_charge,
+                'nama' => $charger->nama,
+                'watt' => $charger->watt,
+                'jumlah_charger' => $charger->jumlah_charger,
+                'jumlah_konektor' => $charger->jumlah_konektor,
+                'icon' => $charger->icon,
+                'gambar' => $charger->gambar,
+                'harga_pengisian' => $charger->harga_pengisian,
+                'harga_layanan' => $charger->harga_layanan,
+            ],
+            'connectors' => $charger->connectors->map(fn ($kon) => [
+                'source_connector_id' => $kon->source_connector_id,
+                'nama_konektor' => $kon->nama_konektor,
+                'img_path' => $kon->img_path,
+            ])->all(),
+        ])->all();
+    }
+
+    /**
+     * Replace child charger+konektor ESDM HANYA bila berbeda — mengembalikan
+     * [jumlahCharger, berubah]. Identik → nol penulisan (idempoten).
+     *
+     * @return array{0: int, 1: bool}
+     */
+    private function replaceChargersIfChanged(ChargingStation $canonical, EsdmSinggatSpkluStation $station): array
+    {
+        $desired = $this->buildDesiredEsdmChargers($station);
+
+        if ($this->buildExistingEsdmChargers($canonical) == $desired) {
+            return [count($desired), false];
+        }
+
+        $canonical->chargers()->delete();
+
+        $inserted = 0;
+        foreach ($desired as $row) {
+            $charger = ChargingStationCharger::create(
+                array_merge($row['charger'], ['station_id' => $canonical->id])
+            );
+            foreach ($row['connectors'] as $conn) {
+                ChargingStationConnector::create(
+                    array_merge($conn, ['charger_id' => $charger->id])
+                );
+            }
+            $inserted++;
+        }
+
+        return [$inserted, true];
+    }
+
     // ─── PLN (pln_charger_locations) ────────────────────────────────────────
 
     /**
@@ -591,17 +786,19 @@ class CanonicalStationHydrateService
         ];
     }
 
-    /** Replace seluruh child charger milik satu stasiun PLN (tanpa connectors). */
-    private function replacePlnChargers(ChargingStation $canonical, PlnChargerLocation $location): int
+    /**
+     * Sinkronkan child charger stasiun PLN secara change-aware: bandingkan
+     * baris desired vs existing by source_charger_id; hapus yang hilang,
+     * update yang berubah, insert yang baru.
+     *
+     * @return array{0: int, 1: bool} [jumlahCharger, berubah]
+     */
+    private function syncPlnChargers(ChargingStation $canonical, PlnChargerLocation $location): array
     {
-        $canonical->chargers()->delete();
-
-        $inserted = 0;
+        $desired = [];
         foreach ($location->plnChargerLocationDetails as $detail) {
             $typeCharge = $this->canonicalChargingType($detail);
-
-            ChargingStationCharger::create([
-                'station_id' => $canonical->id,
+            $desired[$detail->id] = [
                 'source_charger_id' => $detail->id,
                 'chargerbox_id' => $detail->chargebox_id,
                 'type_charge' => $typeCharge,
@@ -611,11 +808,43 @@ class CanonicalStationHydrateService
                 'jumlah_konektor' => (int) $detail->count_connector_charger,
                 'icon' => null,
                 'gambar' => null,
-            ]);
-            $inserted++;
+            ];
         }
 
-        return $inserted;
+        $existing = $canonical->chargers()->get()->keyBy('source_charger_id');
+        $changed = false;
+
+        $deleted = $canonical->chargers()
+            ->whereNotIn('source_charger_id', array_keys($desired))
+            ->delete();
+        if ($deleted > 0) {
+            $changed = true;
+        }
+
+        $written = 0;
+        foreach ($desired as $sourceId => $row) {
+            $current = $existing->get($sourceId);
+            if ($current === null) {
+                ChargingStationCharger::create(array_merge($row, ['station_id' => $canonical->id]));
+                $changed = true;
+                $written++;
+                continue;
+            }
+            $dirty = false;
+            foreach ($row as $key => $value) {
+                if ($this->looseDifferent($current->{$key}, $value)) {
+                    $current->{$key} = $value;
+                    $dirty = true;
+                }
+            }
+            if ($dirty) {
+                $current->save();
+                $changed = true;
+            }
+            $written++;
+        }
+
+        return [$written, $changed];
     }
 
     /**

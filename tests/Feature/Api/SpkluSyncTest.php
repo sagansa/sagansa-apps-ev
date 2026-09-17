@@ -117,4 +117,36 @@ class SpkluSyncTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_fold_esdm_status_does_not_bump_updated_at(): void
+    {
+        $station = ChargingStation::create([
+            'source' => 'esdm',
+            'source_station_id' => 77,
+            'nama_lokasi' => 'SPKLU ESDM X',
+            'latitude' => -6.2,
+            'longitude' => 106.8,
+            'availability_level' => 'unknown',
+            'available_count' => 0,
+        ]);
+        ChargingStation::query()->whereKey($station->id)->toBase()
+            ->update(['updated_at' => '2026-01-01 00:00:00']);
+
+        app(CanonicalStationHydrateService::class)->foldEsdmStatus(77, [
+            'availability_level' => 'available',
+            'available_count' => 2,
+            'charging_count' => 0,
+            'finishing_count' => 0,
+            'aggregated_at' => Carbon::parse('2026-09-17 08:00:00'),
+        ]);
+
+        $fresh = $station->fresh();
+        $this->assertSame('available', $fresh->availability_level);
+        $this->assertSame(2, $fresh->available_count);
+        // Status berubah tapi updated_at TIDAK boleh ter-bump.
+        $this->assertSame(
+            '2026-01-01 00:00:00',
+            $fresh->updated_at->format('Y-m-d H:i:s')
+        );
+    }
 }

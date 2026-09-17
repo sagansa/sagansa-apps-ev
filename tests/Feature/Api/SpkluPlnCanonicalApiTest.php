@@ -138,6 +138,18 @@ class SpkluPlnCanonicalApiTest extends TestCase
             ->assertJsonPath('data.charge_types', ['Fast Charging']);
     }
 
+    public function test_meta_filters_include_data_version(): void
+    {
+        $this->seedPln();
+
+        $response = $this->getJson('/api/v1/meta/filters');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertArrayHasKey('data_version', $data);
+        $this->assertNotEmpty($data['data_version']);
+    }
+
     public function test_esdm_rows_are_not_served_when_serving_pln(): void
     {
         $this->seedPln();
@@ -156,6 +168,57 @@ class SpkluPlnCanonicalApiTest extends TestCase
         $response = $this->getJson('/api/v1/spklu');
         $response->assertOk();
         $this->assertNotContains('SPKLU ESDM LAMA', collect($response->json('data'))->pluck('nama_lokasi'));
+    }
+
+    public function test_hydrate_pln_is_idempotent_when_master_unchanged(): void
+    {
+        $this->seedPln();
+
+        $station = ChargingStation::where('source', CanonicalStationHydrateService::SOURCE_PLN)->firstOrFail();
+        $chargerId = $station->chargers()->firstOrFail()->id;
+
+        // Bekukan updated_at via query builder (bypass auto-timestamps).
+        ChargingStation::query()->whereKey($station->id)->toBase()
+            ->update(['updated_at' => '2026-01-01 00:00:00']);
+
+        app(CanonicalStationHydrateService::class)->hydrateFromPln();
+
+        $fresh = $station->fresh();
+        // Tidak ada perubahan master → updated_at TIDAK boleh ter-bump.
+        $this->assertSame(
+            '2026-01-01 00:00:00',
+            $fresh->updated_at->format('Y-m-d H:i:s')
+        );
+        // Charger tidak di-recreate → id stabil.
+        $this->assertSame($chargerId, $fresh->chargers()->firstOrFail()->id);
+    }
+
+    public function test_hydrate_pln_touches_station_when_master_changes(): void
+    {
+        $this->seedPln();
+
+        $station = ChargingStation::where('source', CanonicalStationHydrateService::SOURCE_PLN)->firstOrFail();
+        ChargingStation::query()->whereKey($station->id)->toBase()
+            ->update(['updated_at' => '2026-01-01 00:00:00']);
+
+        // Ubah master: tambah satu charger detail baru.
+        $location = \App\Models\PlnChargerLocation::firstOrFail();
+        $this->addDetail($location, [
+            'chargebox_id' => 'CB-9999',
+            'chargebox_name' => 'Wallbox Baru',
+            'power' => '7',
+            'charging_type' => 'STANDARD CHARGING',
+            'merk' => 'Wallbox',
+        ]);
+
+        app(CanonicalStationHydrateService::class)->hydrateFromPln();
+
+        $fresh = $station->fresh();
+        $this->assertSame(2, $fresh->chargers()->count());
+        $this->assertGreaterThan(
+            '2026-01-01 00:00:00',
+            $fresh->updated_at->format('Y-m-d H:i:s')
+        );
     }
 
     // ─── Setup ──────────────────────────────────────────────────────────────
