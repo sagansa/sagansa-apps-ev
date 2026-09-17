@@ -124,7 +124,7 @@ class CanonicalStationHydrateService
      * connector_status yang sudah ada (bila poller pernah jalan). Charger box
      * yang konektornya belum terlacak tetap 'unknown' sampai poller berjalan.
      *
-     * @return array{processed: int, created: int, updated: int, skipped: int, chargers: int, geo_cleaned: int, charger_boxes_folded: int}
+     * @return array{processed: int, created: int, updated: int, unchanged: int, skipped: int, chargers: int, geo_cleaned: int, charger_boxes_folded: int}
      */
     public function hydrateFromEsdm(): array
     {
@@ -592,49 +592,6 @@ class CanonicalStationHydrateService
             'status_updated_at' => $status?->aggregated_at,
             'raw_payload' => $raw,
         ];
-    }
-
-    /** Replace seluruh child charger + konektor milik satu stasiun. */
-    private function replaceChargers(ChargingStation $canonical, EsdmSinggatSpkluStation $station): int
-    {
-        $canonical->chargers()->delete();
-
-        $inserted = 0;
-        foreach ($station->installations as $inst) {
-            $connectors = $inst->connectors;
-            $firstConnector = $connectors->first();
-
-            $charger = ChargingStationCharger::create([
-                'station_id' => $canonical->id,
-                'source_charger_id' => $inst->esdm_id,
-                'chargerbox_id' => $inst->nomor_identitas,
-                'type_charge' => $inst->jenis_pengisian_spklu,
-                'nama' => $inst->merek_mesin,
-                'watt' => isset(self::TYPE_CHARGE_WATT[$inst->jenis_pengisian_spklu])
-                    ? self::TYPE_CHARGE_WATT[$inst->jenis_pengisian_spklu]
-                    : null,
-                'jumlah_charger' => 1,
-                'jumlah_konektor' => $connectors->count(),
-                'icon' => null,
-                'gambar' => $firstConnector?->img_path,
-                'harga_pengisian' => $inst->harga_pengisian_raw,
-                'harga_layanan' => $inst->harga_layanan_raw,
-            ]);
-
-            // Child connectors (plug individual) — master data + img_path.
-            // Status real-time di-fold terpisah oleh poller.
-            foreach ($connectors as $kon) {
-                ChargingStationConnector::create([
-                    'charger_id' => $charger->id,
-                    'source_connector_id' => $kon->esdm_id,
-                    'nama_konektor' => $kon->nama_konektor,
-                    'img_path' => $kon->img_path,
-                ]);
-            }
-            $inserted++;
-        }
-
-        return $inserted;
     }
 
     /**
