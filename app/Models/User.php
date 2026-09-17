@@ -131,6 +131,16 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
+     * Get all of the service logs (catatan servis kendaraan, fitur Pro).
+     *
+     * @return HasMany
+     */
+    public function serviceLogs()
+    {
+        return $this->hasMany(ServiceLog::class);
+    }
+
+    /**
      * Get all of the charges.
      *
      * @return HasMany
@@ -178,6 +188,11 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     public function approvedUpdates()
     {
         return $this->hasMany(LocationUpdate::class, 'approved_by');
+    }
+
+    public function obdAccess()
+    {
+        return $this->hasOne(ObdAccess::class);
     }
 
     public function canAccessPanel(Panel $panel): bool

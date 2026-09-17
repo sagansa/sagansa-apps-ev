@@ -133,6 +133,7 @@ class VehicleController extends Controller
             'battery_capacity_kwh' => 'nullable|numeric|min:0|max:300',
             'ac_charging_power_kw' => 'nullable|numeric|min:0|max:500',
             'initial_odometer' => 'nullable|numeric|min:0',
+            'tax_due_date' => 'nullable|date',
             'ownership' => 'nullable|date',
             'status' => 'nullable|integer',
             'image' => 'nullable|string',
@@ -159,6 +160,7 @@ class VehicleController extends Controller
             'battery_capacity_kwh' => $validated['battery_capacity_kwh'] ?? null,
             'ac_charging_power_kw' => $validated['ac_charging_power_kw'] ?? null,
             'initial_odometer' => $validated['initial_odometer'] ?? 0,
+            'tax_due_date' => $validated['tax_due_date'] ?? null,
             'ownership' => $validated['ownership'] ?? null,
             'status' => $validated['status'] ?? 1,
             'image' => $validated['image'] ?? null,
@@ -229,6 +231,7 @@ class VehicleController extends Controller
             'battery_capacity_kwh' => 'nullable|numeric|min:0|max:300',
             'ac_charging_power_kw' => 'nullable|numeric|min:0|max:500',
             'initial_odometer' => 'nullable|numeric|min:0',
+            'tax_due_date' => 'nullable|date',
             'ownership' => 'nullable|date',
             'status' => 'nullable|integer',
             'image' => 'nullable|string',
@@ -255,6 +258,9 @@ class VehicleController extends Controller
         }
         if (array_key_exists('initial_odometer', $validated)) {
             $data['initial_odometer'] = $validated['initial_odometer'];
+        }
+        if (array_key_exists('tax_due_date', $validated)) {
+            $data['tax_due_date'] = $validated['tax_due_date'];
         }
         if (array_key_exists('ownership', $validated)) {
             $data['ownership'] = $validated['ownership'];

@@ -816,7 +816,7 @@ class ChargingSessionTest extends ApiTestCase
             ->assertJsonPath('data.vehicle_id', $vehicle2->id);
     }
 
-    public function test_store_allows_finished_session_when_vehicle_already_has_unfinished(): void
+    public function test_store_rejects_finished_session_when_vehicle_has_unfinished(): void
     {
         $vehicle = Vehicle::factory()->for($this->authUser)->create();
 
@@ -829,7 +829,7 @@ class ChargingSessionTest extends ApiTestCase
             'kWh' => 10,
         ]);
 
-        // Sesi sudah selesai → boleh (tidak melanggar aturan).
+        // Sesi baru (finished) → juga ditolak karena kendaraan punya sesi berjalan.
         $response = $this->postJson('/api/v1/charging-sessions', [
             'vehicle_id' => $vehicle->id,
             'date' => now()->toDateString(),
@@ -838,8 +838,11 @@ class ChargingSessionTest extends ApiTestCase
             'total_cost' => 50000,
         ]);
 
-        $response->assertStatus(201)
-            ->assertJsonPath('data.is_finish_charging', true);
+        $response->assertStatus(409)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Masih ada sesi berjalan untuk kendaraan ini. Selesaikan sesi tersebut dulu.',
+            ]);
     }
 
     public function test_update_rejects_unfishing_when_other_session_exists_for_same_vehicle(): void

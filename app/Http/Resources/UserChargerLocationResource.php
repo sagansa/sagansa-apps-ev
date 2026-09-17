@@ -27,9 +27,29 @@ class UserChargerLocationResource extends JsonResource
             'city_id' => $this->city_id,
             'province_name' => $this->province_name,
             'city_name' => $this->city_name,
-            // location_on = 2 → home/private.
             'is_home_charging' => (int) $this->location_on === 2,
             'status' => $this->status,
+            'chargers' => $this->whenLoaded('chargers', function () {
+                return $this->chargers->map(fn ($charger) => [
+                    'id' => $charger->id,
+                    'current_charger_id' => $charger->current_charger_id,
+                    'type_charger_id' => $charger->type_charger_id,
+                    'power_charger_id' => $charger->power_charger_id,
+                    'unit' => $charger->unit,
+                    'current_charger' => $charger->currentCharger ? [
+                        'id' => $charger->currentCharger->id,
+                        'name' => $charger->currentCharger->name,
+                    ] : null,
+                    'type_charger' => $charger->typeCharger ? [
+                        'id' => $charger->typeCharger->id,
+                        'name' => $charger->typeCharger->name,
+                    ] : null,
+                    'power_charger' => $charger->powerCharger ? [
+                        'id' => $charger->powerCharger->id,
+                        'name' => $charger->powerCharger->name,
+                    ] : null,
+                ]);
+            }),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

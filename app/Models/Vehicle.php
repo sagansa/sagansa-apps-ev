@@ -24,6 +24,7 @@ class Vehicle extends Model
         'battery_capacity_kwh',
         'ac_charging_power_kw',
         'initial_odometer',
+        'tax_due_date',
         'brand_vehicle_id',
         'model_vehicle_id',
         'type_vehicle_id',
@@ -35,6 +36,7 @@ class Vehicle extends Model
         'battery_capacity_kwh' => 'float',
         'ac_charging_power_kw' => 'float',
         'initial_odometer' => 'float',
+        'tax_due_date' => 'date',
         'status' => 'integer',
     ];
 
@@ -66,6 +68,15 @@ class Vehicle extends Model
     public function batteries()
     {
         return $this->hasMany(Battery::class);
+    }
+
+    /**
+     * Catatan servis kendaraan (fitur Pro) — sumber jadwal pengingat servis
+     * di mobile via `next_due_date`/`next_due_km`.
+     */
+    public function serviceLogs()
+    {
+        return $this->hasMany(ServiceLog::class);
     }
 
     /**

@@ -58,7 +58,7 @@ class PlnChargerLocationController extends Controller
             });
         }
 
-        $plnLocations = $query->get()->map(fn (PlnChargerLocation $location) => $this->transformLocation($location));
+        $plnLocations = $query->get()->map(fn (PlnChargerLocation $location) => $this->transformLocation($location, $request));
 
         return response()->json([
             'success' => true,
@@ -70,31 +70,28 @@ class PlnChargerLocationController extends Controller
     /**
      * Transform the PLN location into a consistent API response structure.
      */
-    private function transformLocation(PlnChargerLocation $location): array
+    private function transformLocation(PlnChargerLocation $location, ?\Illuminate\Http\Request $request = null): array
     {
-        return [
-            'id' => (string) $location->id,
+        $id = (string) $location->id;
+        $encode = false;
+        if ($request) {
+            $encode = config('spklu.coord_codec_enforce', false)
+                || strtolower(trim((string) $request->header('X-Coord-Codec'))) === 'v1';
+        }
+
+        $data = [
+            'id' => $id,
             'name' => $location->name,
-            // 'provider_id' => $location->provider_id ? (string) $location->provider_id : null,
             'provider' => $location->provider ? [
                 'image' => $location->provider->image,
                 'name' => $location->provider->name,
             ] : null,
-            'latitude' => (float) $location->latitude,
-            'longitude' => (float) $location->longitude,
             'address' => $location->address ?? '',
             'kategori_tol' => $location->kategori_tol,
             'province' => $location->province ? [
                 'name' => $location->province->name,
             ] : null,
-            // 'location_category_id' => $location->location_category_id ? (string) $location->location_category_id : null,
             'location_category_name' => $location->locationCategory?->name,
-            // 'location_category' => $location->locationCategory ? [
-            //     'id' => (string) $location->locationCategory->id,
-            //     'name' => $location->locationCategory->name,
-            // ] : null,
-            // 'data_source' => $location->data_source,
-            // 'verification_status' => $location->verification_status,
             'details' => $location->plnChargerLocationDetails->map(function ($detail) {
                 return [
                     'power' => $detail->power,
@@ -108,6 +105,16 @@ class PlnChargerLocationController extends Controller
                 ];
             })->all(),
         ];
+
+        if ($encode) {
+            $codec = new \App\Support\CoordinateCodec;
+            $data['loc'] = $codec->encode($id, (float) $location->latitude, (float) $location->longitude);
+        } else {
+            $data['latitude'] = (float) $location->latitude;
+            $data['longitude'] = (float) $location->longitude;
+        }
+
+        return $data;
     }
 
     private function activeChargerValues(): array

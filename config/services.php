@@ -38,4 +38,9 @@ return [
         'enabled' => env('ADMOB_ENABLED', true),
     ],
 
+    'openchargemap' => [
+        'key' => env('OCM_API_KEY'),
+        'base_url' => env('OCM_BASE_URL', 'https://api.openchargemap.io/v3/poi/'),
+    ],
+
 ];

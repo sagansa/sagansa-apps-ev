@@ -42,6 +42,7 @@ class AdminPanelProvider extends PanelProvider
                 'Referensi Kendaraan',
                 'Provider & SPKLU',
                 'Konten',
+                'OBD2',
                 'Admin',
             ])
             ->colors([

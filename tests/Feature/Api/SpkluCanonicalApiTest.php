@@ -58,6 +58,61 @@ class SpkluCanonicalApiTest extends TestCase
         $this->assertSame('Chargepoint', $first['charger_boxes'][0]['nama_chargerbox']);
     }
 
+    public function test_index_with_coord_codec_header_removes_lat_lng_and_adds_loc(): void
+    {
+        $this->seedCanonical();
+
+        $response = $this->getJson('/api/v1/spklu', ['X-Coord-Codec' => 'v1']);
+
+        $response->assertOk();
+        $json = $response->json();
+
+        $codec = new \App\Support\CoordinateCodec; // secret dari config app — sama dgn yang dipakai endpoint
+        foreach ($json['data'] as $item) {
+            $this->assertArrayNotHasKey('latitude', $item, 'latitude should not be present with codec header');
+            $this->assertArrayNotHasKey('longitude', $item, 'longitude should not be present with codec header');
+            $this->assertArrayHasKey('loc', $item, 'loc should be present with codec header');
+            $this->assertNotEmpty($item['loc']);
+
+            // loc harus ter-decode kembali ke koordinat stasiun di DB.
+            $decoded = $codec->decode($item['id'], $item['loc']);
+            $this->assertNotNull($decoded, "loc for id {$item['id']} should decode");
+            $station = ChargingStation::find($item['id']);
+            $this->assertEqualsWithDelta((float) $station->latitude, $decoded['lat'], 0.00000001);
+            $this->assertEqualsWithDelta((float) $station->longitude, $decoded['lng'], 0.00000001);
+        }
+    }
+
+    public function test_index_without_header_returns_plain_lat_lng(): void
+    {
+        $this->seedCanonical();
+
+        $response = $this->getJson('/api/v1/spklu');
+
+        $response->assertOk();
+        $json = $response->json();
+
+        foreach ($json['data'] as $item) {
+            $this->assertArrayHasKey('latitude', $item);
+            $this->assertArrayHasKey('longitude', $item);
+            $this->assertArrayNotHasKey('loc', $item);
+        }
+    }
+
+    public function test_show_with_codec_header_encodes_coordinates(): void
+    {
+        $this->seedCanonical();
+        $station = ChargingStation::where('source_station_id', 101)->firstOrFail();
+
+        $response = $this->getJson('/api/v1/spklu/'.$station->id, ['X-Coord-Codec' => 'v1']);
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertArrayNotHasKey('latitude', $data);
+        $this->assertArrayNotHasKey('longitude', $data);
+        $this->assertArrayHasKey('loc', $data);
+    }
+
     public function test_index_filters_by_speed_id_mapping_type_charge(): void
     {
         $this->seedCanonical();
@@ -124,6 +179,59 @@ class SpkluCanonicalApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.provinces', ['DKI Jakarta', 'Sulawesi Selatan'])
             ->assertJsonPath('data.charge_types', ['Fast Charging', 'Medium Charging']);
+    }
+
+    public function test_meta_filters_include_data_version(): void
+    {
+        $this->seedCanonical();
+
+        $response = $this->getJson('/api/v1/meta/filters');
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertArrayHasKey('data_version', $data);
+        $this->assertNotEmpty($data['data_version']);
+    }
+
+    public function test_index_response_includes_data_version_in_meta(): void
+    {
+        $this->seedCanonical();
+
+        $response = $this->getJson('/api/v1/spklu');
+
+        $response->assertOk();
+        $meta = $response->json('meta');
+        $this->assertArrayHasKey('data_version', $meta);
+        $this->assertNotEmpty($meta['data_version']);
+
+        // additional(['meta' => ...]) tidak boleh menimpa meta pagination.
+        $this->assertArrayHasKey('current_page', $meta);
+        $this->assertArrayHasKey('per_page', $meta);
+        $this->assertArrayHasKey('total', $meta);
+    }
+
+    public function test_data_version_changes_when_data_changes(): void
+    {
+        $this->seedCanonical();
+
+        $response1 = $this->getJson('/api/v1/spklu');
+        $version1 = $response1->json('meta.data_version');
+
+        // Add a new station.
+        ChargingStation::create([
+            'source' => CanonicalStationHydrateService::SOURCE_ESDM,
+            'source_station_id' => 999,
+            'nama_lokasi' => 'SPKLU BARU',
+            'latitude' => -6.3,
+            'longitude' => 106.9,
+            'provinsi' => 'DKI Jakarta',
+            'type_charge' => 'Fast Charging',
+        ]);
+
+        $response2 = $this->getJson('/api/v1/spklu');
+        $version2 = $response2->json('meta.data_version');
+
+        $this->assertNotSame($version1, $version2, 'data_version should change when data is added');
     }
 
     // ─── Setup ──────────────────────────────────────────────────────────────

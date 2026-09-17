@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\V1\Controller;
+use App\Http\Resources\ChargerLocationResource;
 use App\Models\ChargerLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -48,11 +49,11 @@ class ChargerLocationController extends Controller
 
         $chargerLocations = $query->paginate($request->per_page ?? 15);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Charging locations retrieved successfully',
-            'data' => $chargerLocations,
-        ]);
+        return ChargerLocationResource::collection($chargerLocations)
+            ->additional([
+                'success' => true,
+                'message' => 'Charging locations retrieved successfully',
+            ]);
     }
 
     /**
@@ -124,11 +125,11 @@ class ChargerLocationController extends Controller
             'chargers.typeCharger',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Charging location retrieved successfully',
-            'data' => $chargerLocation,
-        ]);
+        return ChargerLocationResource::make($chargerLocation)
+            ->additional([
+                'success' => true,
+                'message' => 'Charging location retrieved successfully',
+            ]);
     }
 
     /**
@@ -233,18 +234,18 @@ class ChargerLocationController extends Controller
         // Add distance to each location
         $nearbyChargers->each(function ($charger) use ($latitude, $longitude) {
             $charger->distance = $this->calculateDistance(
-                $latitude, 
-                $longitude, 
-                $charger->latitude, 
+                $latitude,
+                $longitude,
+                $charger->latitude,
                 $charger->longitude
             );
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Nearby charging locations retrieved successfully',
-            'data' => $nearbyChargers,
-        ]);
+        return ChargerLocationResource::collection($nearbyChargers)
+            ->additional([
+                'success' => true,
+                'message' => 'Nearby charging locations retrieved successfully',
+            ]);
     }
 
     /**

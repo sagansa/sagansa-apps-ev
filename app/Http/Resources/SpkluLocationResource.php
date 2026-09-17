@@ -2,21 +2,34 @@
 
 namespace App\Http\Resources;
 
+use App\Support\CoordinateCodec;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class SpkluLocationResource extends JsonResource
 {
+    private static ?CoordinateCodec $codec = null;
+
+    private static function codec(): CoordinateCodec
+    {
+        if (self::$codec === null) {
+            self::$codec = new CoordinateCodec;
+        }
+
+        return self::$codec;
+    }
+
     public function toArray(Request $request): array
     {
-        return [
-            'id' => (int) ($this->external_id ?? $this->id),
+        $encode = $this->shouldEncode($request);
+        $id = (int) ($this->external_id ?? $this->id);
+
+        $data = [
+            'id' => $id,
             'provinsi' => $this->provinsi,
             'kabupaten_kota' => $this->kabupaten_kota,
             'nama_lokasi' => $this->nama_lokasi,
             'alamat' => $this->alamat,
-            'latitude' => (float) $this->latitude,
-            'longitude' => (float) $this->longitude,
             'keterangan' => $this->keterangan,
             'status' => (int) ($this->status ?? 1),
             'toll_category' => $this->toll_category ?? $this->kategori_tol,
@@ -27,7 +40,6 @@ class SpkluLocationResource extends JsonResource
             'watt' => $this->watt,
             'total_charger' => (int) $this->total_charger,
             'total_konektor' => (int) $this->total_konektor,
-            // Status real-time agregat (fold dari konektor ESDM oleh poller)
             'availability_level' => $this->availability_level,
             'available_count' => (int) $this->available_count,
             'charging_count' => (int) $this->charging_count,
@@ -46,11 +58,28 @@ class SpkluLocationResource extends JsonResource
                     'ios' => $this->provider->ios,
                 ];
             }),
-            // Prioritas: nama dari tabel providers (relasi). Bila unmatched (tidak
-            // ada provider_id), null — jangan tampilkan nama_badan_usaha mentah ESDM.
             'provider_name' => $this->provider?->name,
             'provider_logo' => $this->provider?->logo ?? null,
             'charger_boxes' => SpkluChargerBoxResource::collection($this->whenLoaded('chargerBoxes')),
         ];
+
+        if ($encode) {
+            $encoded = self::codec()->encode($id, (float) $this->latitude, (float) $this->longitude);
+            $data['loc'] = $encoded;
+        } else {
+            $data['latitude'] = (float) $this->latitude;
+            $data['longitude'] = (float) $this->longitude;
+        }
+
+        return $data;
+    }
+
+    private function shouldEncode(Request $request): bool
+    {
+        if (config('spklu.coord_codec_enforce', false)) {
+            return true;
+        }
+
+        return strtolower(trim((string) $request->header('X-Coord-Codec'))) === 'v1';
     }
 }

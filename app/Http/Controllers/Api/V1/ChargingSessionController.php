@@ -113,8 +113,10 @@ class ChargingSessionController extends Controller
             $validated['finish_charging_before'] = $previous?->finish_charging_now;
         }
 
-        // Enforce: maksimal satu sesi berjalan (is_finish_charging = false) per kendaraan.
-        if (! empty($validated['vehicle_id']) && ($validated['is_finish_charging'] ?? false) === false) {
+        // Enforce: kendaraan yang punya sesi berjalan (is_finish_charging = false)
+        // tidak bisa mendapat sesi baru apa pun (cepat/lengkap) sampai sesi itu
+        // diselesaikan.
+        if (! empty($validated['vehicle_id'])) {
             $existingUnfinished = Charge::where('user_id', Auth::id())
                 ->where('vehicle_id', $validated['vehicle_id'])
                 ->where('is_finish_charging', false)
