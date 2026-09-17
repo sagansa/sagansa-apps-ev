@@ -59,6 +59,30 @@ class SpkluLocationController extends Controller
             });
         }
 
+        // Marker WAJIB dihitung SEBELUM query baris dieksekusi (paginate):
+        // perubahan yang terjadi setelah snapshot ini tertangkap sinkron
+        // berikutnya (lihat D5 di spec).
+        $markers = $this->computeSyncMarkers();
+
+        $updatedSince = null;
+        if ($request->filled('updated_since')) {
+            try {
+                $updatedSince = \Illuminate\Support\Carbon::rawParse(
+                    $request->string('updated_since')->toString(),
+                    'UTC'
+                );
+            } catch (\Throwable) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'updated_since harus ISO-8601 UTC yang valid',
+                ], 422);
+            }
+            $query->where(function ($q) use ($updatedSince) {
+                $q->where('created_at', '>', $updatedSince)
+                    ->orWhere('updated_at', '>', $updatedSince);
+            });
+        }
+
         $lat = $request->filled('lat') ? (float) $request->lat : null;
         $lng = $request->filled('lng') ? (float) $request->lng : null;
         $radius = $request->filled('radius') ? (float) $request->radius : null;
@@ -80,9 +104,9 @@ class SpkluLocationController extends Controller
         return SpkluLocationResource::collection($locations)
             ->additional([
                 'status' => 'success',
-                'meta' => [
+                'meta' => array_merge($markers, [
                     'data_version' => $this->computeDataVersion(),
-                ],
+                ]),
             ]);
     }
 
