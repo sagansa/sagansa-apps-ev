@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Resources\SpkluLocationResource;
 use App\Models\ChargingStation;
+use App\Support\SpkluServing;
 use Illuminate\Http\Request;
 
 /**
@@ -17,10 +18,7 @@ class SpkluLocationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ChargingStation::with(['chargerBoxes.connectors', 'provider'])
-            ->where('source', config('spklu.serving_source'))
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude');
+        $query = SpkluServing::baseQuery();
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -62,7 +60,7 @@ class SpkluLocationController extends Controller
         // Marker WAJIB dihitung SEBELUM query baris dieksekusi (paginate):
         // perubahan yang terjadi setelah snapshot ini tertangkap sinkron
         // berikutnya (lihat D5 di spec).
-        $markers = $this->computeSyncMarkers();
+        $markers = SpkluServing::computeSyncMarkers();
 
         $updatedSince = null;
         if ($request->filled('updated_since')) {
@@ -105,50 +103,9 @@ class SpkluLocationController extends Controller
             ->additional([
                 'status' => 'success',
                 'meta' => array_merge($markers, [
-                    'data_version' => $this->computeDataVersion(),
+                'data_version' => SpkluServing::computeDataVersion(),
                 ]),
             ]);
-    }
-
-    /**
-     * Versi dataset — dipakai mobile utk memutuskan perlu fetch penuh atau tidak.
-     * Format: md5(count + '|' + max(updated_at))
-     */
-    private function computeDataVersion(): string
-    {
-        $stats = ChargingStation::where('source', config('spklu.serving_source'))
-            ->selectRaw('COUNT(*) as cnt, MAX(updated_at) as latest')
-            ->first();
-
-        $raw = ($stats->cnt ?? 0) . '|' . ($stats->latest ?? '');
-
-        return md5($raw);
-    }
-
-    /**
-     * Marker sinkronisasi delta klien — hanya berubah saat ada penambahan/
-     * penghapusan lokasi atau edit master data (bukan perubahan status
-     * availabilitas). Nilai timestamp dari DB (naive UTC) di-normalize ke
-     * ISO-8601 UTC.
-     *
-     * @return array{count: int, max_created_at: string|null, max_updated_at: string|null}
-     */
-    private function computeSyncMarkers(): array
-    {
-        $stats = ChargingStation::query()
-            ->where('source', config('spklu.serving_source'))
-            ->selectRaw('COUNT(*) AS cnt, MAX(created_at) AS max_created, MAX(updated_at) AS max_updated')
-            ->first();
-
-        return [
-            'count' => (int) ($stats->cnt ?? 0),
-            'max_created_at' => $stats->max_created
-                ? \Illuminate\Support\Carbon::rawParse($stats->max_created, 'UTC')->toISOString()
-                : null,
-            'max_updated_at' => $stats->max_updated
-                ? \Illuminate\Support\Carbon::rawParse($stats->max_updated, 'UTC')->toISOString()
-                : null,
-        ];
     }
 
     /**
@@ -159,7 +116,7 @@ class SpkluLocationController extends Controller
     {
         return response()->json([
             'status' => 'success',
-            'data' => $this->computeSyncMarkers(),
+            'data' => SpkluServing::computeSyncMarkers(),
         ]);
     }
 
@@ -227,7 +184,7 @@ class SpkluLocationController extends Controller
                 'charge_types' => $chargeTypes->values(),
                 'kategori_tol' => $kategoriTol->values(),
                 'kategori_lokasi' => $kategoriLokasi->values(),
-                'data_version' => $this->computeDataVersion(),
+                'data_version' => SpkluServing::computeDataVersion(),
             ],
         ]);
     }
