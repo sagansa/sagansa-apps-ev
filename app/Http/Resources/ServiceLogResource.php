@@ -27,6 +27,7 @@ class ServiceLogResource extends JsonResource
             'date' => $this->date ? Carbon::parse($this->date)->toDateString() : null,
             'odometer_km' => isset($this->odometer_km) ? (int) $this->odometer_km : null,
             'service_type' => $this->service_type,
+            'service_items' => $this->service_items ?? [],
             'workshop' => $this->workshop,
             'cost_rp' => isset($this->cost_rp) ? (int) $this->cost_rp : null,
             'notes' => $this->notes,
@@ -34,6 +35,7 @@ class ServiceLogResource extends JsonResource
             'interval_km' => isset($this->interval_km) ? (int) $this->interval_km : null,
             'next_due_date' => $this->next_due_date ? Carbon::parse($this->next_due_date)->toDateString() : null,
             'next_due_km' => isset($this->next_due_km) ? (int) $this->next_due_km : null,
+            'photos' => ServiceLogPhotoResource::collection($this->whenLoaded('photos')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

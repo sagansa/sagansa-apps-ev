@@ -28,6 +28,7 @@ class ServiceLog extends Model
         'date',
         'odometer_km',
         'service_type',
+        'service_items',
         'workshop',
         'cost_rp',
         'notes',
@@ -41,6 +42,7 @@ class ServiceLog extends Model
         'date' => 'date',
         'odometer_km' => 'integer',
         'cost_rp' => 'integer',
+        'service_items' => 'array',
         'interval_months' => 'integer',
         'interval_km' => 'integer',
         'next_due_date' => 'date',
@@ -55,6 +57,31 @@ class ServiceLog extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function photos()
+    {
+        return $this->hasMany(ServiceLogPhoto::class);
+    }
+
+    /**
+     * Label tampilan: item pertama service_items, fallback service_type lama,
+     * terakhir label generik. Dipakai reminder engine bila menyentuh service_type.
+     */
+    public function displayLabel(): string
+    {
+        $items = $this->service_items;
+        if (is_string($items)) {
+            $items = json_decode($items, true);
+        }
+        if (is_array($items) && count($items) > 0 && is_string($items[0]) && trim($items[0]) !== '') {
+            return trim($items[0]);
+        }
+        if (! empty($this->service_type)) {
+            return $this->service_type;
+        }
+
+        return 'servis';
     }
 
     /**

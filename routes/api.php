@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\StationReviewController;
 use App\Http\Controllers\Api\V1\TesterController;
 use App\Http\Controllers\Api\V1\SavedStationController;
 use App\Http\Controllers\Api\V1\ServiceLogController;
+use App\Http\Controllers\Api\V1\ServiceLogPhotoController;
 use App\Http\Controllers\Api\V1\OcmNearbyController;
 use App\Http\Controllers\Api\V1\UserChargerLocationController;
 use App\Http\Controllers\Api\V1\VehicleController;
@@ -125,6 +126,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/state-of-health/{vehicleId}/trend-analysis', [StateOfHealthController::class, 'trendAnalysis']);
         Route::apiResource('batteries', BatteryController::class);
         Route::apiResource('service-logs', ServiceLogController::class);
+        Route::post('/service-logs/{serviceLog}/photos', [ServiceLogPhotoController::class, 'store']);
+        Route::delete('/service-log-photos/{photo}', [ServiceLogPhotoController::class, 'destroy']);
         Route::post('/vehicles/{vehicle}/swap-battery', [BatteryController::class, 'swap']);
         Route::apiResource('home-charging-discounts', HomeChargingDiscountController::class);
         Route::post('/home-charging-discounts/apply', [HomeChargingDiscountController::class, 'apply']);
