@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Auth;
  * dihapus. Mendukung dua sumber lokasi: charging_stations (mobile) atau
  * charger_locations (legacy Filament). Vehicle opsional; field pengukuran
  * opsional untuk input cepat di lapangan.
+ *
+ * Tautan ke charger_location/charger TIDAK dibuat diam-diam di sini: sesi
+ * membawanya bila user memilih lokasi (custom/home, atau lokasi hasil
+ * "buat dari All Map" via UserChargerLocationController::storeFromStation).
  */
 class ChargingSessionController extends Controller
 {
@@ -145,7 +149,7 @@ class ChargingSessionController extends Controller
             $this->stationSnapshot($request),
         ));
 
-        $charge->load(['vehicle', 'battery', 'chargingStation', 'chargerLocation']);
+        $charge->load(['vehicle', 'battery', 'chargingStation', 'chargerLocation', 'charger']);
 
         return response()->json([
             'success' => true,

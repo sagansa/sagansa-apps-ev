@@ -28,6 +28,9 @@ class ChargingSessionResource extends JsonResource
             // chargerLocation supaya nama/alamat/provider tetap terisi.
             'charging_station_id' => $this->charging_station_id,
             'charger_location_id' => $this->charger_location_id,
+            // Charger terstruktur yang terhubung sesi — hasil resolve-or-create
+            // dari data All Map (atau pilihan user di lokasi custom/home).
+            'charger_id' => $this->charger_id,
             'station_name' => $this->station_name_snapshot ?? $this->chargerLocation?->name,
             'station_address' => $this->station_address_snapshot ?? $this->chargerLocation?->address,
             'station_latitude' => isset($this->station_lat_snapshot)

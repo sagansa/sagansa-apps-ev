@@ -115,6 +115,10 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('vehicles', VehicleController::class);
         Route::apiResource('charging-locations', ChargerLocationController::class)->except(['index', 'show']);
         Route::apiResource('my/charging-locations', UserChargerLocationController::class)->only(['index', 'store', 'update', 'destroy']);
+        // Buat/pakai-ulang charger location dari data All Map (station PLN).
+        // Harus SEBELUM route {chargingLocation}/chargers agar literal path
+        // tidak tertelan param.
+        Route::post('/my/charging-locations/from-station', [UserChargerLocationController::class, 'storeFromStation']);
         Route::post('/my/charging-locations/{chargingLocation}/chargers', [UserChargerLocationController::class, 'addCharger']);
         Route::get('/my/charger-references', [UserChargerLocationController::class, 'references']);
         Route::get('/charging-sessions/analytics', [ChargingSessionController::class, 'analytics']);

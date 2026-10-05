@@ -47,6 +47,9 @@ class ChargerLocation extends Model
         'is_master',
         'verified_by',
         'verified_at',
+        // Soft-link station All Map (charging_stations) — hasil pindahan data
+        // saat sesi mobile pertama kali mencatat lokasi ini.
+        'charging_station_id',
     ];
 
     protected $appends = [

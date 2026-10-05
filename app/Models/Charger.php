@@ -25,7 +25,9 @@ class Charger extends Model
         'type_charger_id',
         'power_charger_id',
         'merk_charger_id',
-        'unit'
+        'unit',
+        // Soft-link identitas charger box All Map (charging_station_chargers).
+        'station_chargerbox_id',
     ];
 
     protected $withCount = ['charges'];
