@@ -119,6 +119,9 @@ Route::prefix('v1')->group(function () {
         // Harus SEBELUM route {chargingLocation}/chargers agar literal path
         // tidak tertelan param.
         Route::post('/my/charging-locations/from-station', [UserChargerLocationController::class, 'storeFromStation']);
+        // Detail lokasi milik user (chargers + referensi arus/tipe/daya) —
+        // sumber daftar charger di form sesi mobile.
+        Route::get('/my/charging-locations/{chargingLocation}', [UserChargerLocationController::class, 'show']);
         Route::post('/my/charging-locations/{chargingLocation}/chargers', [UserChargerLocationController::class, 'addCharger']);
         Route::get('/my/charger-references', [UserChargerLocationController::class, 'references']);
         Route::get('/charging-sessions/analytics', [ChargingSessionController::class, 'analytics']);

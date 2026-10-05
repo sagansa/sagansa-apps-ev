@@ -193,4 +193,43 @@ class UserChargerLocationFromStationTest extends ApiTestCase
         ])->assertStatus(404)
             ->assertJson(['success' => false]);
     }
+
+    public function test_show_serves_location_with_chargers_to_owner(): void
+    {
+        // Regresi: form mobile mengambil daftar charger via GET
+        // /charging-locations/{id} legacy yang resource-nya TIDAK menyertakan
+        // chargers → list selalu kosong. Endpoint my-scoped ini harus
+        // menyajikan chargers + nama arus/tipe/daya.
+        [$station] = $this->makeStationWithBoxes();
+
+        $created = $this->postJson('/api/v1/my/charging-locations/from-station', [
+            'charging_station_id' => $station->id,
+        ]);
+        $created->assertStatus(201);
+        $locationId = $created->json('data.id');
+
+        $response = $this->getJson("/api/v1/my/charging-locations/{$locationId}");
+
+        $response->assertOk()
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.id', $locationId)
+            ->assertJsonCount(2, 'data.chargers')
+            ->assertJsonPath('data.chargers.0.current_charger.name', 'DC')
+            ->assertJsonPath('data.chargers.0.type_charger.name', 'CCS2')
+            ->assertJsonPath('data.chargers.0.power_charger.name', '50 kW');
+    }
+
+    public function test_show_forbidden_for_other_users_location(): void
+    {
+        [$station] = $this->makeStationWithBoxes();
+
+        $otherLocation = ChargerLocation::factory()->create([
+            'user_id' => $this->authUser->id + 1,
+            'charging_station_id' => $station->id,
+        ]);
+
+        $this->getJson("/api/v1/my/charging-locations/{$otherLocation->id}")
+            ->assertStatus(403)
+            ->assertJson(['success' => false]);
+    }
 }

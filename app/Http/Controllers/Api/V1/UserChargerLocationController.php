@@ -158,6 +158,27 @@ class UserChargerLocationController extends Controller
         ], 201);
     }
 
+    /**
+     * Detail lokasi milik user (utk mobile fetch daftar charger lokasi
+     * terpilih di form sesi). Resource-nya memuat chargers + current/type/
+     * power — TIDAK memakai GET /charging-locations/{id} legacy karena
+     * ChargerLocationResource tidak menyertakan chargers.
+     */
+    public function show(ChargerLocation $chargingLocation): JsonResponse
+    {
+        if (! $this->owns($chargingLocation)) {
+            return $this->forbidden();
+        }
+
+        $chargingLocation->load('provider', 'chargers.currentCharger', 'chargers.typeCharger', 'chargers.powerCharger');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Charging location retrieved successfully',
+            'data' => new UserChargerLocationResource($chargingLocation),
+        ]);
+    }
+
     public function addCharger(Request $request, ChargerLocation $chargingLocation): JsonResponse
     {
         if (! $this->owns($chargingLocation)) {
