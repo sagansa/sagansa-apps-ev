@@ -770,7 +770,7 @@ class VehicleMarketService
      */
     public function modelHistory(string $brand, string $model): array
     {
-        $key = 'model-history:v5:' . rawurlencode($brand) . ':' . rawurlencode($model);
+        $key = 'model-history:v6:' . rawurlencode($brand) . ':' . rawurlencode($model);
 
         return $this->cached($key, function () use ($brand, $model) {
             $brandLogoMap = $this->rawBrandLogoMap();
@@ -850,6 +850,27 @@ class VehicleMarketService
                     ->groupBy('type_vehicle_id')
                     ->pluck('units', 'type_vehicle_id');
 
+                // Rincian BULANAN per type utk tahun bulanan yang sama dgn
+                // chart model — brand → model → type drill-down (EV Market).
+                // Kelompokkan baris bulanan ber-type ke (type, month, powertrain).
+                $typeMonths = [];
+                if ($monthlyYear > 0) {
+                    $typeMonthRows = (clone $monthlyBase)
+                        ->whereNotNull('month')
+                        ->where('year', $monthlyYear)
+                        ->whereNotNull('type_vehicle_id')
+                        ->selectRaw('type_vehicle_id, month, powertrain, SUM(units) as units')
+                        ->groupBy('type_vehicle_id', 'month', 'powertrain')
+                        ->get();
+                    foreach ($typeMonthRows as $row) {
+                        $typeMonths[$row->type_vehicle_id][] = [
+                            'month' => (int) $row->month,
+                            'powertrain' => $row->powertrain,
+                            'units' => (int) $row->units,
+                        ];
+                    }
+                }
+
                 $types = TypeVehicle::query()
                     ->where('model_vehicle_id', $catalogModel->id)
                     ->orderBy('name')
@@ -863,6 +884,9 @@ class VehicleMarketService
                                 ? $t->image
                                 : '/storage/' . ltrim($t->image, '/'))
                             : null,
+                        // Additive: baris bulanan type tsb (kosong bila import
+                        // belum menautkan type pada baris bulanan).
+                        'months' => $typeMonths[$t->id] ?? [],
                     ])
                     ->values()
                     ->all();

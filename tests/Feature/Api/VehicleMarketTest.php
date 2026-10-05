@@ -377,6 +377,7 @@ class VehicleMarketTest extends TestCase
     {
         $toyota = \App\Models\BrandVehicle::create(['name' => 'Toyota']);
         $alphard = \App\Models\ModelVehicle::create(['brand_vehicle_id' => $toyota->id, 'name' => 'Alphard']);
+        $alphardHev = \App\Models\TypeVehicle::create(['model_vehicle_id' => $alphard->id, 'name' => 'Alphard HEV', 'type_charger' => []]);
         $import = SalesImport::create([
             'file_name' => '2026-bulanan.xlsx', 'source' => 'gaikindo', 'year' => 2026, 'status' => 'processed', 'meta' => [],
         ]);
@@ -385,6 +386,17 @@ class VehicleMarketTest extends TestCase
                 'sales_import_id' => $import->id, 'raw_brand' => 'TOYOTA', 'raw_model' => 'Alphard',
                 'brand_vehicle_id' => $toyota->id, 'model_vehicle_id' => $alphard->id,
                 'powertrain' => $pt, 'year' => 2026, 'month' => $m, 'units' => $units,
+            ]);
+        }
+        // Baris bulanan ber-type: Jan 30 + Mar 40 utk Alphard HEV — drill-down
+        // bulanan brand → model → type di detail EV Market. Scope sama dgn
+        // total type ($base): BEV/PHEV saja.
+        foreach ([[1, 30], [3, 40]] as [$m, $units]) {
+            VehicleSalesStat::create([
+                'sales_import_id' => $import->id, 'raw_brand' => 'TOYOTA', 'raw_model' => 'Alphard',
+                'brand_vehicle_id' => $toyota->id, 'model_vehicle_id' => $alphard->id,
+                'type_vehicle_id' => $alphardHev->id,
+                'powertrain' => 'BEV', 'year' => 2026, 'month' => $m, 'units' => $units,
             ]);
         }
         VehicleSalesStat::create([
@@ -404,6 +416,15 @@ class VehicleMarketTest extends TestCase
         $phevMar = $months->first(fn ($r) => (int) $r['month'] === 3 && $r['powertrain'] === 'PHEV');
         $this->assertNotNull($phevMar);
         $this->assertEquals(50, $phevMar['units']);
+
+        // Rincian bulanan ikut ke dalam tiap type (additive "months").
+        $types = collect($res->json('data.types'));
+        $hev = $types->firstWhere('name', 'Alphard HEV');
+        $this->assertNotNull($hev);
+        $hevMonths = collect($hev['months']);
+        $this->assertCount(2, $hevMonths);
+        $this->assertEquals(30, $hevMonths->firstWhere('month', 1)['units']);
+        $this->assertSame('BEV', $hevMonths->firstWhere('month', 1)['powertrain']);
     }
 }
 
