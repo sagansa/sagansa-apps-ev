@@ -167,8 +167,13 @@ class VehicleSalesPreviewImport extends Page
 
         $category = VehicleCategories::normalizeCategory($this->newRowForms[$groupKey]['category'] ?? null);
 
+        // Analisis disegarkan OTOMATIS dari salinan file — ringkasan, tabel,
+        // dan gerbang impor langsung memantahkan/membuka tanpa perlu klik
+        // "Mulai Analisis Laporan" ulang.
+        $this->refreshAnalysis();
+
         $this->newRowMessage = sprintf(
-            '✓ "%s %s" (kategori %s): %d varian type tertaut ke katalog + CONNECTING.%s Klik "Mulai Analisis Laporan" ulang.',
+            '✓ "%s %s" (kategori %s): %d varian type tertaut — analisis diperbarui, varian pindah ke Ter-match Katalog.%s',
             $group['brand'],
             $group['model'],
             $category ?? '?',
@@ -288,11 +293,15 @@ class VehicleSalesPreviewImport extends Page
             return;
         }
 
+        // Analisis disegarkan OTOMATIS — ringkasan & gerbang impor langsung
+        // diperbarui tanpa klik "Mulai Analisis Laporan" ulang.
+        $this->refreshAnalysis();
+
         $this->newRowMessage = sprintf(
-            '✓ Bulk: %d keluarga (%d varian type) tertaut ke katalog + CONNECTING.%s Klik "Mulai Analisis Laporan" ulang.',
+            '✓ Bulk: %d keluarga (%d varian type) tertaut — analisis diperbarui%s.',
             $linkedGroups,
             $linkedVariants,
-            $skipped !== [] ? ' Catatan: '.implode('; ', array_slice($skipped, 0, 3)).'.' : '',
+            $skipped !== [] ? '. Catatan: '.implode('; ', array_slice($skipped, 0, 3)) : '',
         );
     }
 
@@ -325,20 +334,11 @@ class VehicleSalesPreviewImport extends Page
             return;
         }
 
-        $this->mapMessage = '✓ Mapping tersimpan — laporan berikutnya otomatis ter-link. Untuk stats lama, jalankan vehicle-mapping:relink.';
+        $this->mapMessage = '✓ Mapping tersimpan — analisis diperbarui otomatis. Untuk stats lama, jalankan vehicle-mapping:relink.';
         $this->mapRawBrand = $this->mapRawModel = $this->mapBrandName = $this->mapModelName = $this->mapCatatan = null;
 
-        // Segarkan hasil analisis dengan mapping baru.
-        if ($this->csvFile !== null) {
-            try {
-                $this->result = app(VehicleSalesPreviewService::class)->analyze(
-                    $this->csvFile->getRealPath(),
-                    $this->month,
-                );
-            } catch (RuntimeException) {
-                // biarkan hasil lama
-            }
-        }
+        // Segarkan hasil analisis dari salinan file (bukan temp upload).
+        $this->refreshAnalysis();
     }
 
     public function analyze(): void
@@ -352,48 +352,84 @@ class VehicleSalesPreviewImport extends Page
 
         $this->error = null;
         $this->exportPath = null;
+        $this->showSkipped = false;
+
+        // Salin ke storage lokal SEKARANG — file temp Livewire hilang antar
+        // request; salinan ini yang dipakai penyegaran analisis otomatis.
+        $this->csvPath = $this->csvFile->store('gaikindo-csv', 'local');
+        $this->importMessage = null;
+
+        // Tahun SELALU mengikuti file terbaru yang diunggah (deteksi dari
+        // nama file) — nilai manual hanya dipertahankan bila nama file
+        // tidak memuat tahun, mencegah tahun basi dari file sebelumnya.
+        if (preg_match('/(20\d{2})/', $this->csvFile->getClientOriginalName(), $m) === 1) {
+            $this->importYear = $m[1];
+        }
+
+        $this->runAnalysis(Storage::disk('local')->path($this->csvPath));
+    }
+
+    /**
+     * Jalankan analisis dari path file + prefill form varian — dipakai
+     * upload awal MAUPUN penyegaran otomatis setelah menautkan keluarga /
+     * mapping (isClean selalu segar, tombol impor tak perlu klik analisis
+     * ulang manual). Isian form keluarga yang belum disimpan dipertahankan.
+     */
+    protected function runAnalysis(string $realPath): bool
+    {
+        $previousForms = $this->newRowForms;
+
         $this->newRowForms = [];
         $this->newRowSaved = [];
         $this->newRowMessage = null;
-        $this->showSkipped = false;
 
         try {
             $this->result = app(VehicleSalesPreviewService::class)->analyze(
-                $this->csvFile->getRealPath(),
+                $realPath,
                 $this->month,
             );
-
-            // Prefill POWERTRAIN PER VARIAN (dari FUEL file: G/D/CNG → ICE,
-            // Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV) ke STATE — atribut
-            // selected server-side ditimpa sinkronisasi Livewire bila
-            // propertinya belum ada di state. Kategori/size tetap level
-            // keluarga; powertrain level type.
-            foreach ($this->newGroups() as $group) {
-                $this->newRowForms[$group['key']] ??= [];
-                $this->newRowForms[$group['key']]['pt'] ??= [];
-
-                foreach ($group['rows'] as $i) {
-                    $prefill = ($this->result['new'][$i]['powertrain'] ?? '') !== ''
-                        ? $this->result['new'][$i]['powertrain']
-                        : null;
-
-                    $this->newRowForms[$group['key']]['pt'][$i] ??= $prefill;
-                }
-            }
         } catch (RuntimeException $e) {
             $this->result = null;
             $this->error = $e->getMessage();
 
-            return;
+            return false;
         }
 
-        // Salin ke storage lokal — file temp Livewire hilang antar request.
-        $this->csvPath = $this->csvFile->store('gaikindo-csv', 'local');
-        $this->importMessage = null;
+        // Prefill POWERTRAIN PER VARIAN (dari FUEL file: G/D/CNG → ICE,
+        // Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV) ke STATE — atribut
+        // selected server-side ditimpa sinkronisasi Livewire bila
+        // propertinya belum ada di state. Kategori/size tetap level
+        // keluarga; powertrain level type. Pilihan admin utk keluarga yang
+        // belum disimpan dipertahankan.
+        foreach ($this->newGroups() as $group) {
+            $prev = $previousForms[$group['key']] ?? [];
 
-        if ($this->importYear === '' && preg_match('/(20\d{2})/', $this->csvFile->getClientOriginalName(), $m) === 1) {
-            $this->importYear = $m[1];
+            $this->newRowForms[$group['key']] = [
+                'category' => $prev['category'] ?? null,
+                'size' => $prev['size'] ?? null,
+                'pt' => [],
+            ];
+
+            foreach ($group['rows'] as $i) {
+                $prefill = ($this->result['new'][$i]['powertrain'] ?? '') !== ''
+                    ? $this->result['new'][$i]['powertrain']
+                    : null;
+
+                $this->newRowForms[$group['key']]['pt'][$i] = $prev['pt'][$i] ?? $prefill;
+            }
         }
+
+        return true;
+    }
+
+    /** Segarkan analisis dari salinan file di disk (bila ada). */
+    protected function refreshAnalysis(): bool
+    {
+        if ($this->csvPath === null) {
+            return false;
+        }
+
+        return $this->runAnalysis(Storage::disk('local')->path($this->csvPath));
     }
 
     /**
@@ -411,7 +447,7 @@ class VehicleSalesPreviewImport extends Page
 
         if (! $this->isClean()) {
             $s = $this->result['summary'];
-            $this->importMessage = "✗ Import ditolak: masih ada {$s['new']} kombinasi baru dan {$s['skipped']} baris dilewati. Bereskan dulu lewat tabel di atas, lalu analisis ulang.";
+            $this->importMessage = "✗ Import ditolak: masih ada {$s['new']} kombinasi baru dan {$s['skipped']} baris dilewati. Bereskan lewat tabel di atas — analisis menyegarkan otomatis setiap penautan.";
 
             return;
         }

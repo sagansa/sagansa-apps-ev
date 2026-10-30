@@ -333,7 +333,9 @@ class VehicleSalesDirectImport extends Page
             'file.mimes' => 'File harus berformat .csv atau .xlsx',
         ]);
 
-        if ($this->importYear === '' && preg_match('/(20\d{2})/', (string) $this->file->getClientOriginalName(), $m) === 1) {
+        // Tahun SELALU mengikuti file yang diunggah (deteksi dari nama
+        // file) — nilai manual hanya bertahan bila nama file tanpa tahun.
+        if (preg_match('/(20\d{2})/', (string) $this->file->getClientOriginalName(), $m) === 1) {
             $this->importYear = $m[1];
         }
 

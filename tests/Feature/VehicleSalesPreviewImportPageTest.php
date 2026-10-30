@@ -64,7 +64,7 @@ class VehicleSalesPreviewImportPageTest extends TestCase
             ->assertHasErrors(['csvFile' => 'required']);
     }
 
-    public function test_tombol_connecting_menaikkan_match_setelah_analisis_ulang(): void
+    public function test_tombol_connecting_menaikkan_match_otomatis(): void
     {
         $page = Livewire::actingAs($this->admin)
             ->test(VehicleSalesPreviewImport::class)
@@ -97,12 +97,10 @@ class VehicleSalesPreviewImportPageTest extends TestCase
         $this->assertNotNull($connecting->brand_vehicle_id);
         $this->assertNotNull($connecting->model_vehicle_id);
 
-        // Analisis ulang file yang sama: Sealion 8 pindah ke Ter-match.
-        Livewire::actingAs($this->admin)
-            ->test(VehicleSalesPreviewImport::class)
-            ->set('csvFile', UploadedFile::fake()->createWithContent('laporan.csv', $this->csvContent()))
-            ->call('analyze')
-            ->assertSet('result.summary.matched', 1)
+        // Analisis menyegarkan OTOMATIS setelah penautan — Sealion 8 pindah
+        // ke Ter-match TANPA klik "Mulai Analisis Laporan" ulang, sehingga
+        // gerbang impor permanen langsung memantapkan hitungan bersih.
+        $page->assertSet('result.summary.matched', 1)
             ->assertSet('result.summary.new', 2);
     }
 
