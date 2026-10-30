@@ -14,7 +14,7 @@ class VehicleSalesPreviewService
     public function __construct(
         protected VehicleNameSplitter $splitter,
         protected VehicleSalesMatcher $matcher,
-        protected VehicleSalesCsvReader $reader,
+        protected VehicleSalesRowsLoader $reader,
     ) {
     }
 
@@ -38,7 +38,7 @@ class VehicleSalesPreviewService
 
         // FUEL → powertrain untuk baris baru (satu-satunya inferensi yang
         // tersisa; selebihnya murni perbandingan nama ke CONNECTING).
-        $fuelPt = ['EV' => 'BEV', 'HEV' => 'HEV', 'PHEV' => 'PHEV'];
+        $fuelPt = ['EV' => 'BEV', 'BEV' => 'BEV', 'HEV' => 'HEV', 'PHEV' => 'PHEV'];
 
         foreach ($rows as $row) {
             $gabungan = trim(preg_replace('/\s+/', ' ', $row['raw_full']));

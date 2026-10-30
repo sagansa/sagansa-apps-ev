@@ -209,10 +209,10 @@ class VehicleSalesPreviewImport extends Page
     public function analyze(): void
     {
         $this->validate([
-            'csvFile' => ['required', 'file', 'mimes:csv,txt', 'max:20480'],
+            'csvFile' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:20480'],
         ], [
-            'csvFile.required' => 'Pilih file CSV laporan terlebih dahulu.',
-            'csvFile.mimes' => 'File harus berformat .csv',
+            'csvFile.required' => 'Pilih file laporan (.csv / .xlsx) terlebih dahulu.',
+            'csvFile.mimes' => 'File harus berformat .csv atau .xlsx',
         ]);
 
         $this->error = null;

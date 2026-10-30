@@ -768,9 +768,33 @@ class VehicleMarketService
      * Histori penjualan per tahun untuk satu model kendaraan spesifik (brand + model),
      * khusus powertrain EV (BEV / PHEV).
      */
+    /** Spesifikasi GAIKINDO type (kolom spec type_vehicles; kunci non-null saja). */
+    protected function typeSpecs(TypeVehicle $t): array
+    {
+        return array_filter([
+            'cc' => $t->cc,
+            'trans' => $t->trans,
+            'fuel' => $t->fuel,
+            'tank' => $t->tank,
+            'gvw' => $t->gvw,
+            'gear_ratio' => $t->gear_ratio,
+            'wheel_tyre' => $t->wheel_tyre,
+            'ps_hp' => $t->ps_hp,
+            'wheel_base' => $t->wheel_base,
+            'dimension' => $t->dimension,
+            'seater' => $t->seater,
+            'drive_sys' => $t->drive_sys,
+            'speed' => $t->speed,
+            'door' => $t->door,
+            'wheels' => $t->wheels,
+            'cbu_ckd' => $t->cbu_ckd,
+            'origin_country' => $t->origin_country,
+        ], static fn ($v): bool => $v !== null);
+    }
+
     public function modelHistory(string $brand, string $model): array
     {
-        $key = 'model-history:v6:' . rawurlencode($brand) . ':' . rawurlencode($model);
+        $key = 'model-history:v7:' . rawurlencode($brand) . ':' . rawurlencode($model);
 
         return $this->cached($key, function () use ($brand, $model) {
             $brandLogoMap = $this->rawBrandLogoMap();
@@ -874,7 +898,7 @@ class VehicleMarketService
                 $types = TypeVehicle::query()
                     ->where('model_vehicle_id', $catalogModel->id)
                     ->orderBy('name')
-                    ->get(['id', 'name', 'battery_capacity', 'image'])
+                    ->get(['id', 'name', 'battery_capacity', 'image', 'cc', 'trans', 'fuel', 'tank', 'gvw', 'gear_ratio', 'wheel_tyre', 'ps_hp', 'wheel_base', 'dimension', 'seater', 'drive_sys', 'speed', 'door', 'wheels', 'cbu_ckd', 'origin_country'])
                     ->map(fn ($t) => [
                         'name' => $t->name,
                         'battery_capacity' => $t->battery_capacity,
@@ -884,6 +908,9 @@ class VehicleMarketService
                                 ? $t->image
                                 : '/storage/' . ltrim($t->image, '/'))
                             : null,
+                        // Additive: spesifikasi GAIKINDO (import XLSX
+                        // gaikindo-converter) — hanya kunci non-null.
+                        'specs' => $this->typeSpecs($t) ?: null,
                         // Additive: baris bulanan type tsb (kosong bila import
                         // belum menautkan type pada baris bulanan).
                         'months' => $typeMonths[$t->id] ?? [],

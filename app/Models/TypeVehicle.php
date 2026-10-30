@@ -22,6 +22,26 @@ class TypeVehicle extends Model
         'type_charger',
         'battery_capacity',
         'powertrain',
+        // Spesifikasi GAIKINDO (import XLSX gaikindo-converter)
+        'cc',
+        'trans',
+        'fuel',
+        'tank',
+        'gvw',
+        'gear_ratio',
+        'wheel_tyre',
+        'ps_hp',
+        'wheel_base',
+        'dimension',
+        'seater',
+        'drive_sys',
+        'speed',
+        'door',
+        'wheels',
+        'cbu_ckd',
+        'origin_country',
+        'specs_source',
+        'specs_updated_at',
     ];
 
     public function modelVehicle()
@@ -41,5 +61,6 @@ class TypeVehicle extends Model
 
     protected $casts = [
         'type_charger' => 'array',
+        'specs_updated_at' => 'datetime',
     ];
 }

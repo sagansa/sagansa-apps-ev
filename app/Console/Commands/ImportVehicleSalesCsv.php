@@ -12,9 +12,10 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Import CSV penjualan wholesales GAIKINDO (kolom BRAND, TYPE MODEL, CC,
- * TRANS, FUEL opsional, JAN..DEC, TOTAL) ke sales_imports +
- * vehicle_sales_stats, lalu match ke katalog brand/model/type kendaraan.
+ * Import penjualan wholesales GAIKINDO (CSV kolom BRAND, TYPE MODEL, FUEL
+ * opsional, JAN..DEC — atau XLSX hasil gaikindo-converter sheet "Data"
+ * dengan kolom spesifikasi lengkap) ke sales_imports + vehicle_sales_stats,
+ * lalu match ke katalog brand/model/type kendaraan.
  *
  * PENTING — REPLACE per periode: command ini MENGHAPUS dulu seluruh
  * vehicle_sales_stats milik periode yang sama (import tahunan: satu tahun;
@@ -23,14 +24,20 @@ use RuntimeException;
  * pernah menumpuk dua kali. Baris sales_imports tetap append-only sebagai
  * riwayat file.
  *
- * Format nilai bulan: angka, atau "-" (tidak ada/nol). Import tahunan
- * menghasilkan baris per bulan bernilai > 0 plus SATU baris agregat
- * (month = NULL) berisi jumlah bulan tersebut. Import bulanan (--month)
- * mengambil angka dari kolom UNITS (file bulanan) atau kolom bulan terkait
- * (file format tahunan).
+ * Format nilai bulan: angka, atau "-" (tidak ada/nol); koreksi negatif
+ * (mis. "(70)" = -70 retur) ikut tersimpan agar Σ bulan = rekap resmi.
+ * Import tahunan menghasilkan baris per bulan bernilai ≠ 0 plus SATU baris
+ * agregat (month = NULL) berisi jumlah bulan tersebut. Import bulanan
+ * (--month) mengambil angka dari kolom UNITS (file bulanan) atau kolom
+ * bulan terkait (file format tahunan).
+ *
+ * Spesifikasi (XLSX): baris yang ter-link ke type kendaraan meng-upsert
+ * kolom spec di type_vehicles — nilai non-kosong TERBARU MENIMPA, sel
+ * kosong TIDAK menghapus nilai lama (kebijakan 2026-10-30).
  *
  * Contoh:
  *   php artisan vehicle-sales:import-csv docs/csv/GAIKINDO_2022.csv
+ *   php artisan vehicle-sales:import-csv ~/Downloads/GAIKINDO_2025.xlsx
  *   php artisan vehicle-sales:import-csv GAIKINDO_2026-01.csv --month=1
  */
 class ImportVehicleSalesCsv extends Command
@@ -42,13 +49,13 @@ class ImportVehicleSalesCsv extends Command
     ];
 
     protected $signature = 'vehicle-sales:import-csv
-        {file : Path ke file CSV GAIKINDO}
+        {file : Path ke file CSV/XLSX GAIKINDO}
         {--year= : Tahun periode (default: dideteksi dari nama file)}
         {--month= : Bulan periode 1-12 (kosong = import tahunan JAN..DEC)}
         {--source=gaikindo-csv : Sumber data}
         {--require-full-link : Tolak import bila masih ada baris BEV yang gagal ter-match ke katalog (jalankan vehicle-sales:preview dulu)}';
 
-    protected $description = 'Import CSV wholesales GAIKINDO per tahun/bulan ke vehicle_sales_stats + match katalog brand/model/type (stats periode terkait DIGANTI, bukan ditumpuk).';
+    protected $description = 'Import wholesales GAIKINDO (CSV atau XLSX konverter) per tahun/bulan ke vehicle_sales_stats + match katalog brand/model/type (stats periode terkait DIGANTI, bukan ditumpuk; XLSX juga meng-upsert spesifikasi type).';
 
     public function handle(VehicleNameSplitter $splitter, VehicleSalesMatcher $matcher): int
     {
@@ -80,7 +87,7 @@ class ImportVehicleSalesCsv extends Command
             }
         }
 
-        $parsed = $this->readCsv($filePath, $month);
+        $parsed = $this->readRows($filePath, $month);
 
         if ($parsed === null) {
             return self::FAILURE; // sebabnya sudah dilaporkan
@@ -141,6 +148,7 @@ class ImportVehicleSalesCsv extends Command
 
                 $statsCreated = 0;
                 $typesCreated = 0;
+                $specsUpdated = 0;
                 $skipped = $junkSkipped;
                 /** @var array<int, true> $brandIds */
                 $brandIds = [];
@@ -168,6 +176,22 @@ class ImportVehicleSalesCsv extends Command
 
                     if ($typeId === null && $match['model_vehicle_id'] !== null && $split['type'] !== '') {
                         $typeId = $this->resolveType($match['model_vehicle_id'], $split['type'], $typesCreated, $powertrain);
+                    }
+
+                    // Spesifikasi XLSX konverter → type_vehicles (nilai
+                    // non-kosong TERBARU menimpa; sel kosong tidak menghapus).
+                    $specs = $row['specs'] ?? [];
+
+                    if ($specs !== [] && $typeId !== null) {
+                        $typeEntity = TypeVehicle::query()->find($typeId);
+
+                        if ($typeEntity !== null) {
+                            $typeEntity->fill($specs);
+                            $typeEntity->specs_source = 'gaikindo';
+                            $typeEntity->specs_updated_at = now();
+                            $typeEntity->save();
+                            $specsUpdated++;
+                        }
                     }
 
                     $base = [
@@ -199,18 +223,19 @@ class ImportVehicleSalesCsv extends Command
                     };
 
                     if ($month === null) {
-                        // Tahunan: satu baris per bulan bernilai > 0 ...
+                        // Tahunan: satu baris per bulan bernilai ≠ 0
+                        // (koreksi negatif ikut) ...
                         $sum = 0;
 
                         foreach ($row['cells'] as $cellMonth => $units) {
-                            if ($units > 0) {
+                            if ($units !== 0) {
                                 $createStat($units, $cellMonth);
                                 $sum += $units;
                             }
                         }
 
                         // ... plus SATU baris agregat tahunan (month = NULL).
-                        if ($sum > 0) {
+                        if ($sum !== 0) {
                             $createStat($sum, null);
                         }
                     } else {
@@ -218,7 +243,7 @@ class ImportVehicleSalesCsv extends Command
                         // bulan terkait (file format tahunan).
                         $units = $row['units'] ?? $row['cells'][$month];
 
-                        if ($units > 0) {
+                        if ($units !== 0) {
                             $createStat($units, $month);
                         }
                     }
@@ -238,6 +263,7 @@ class ImportVehicleSalesCsv extends Command
                     'brands' => count($brandIds),
                     'models' => count($modelIds),
                     'types' => $typesCreated,
+                    'specs_updated' => $specsUpdated,
                 ];
             });
         } catch (RuntimeException $e) {
@@ -257,11 +283,16 @@ class ImportVehicleSalesCsv extends Command
                 ['Brand ter-match ke katalog', $summary['brands']],
                 ['Model ter-match ke katalog', $summary['models']],
                 ['Type baru dibuat', $summary['types']],
+                ['Type ter-update spesifikasi', $summary['specs_updated']],
                 ['Matcher: brand/model baru', $matcher->summary()['created_brands'].' / '.$matcher->summary()['created_models']],
             ]
         );
 
-        $this->info('✓ Import CSV berhasil (stats periode terkait telah diganti).');
+        $this->info('✓ Import berhasil (stats periode terkait telah diganti).');
+
+        // Cache respons Pasar EV 24 jam — versi-key dinaikkan agar mobile
+        // langsung melihat data baru.
+        app(\App\Services\VehicleConnectingSyncService::class)->flushMarketCache();
 
         return self::SUCCESS;
     }
@@ -279,15 +310,16 @@ class ImportVehicleSalesCsv extends Command
     }
 
     /**
-     * Delegasi ke VehicleSalesCsvReader (sumber parsing bersama untuk
-     * import/preview/GUI); error dilaporkan gaya console.
+     * Delegasi ke VehicleSalesRowsLoader (CSV atau XLSX konverter — sumber
+     * parsing bersama untuk import/preview/GUI); error dilaporkan gaya
+     * console.
      *
-     * @return ?array{0: list<array{brand: string, type_model: string, fuel: ?string, cells: array<int, int>, units: ?int}>, 1: int}
+     * @return ?array{0: list<array<string, mixed>>, 1: int}
      */
-    protected function readCsv(string $filePath, ?int $month): ?array
+    protected function readRows(string $filePath, ?int $month): ?array
     {
         try {
-            return app(\App\Services\VehicleSalesCsvReader::class)->read($filePath, $month);
+            return app(\App\Services\VehicleSalesRowsLoader::class)->read($filePath, $month);
         } catch (RuntimeException $e) {
             $this->error($e->getMessage());
 
