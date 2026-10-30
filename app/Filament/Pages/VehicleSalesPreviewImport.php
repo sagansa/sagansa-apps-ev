@@ -209,7 +209,9 @@ class VehicleSalesPreviewImport extends Page
                 continue;
             }
 
-            $powertrain = strtoupper(trim((string) ($form['powertrain'] ?? ''))) ?: $row['powertrain'];
+            // Powertrain PER VARIAN: pilihan admin utk varian ini menang,
+            // fallback prefill FUEL barisnya.
+            $powertrain = strtoupper(trim((string) ($form['pt'][$i] ?? ''))) ?: $row['powertrain'];
 
             // Brand katalog dipakai bila dikenali (badge "model baru di X");
             // selain itu brand mentah laporan — koreksi via Mapping Eksplisit
@@ -361,19 +363,21 @@ class VehicleSalesPreviewImport extends Page
                 $this->month,
             );
 
-            // Prefill powertrain per KELOMPOK keluarga (dari FUEL file:
-            // G/D/CNG → ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV) ke
-            // STATE — atribut selected server-side ditimpa sinkronisasi
-            // Livewire bila propertinya belum ada di state.
+            // Prefill POWERTRAIN PER VARIAN (dari FUEL file: G/D/CNG → ICE,
+            // Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV) ke STATE — atribut
+            // selected server-side ditimpa sinkronisasi Livewire bila
+            // propertinya belum ada di state. Kategori/size tetap level
+            // keluarga; powertrain level type.
             foreach ($this->newGroups() as $group) {
                 $this->newRowForms[$group['key']] ??= [];
+                $this->newRowForms[$group['key']]['pt'] ??= [];
 
-                if (! array_key_exists('powertrain', $this->newRowForms[$group['key']])) {
-                    $first = collect($group['rows'])
-                        ->map(fn (int $i) => $this->result['new'][$i]['powertrain'] ?? '')
-                        ->first(fn (string $p): bool => $p !== '');
+                foreach ($group['rows'] as $i) {
+                    $prefill = ($this->result['new'][$i]['powertrain'] ?? '') !== ''
+                        ? $this->result['new'][$i]['powertrain']
+                        : null;
 
-                    $this->newRowForms[$group['key']]['powertrain'] = $first ?? null;
+                    $this->newRowForms[$group['key']]['pt'][$i] ??= $prefill;
                 }
             }
         } catch (RuntimeException $e) {

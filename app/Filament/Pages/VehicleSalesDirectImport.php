@@ -85,8 +85,8 @@ class VehicleSalesDirectImport extends Page
      * Prefill form ke STATE (sinkronisasi Livewire menimpa select/input
      * yang propertinya belum ada di state). Kategori/size di-prefill dari
      * katalog bila keluarga sudah ada (keputusan model lama menang);
-     * powertrain default dari FUEL grup (G/D/CNG → ICE, Hybrid/HEV → HEV,
-     * PHEV → PHEV, BEV → BEV).
+     * POWERTRAIN per TYPE dari FUEL barisnya (G/D/CNG → ICE, Hybrid/HEV
+     * → HEV, PHEV → PHEV, BEV → BEV) — bukan level keluarga.
      */
     public function booted(): void
     {
@@ -105,8 +105,8 @@ class VehicleSalesDirectImport extends Page
                 $this->forms[$group['key']]['size'] = $group['catalog_size'];
             }
 
-            if (! array_key_exists('powertrain', $this->forms[$group['key']])) {
-                $this->forms[$group['key']]['powertrain'] = $group['powertrain'] !== '' ? $group['powertrain'] : null;
+            foreach ($group['types'] as $type) {
+                $this->forms[$group['key']]['pt'][$type['key']] ??= ($type['powertrain'] !== '' ? $type['powertrain'] : null);
             }
 
             $this->selected[$group['key']] ??= true;
@@ -409,7 +409,6 @@ class VehicleSalesDirectImport extends Page
             [
                 'brand' => $group['brand'],
                 'model' => $group['model'],
-                'powertrain' => $group['powertrain'] !== '' ? $group['powertrain'] : null,
                 'category' => $group['catalog_category'],
                 'size' => $group['catalog_size'],
             ],
@@ -426,14 +425,21 @@ class VehicleSalesDirectImport extends Page
         $linker = app(VehicleSalesPendingLinker::class);
 
         foreach ($group['types'] as $type) {
+            // Powertrain PER TYPE: pilihan admin utk varian ini menang,
+            // fallback prefill FUEL barisnya.
+            $typePt = strtoupper(trim((string) ($form['pt'][$type['key']] ?? ''))) ?: ($type['powertrain'] !== '' ? $type['powertrain'] : null);
+
             try {
                 $res = $linker->link(
                     $group['raw_brand'],
                     $type['raw_model'],
                     [
-                        ...$form,
+                        'brand' => $form['brand'],
+                        'model' => $form['model'],
+                        'category' => $category,
+                        'size' => $form['size'] ?? null,
                         'type' => $type['raw_model'],
-                        'powertrain' => $type['powertrain'] !== '' ? $type['powertrain'] : $form['powertrain'],
+                        'powertrain' => $typePt,
                     ],
                 );
             } catch (RuntimeException $e) {

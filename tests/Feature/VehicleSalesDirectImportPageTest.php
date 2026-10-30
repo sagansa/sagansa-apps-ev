@@ -66,7 +66,7 @@ class VehicleSalesDirectImportPageTest extends TestCase
             ->test(VehicleSalesDirectImport::class)
             ->assertSee('HYUNDAI Stargazer X')
             ->assertSee('fuel: HEV')
-            ->assertSet('forms.HYUNDAISTARGAZERX.powertrain', 'HEV');
+            ->assertSet('forms.HYUNDAISTARGAZERX.pt.HYUNDAISTARGAZERX', 'HEV');
     }
 
     /** Badge navigasi menghitung grup pending (squashed key), bukan baris. */

@@ -276,9 +276,8 @@
                         <table style="width: 100%; font-size: 13px; text-align: left; border-collapse: collapse;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--vsp-border); color: var(--vsp-text-muted);">
-                                    <th style="padding: 8px 12px; font-weight: 600;">Keluarga (Brand + Model)</th>
+                                    <th style="padding: 8px 12px; font-weight: 600;">Keluarga (Brand + Model) + varian &amp; powertrain per type</th>
                                     <th style="padding: 8px 12px; text-align: right;">Unit</th>
-                                    <th style="padding: 8px 12px; font-weight: 600;">Powertrain <span style="font-weight: 400;">(default)</span></th>
                                     <th style="padding: 8px 12px; font-weight: 600;">Kategori *</th>
                                     <th style="padding: 8px 12px; font-weight: 600;">Size</th>
                                     <th style="padding: 8px 12px;"></th>
@@ -306,10 +305,6 @@
                                         $form = $newRowForms[$gKey] ?? [];
                                         $pendingRows = array_filter($group['rows'], fn ($i) => ! isset($newRowSaved[$i]));
                                         $saved = $pendingRows === [];
-                                        $firstPt = '';
-                                        foreach ($group['rows'] as $i) {
-                                            if (($result['new'][$i]['powertrain'] ?? '') !== '') { $firstPt = $result['new'][$i]['powertrain']; break; }
-                                        }
                                     @endphp
                                     <tr style="border-bottom: 1px solid var(--vsp-border-sub); {{ $saved ? 'opacity: 0.55;' : '' }}"
                                         x-data="{ cat: @js($form['category'] ?? ''), sizable: @js(\App\Support\VehicleCategories::SIZABLE) }">
@@ -328,11 +323,23 @@
                                                     <span class="vsp-badge vsp-badge-warn">belum ada di CONNECTING</span>
                                                 @endif
                                                 <details style="display: inline-block; margin-left: 8px;">
-                                                    <summary style="font-size: 11px; color: var(--vsp-text-muted); cursor: pointer; display: inline;">daftar varian</summary>
+                                                    <summary style="font-size: 11px; color: var(--vsp-text-muted); cursor: pointer; display: inline;">{{ count($group['rows']) }} varian + powertrain per type</summary>
                                                     <div style="font-family: monospace; font-size: 11px; color: var(--vsp-text-muted); margin-top: 4px;">
                                                         @foreach ($group['rows'] as $i)
                                                             @php($r = $result['new'][$i])
-                                                            <div>{{ $r['brand'] }} — {{ $r['powertrain'] !== '' ? $r['powertrain'] : '?' }} · {{ number_format($r['units']) }} unit</div>
+                                                            <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; white-space: nowrap;">
+                                                                <span style="min-width: 260px; overflow: hidden; text-overflow: ellipsis;">{{ $r['brand'] }}</span>
+                                                                <span style="color: var(--vsp-text-muted);">@if ($r['fuel'])fuel: {{ $r['fuel'] }}@else—@endif</span>
+                                                                <select wire:model="newRowForms.{{ $gKey }}.pt.{{ $i }}" class="vsp-input-control" style="padding: 2px 6px; min-width: 78px; font-size: 11px;">
+                                                                    @if (($form['pt'][$i] ?? $r['powertrain']) === '')
+                                                                        <option value="">— pilih —</option>
+                                                                    @endif
+                                                                    @foreach (['BEV', 'HEV', 'PHEV', 'ICE'] as $pt)
+                                                                        <option value="{{ $pt }}" @selected(($form['pt'][$i] ?? $r['powertrain']) === $pt)>{{ $pt }}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                                <span style="margin-left: auto; font-family: sans-serif;">{{ number_format($r['units']) }} unit</span>
+                                                            </div>
                                                         @endforeach
                                                     </div>
                                                 </details>
@@ -340,16 +347,6 @@
                                         </td>
                                         <td style="padding: 8px 12px; text-align: right; font-family: monospace; font-weight: 700; color: var(--vsp-text-title);">
                                             {{ number_format($group['units']) }}
-                                        </td>
-                                        <td style="padding: 8px 12px;">
-                                            <select wire:model="newRowForms.{{ $gKey }}.powertrain" class="vsp-input-control" style="padding: 4px 8px; min-width: 90px;">
-                                                @if ($firstPt === '')
-                                                    <option value="">— pilih —</option>
-                                                @endif
-                                                @foreach (['BEV', 'HEV', 'PHEV', 'ICE'] as $pt)
-                                                    <option value="{{ $pt }}" @selected(($form['powertrain'] ?? $firstPt) === $pt)>{{ $pt }}</option>
-                                                @endforeach
-                                            </select>
                                         </td>
                                         <td style="padding: 8px 12px;">
                                             <select wire:model="newRowForms.{{ $gKey }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control" style="padding: 4px 8px; min-width: 120px;">

@@ -96,7 +96,7 @@
         .vsp-btn-dark:hover { background: rgba(156, 163, 175, 0.15); }
         .vsp-form-grid {
             display: grid;
-            grid-template-columns: auto 1.4fr 1.4fr 1.6fr 0.8fr 1fr 0.9fr auto;
+            grid-template-columns: auto 1.5fr 1.5fr 1fr 0.9fr auto;
             gap: 10px;
             align-items: end;
         }
@@ -318,16 +318,6 @@
                                 </label>
 
                                 <label class="vsp-field-label">
-                                    Powertrain <span style="text-transform: none; font-weight: 400;">(default)</span>
-                                    <select wire:model="forms.{{ $row['key'] }}.powertrain" class="vsp-input-control">
-                                        <option value="">— pilih —</option>
-                                        @foreach (\App\Filament\Pages\VehicleSalesDirectImport::powertrainOptions() as $pt)
-                                            <option value="{{ $pt }}" @selected(($form['powertrain'] ?? $row['powertrain']) === $pt)>{{ $pt }}</option>
-                                        @endforeach
-                                    </select>
-                                </label>
-
-                                <label class="vsp-field-label">
                                     Category *
                                     <select wire:model="forms.{{ $row['key'] }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control">
                                         <option value="">— pilih —</option>
@@ -361,17 +351,27 @@
                                 </div>
                             </div>
 
-                            {{-- Daftar type mentah yang mengikuti keputusan keluarga ini --}}
-                            <details style="margin-top: 10px;">
+                            {{-- Daftar type: powertrain PER VARIAN dari FUEL — bisa dikoreksi per baris --}}
+                            <details style="margin-top: 10px;" open>
                                 <summary style="font-size: 12px; color: var(--vsp-text-muted); cursor: pointer;">
-                                    {{ count($row['types']) }} type mentah di bawah keluarga ini (dibuat otomatis)
+                                    {{ count($row['types']) }} varian type — powertrain per varian (dari FUEL, koreksi bila perlu)
                                 </summary>
                                 <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px;">
                                     @foreach ($row['types'] as $type)
                                         <tr style="border-bottom: 1px solid var(--vsp-border-sub);">
                                             <td style="padding: 4px 10px 4px 0; font-family: monospace; color: var(--vsp-text-body);">{{ $type['raw'] }}</td>
                                             <td style="padding: 4px 10px; color: var(--vsp-text-muted); white-space: nowrap;">
-                                                @if ($type['fuel'])fuel: {{ $type['fuel'] }} · @endif{{ $type['powertrain'] !== '' ? $type['powertrain'] : '?' }}
+                                                @if ($type['fuel'])fuel: {{ $type['fuel'] }}@else—@endif
+                                            </td>
+                                            <td style="padding: 4px 10px; white-space: nowrap;">
+                                                <select wire:model="forms.{{ $row['key'] }}.pt.{{ $type['key'] }}" class="vsp-input-control" style="padding: 3px 6px; min-width: 80px;">
+                                                    @if (($form['pt'][$type['key']] ?? $type['powertrain']) === '')
+                                                        <option value="">— pilih —</option>
+                                                    @endif
+                                                    @foreach (\App\Filament\Pages\VehicleSalesDirectImport::powertrainOptions() as $pt)
+                                                        <option value="{{ $pt }}" @selected(($form['pt'][$type['key']] ?? $type['powertrain']) === $pt)>{{ $pt }}</option>
+                                                    @endforeach
+                                                </select>
                                             </td>
                                             <td style="padding: 4px 0; text-align: right; font-weight: 600; white-space: nowrap;">{{ number_format($type['units']) }} unit</td>
                                         </tr>
