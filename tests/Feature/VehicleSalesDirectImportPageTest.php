@@ -91,4 +91,65 @@ class VehicleSalesDirectImportPageTest extends TestCase
 
         $this->assertSame('1', VehicleSalesDirectImport::getNavigationBadge());
     }
+
+    /** Bulk: terapkan kategori massal lalu tautkan semua terpilih sekaligus. */
+    public function test_bulk_kategori_massal_dan_tautkan_semua(): void
+    {
+        $import = SalesImport::create([
+            'file_name' => 'uji.xlsx',
+            'source' => 'gaikindo-csv',
+            'year' => 2024,
+            'status' => 'processed',
+        ]);
+
+        $combos = [
+            ['HINO', 'FG 235 JD', 'D'],
+            ['FUSO', 'FM 517', 'D'],
+            ['LEXUS', 'RZ 500e', 'BEV'],
+        ];
+
+        foreach ($combos as $i => [$brand, $model, $fuel]) {
+            VehicleSalesStat::create([
+                'sales_import_id' => $import->id,
+                'raw_brand' => $brand,
+                'raw_model' => $model,
+                'year' => 2024,
+                'month' => 5,
+                'units' => 5 + $i,
+                'powertrain' => $fuel === 'BEV' ? 'BEV' : 'ICE',
+            ]);
+
+            VehicleConnecting::create([
+                'raw_gabungan' => "{$brand} {$model}",
+                'brand_name' => $brand,
+                'model_name' => $model,
+                'type_name' => $model,
+                'fuel' => $fuel,
+            ]);
+        }
+
+        $page = Livewire::actingAs($this->admin)
+            ->test(VehicleSalesDirectImport::class);
+
+        // Kategori massal utk 2 truk (diesel): LEXUS tidak ikut terpilih.
+        $page->set('selected.HINOFG235JD', true)
+            ->set('selected.FUSOFM517', true)
+            ->set('selected.LEXUSRZ500E', false)
+            ->set('bulkCategory', 'Truk Ringan')
+            ->call('applyBulkCategory')
+            ->call('bulkLink');
+
+        // 2 truk tertaut + ter-back-link; LEXUS tetap pending.
+        $this->assertSame(2, VehicleSalesStat::whereNotNull('model_vehicle_id')->count());
+        $this->assertSame(1, VehicleSalesStat::whereNull('model_vehicle_id')->count());
+        $this->assertSame('1', VehicleSalesDirectImport::getNavigationBadge());
+
+        // Bulk kedua: sisa diisi kategorinya manual per baris.
+        $page->set('selected.LEXUSRZ500E', true)
+            ->set('forms.LEXUSRZ500E.category', 'SUV')
+            ->call('bulkLink');
+
+        $this->assertSame(0, VehicleSalesStat::whereNull('model_vehicle_id')->count());
+        $this->assertNull(VehicleSalesDirectImport::getNavigationBadge());
+    }
 }

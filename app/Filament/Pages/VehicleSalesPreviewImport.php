@@ -115,15 +115,39 @@ class VehicleSalesPreviewImport extends Page
             return;
         }
 
+        $error = $this->linkNewRow($index);
+
+        if ($error !== null) {
+            $this->newRowMessage = "✗ '{$row['brand']}': {$error}";
+
+            return;
+        }
+
+        $category = VehicleCategories::normalizeCategory($this->newRowForms[$index]['category'] ?? null);
+
+        $this->newRowMessage = "✓ '{$row['brand']}' tertaut ke katalog + CONNECTING ({$category}).".
+            ' Klik "Mulai Analisis Laporan" ulang — baris ini pindah ke Ter-match Katalog.';
+    }
+
+    /**
+     * Tautkan satu baris "new" — logika bersama tombol per-baris dan bulk.
+     * Return null bila sukses, atau pesan error.
+     */
+    protected function linkNewRow(int $index): ?string
+    {
+        $row = $this->result['new'][$index] ?? null;
+
+        if ($row === null) {
+            return 'baris tidak ditemukan';
+        }
+
         $form = $this->newRowForms[$index] ?? [];
         $powertrain = strtoupper(trim((string) ($form['powertrain'] ?? ''))) ?: $row['powertrain'];
         $category = VehicleCategories::normalizeCategory($form['category'] ?? null);
         $size = VehicleCategories::normalizeSize($form['size'] ?? null);
 
         if ($category === null) {
-            $this->newRowMessage = "✗ '{$row['brand']}': pilih kategori dulu.";
-
-            return;
+            return 'pilih kategori dulu';
         }
 
         if (! in_array($category, VehicleCategories::SIZABLE, true)) {
@@ -147,14 +171,52 @@ class VehicleSalesPreviewImport extends Page
                 ],
             );
         } catch (RuntimeException $e) {
-            $this->newRowMessage = '✗ '.$e->getMessage();
+            return $e->getMessage();
+        }
+
+        $this->newRowSaved[$index] = true;
+
+        return null;
+    }
+
+    /**
+     * Tautkan SEKALIGUS semua baris "new" yang kategorinya sudah diisi —
+     * baris tanpa kategori dilewati & dilaporkan; tiap baris transaksi
+     * sendiri agar satu kegagalan tidak membatalkan batch.
+     */
+    public function bulkAddToConnecting(): void
+    {
+        $linked = 0;
+        /** @var list<string> $skipped */
+        $skipped = [];
+
+        foreach (array_keys($this->result['new'] ?? []) as $i) {
+            if (isset($this->newRowSaved[$i])) {
+                continue;
+            }
+
+            $error = $this->linkNewRow($i);
+
+            if ($error === null) {
+                $linked++;
+
+                continue;
+            }
+
+            $skipped[] = ($this->result['new'][$i]['brand'] ?? '?').' ('.$error.')';
+        }
+
+        if ($linked === 0) {
+            $this->newRowMessage = '✗ Tidak ada yang tertaut — '.($skipped !== []
+                ? implode('; ', array_slice($skipped, 0, 5))
+                : 'tidak ada kombinasi baru tersisa.');
 
             return;
         }
 
-        $this->newRowSaved[$index] = true;
-        $this->newRowMessage = "✓ '{$row['brand']}' tertaut ke katalog + CONNECTING ({$category}".($size !== null ? " / {$size}" : '').').'.
-            ' Klik "Mulai Analisis Laporan" ulang — baris ini pindah ke Ter-match Katalog.';
+        $this->newRowMessage = "✓ Bulk: {$linked} kombinasi tertaut ke katalog + CONNECTING."
+            .($skipped !== [] ? ' Terlewat '.count($skipped).': '.implode('; ', array_slice($skipped, 0, 5)).'.' : '')
+            .' Klik "Mulai Analisis Laporan" ulang.';
     }
 
     public function saveMapping(): void

@@ -96,7 +96,7 @@
         .vsp-btn-dark:hover { background: rgba(156, 163, 175, 0.15); }
         .vsp-form-grid {
             display: grid;
-            grid-template-columns: 1.4fr 1.4fr 1.6fr 0.8fr 1fr 0.9fr auto;
+            grid-template-columns: auto 1.4fr 1.4fr 1.6fr 0.8fr 1fr 0.9fr auto;
             gap: 10px;
             align-items: end;
         }
@@ -229,7 +229,54 @@
                     @endforeach
                 </datalist>
 
-                <div style="display: flex; flex-direction: column; gap: 12px;" wire:loading.delay wire:target="linkCombo">
+                {{-- BAR AKSI MASSAL --}}
+                @php($selectedCount = count(array_filter($selected)))
+                <div class="vsp-card" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; border-color: rgba(245, 158, 11, 0.4);">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--vsp-text-title); min-width: 130px;">
+                        ⚡ Bulk
+                        <div style="font-size: 11px; font-weight: 500; color: var(--vsp-text-muted);">
+                            {{ $selectedCount }} dari {{ count($pendingRows) }} baris terpilih
+                        </div>
+                    </div>
+
+                    <label class="vsp-field-label" style="min-width: 150px;">
+                        Kategori Massal
+                        <select wire:model.live="bulkCategory" class="vsp-input-control">
+                            <option value="">— pilih —</option>
+                            @foreach (\App\Filament\Pages\VehicleSalesDirectImport::categoryOptions() as $cat)
+                                <option value="{{ $cat }}">{{ $cat }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="vsp-field-label" style="min-width: 110px;">
+                        Size Massal
+                        <select wire:model.live="bulkSize" class="vsp-input-control">
+                            <option value="">—</option>
+                            @foreach (\App\Filament\Pages\VehicleSalesDirectImport::sizeOptions() as $sz)
+                                <option value="{{ $sz }}">{{ $sz }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <button type="button" wire:click="applyBulkCategory" wire:loading.attr="disabled" wire:target="applyBulkCategory" class="vsp-btn-dark">
+                        🏷️ Terapkan ke Terpilih
+                    </button>
+
+                    <button type="button" wire:click="bulkLink" wire:loading.attr="disabled" wire:target="bulkLink" class="vsp-btn-primary">
+                        <span wire:loading.remove wire:target="bulkLink">⚡ Tautkan Semua Terpilih ({{ $selectedCount }})</span>
+                        <span wire:loading wire:target="bulkLink">⏳ Menautkan…</span>
+                    </button>
+                </div>
+
+                @if ($bulkMessage)
+                    <div style="margin: 10px 0 0; padding: 10px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+                                background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #b45309; word-break: break-word;">
+                        {{ $bulkMessage }}
+                    </div>
+                @endif
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;" wire:loading.delay wire:target="linkCombo">
                     @foreach ($pendingRows as $row)
                         @php($form = $forms[$row['key']] ?? [])
                         <div class="vsp-card"
@@ -247,6 +294,11 @@
                             </div>
 
                             <div class="vsp-form-grid">
+                                <label style="display: flex; align-items: center; gap: 6px; padding-bottom: 8px; font-size: 11px; font-weight: 600; color: var(--vsp-text-muted); cursor: pointer;" title="Pilih untuk aksi massal">
+                                    <input type="checkbox" wire:model.live="selected.{{ $row['key'] }}" style="width: 16px; height: 16px; accent-color: #10b981;" />
+                                    pilih
+                                </label>
+
                                 <label class="vsp-field-label">
                                     Brand
                                     <input type="text" list="vsp-brand-options"

@@ -65,6 +65,16 @@ class VehicleSalesDirectImport extends Page
      */
     public array $forms = [];
 
+    /** Baris terpilih untuk bulk (kunci squashed key, default semua). @var array<string, bool> */
+    public array $selected = [];
+
+    /** Isian massal: kategori/size yang diterapkan ke baris terpilih. */
+    public ?string $bulkCategory = null;
+
+    public ?string $bulkSize = null;
+
+    public ?string $bulkMessage = null;
+
     public ?string $linkMessage = null;
 
     /** @var list<array<mixed>>|null memo pending per-request */
@@ -89,6 +99,8 @@ class VehicleSalesDirectImport extends Page
             if (! array_key_exists('powertrain', $this->forms[$row['key']])) {
                 $this->forms[$row['key']]['powertrain'] = $row['powertrain'] !== '' ? $row['powertrain'] : null;
             }
+
+            $this->selected[$row['key']] ??= true;
         }
     }
 
@@ -334,7 +346,34 @@ class VehicleSalesDirectImport extends Page
             return;
         }
 
-        // Nilai form: apa yang diketik admin menang atas prefill.
+        $res = $this->linkRow($row);
+
+        if (! $res['ok']) {
+            $this->linkMessage = '✗ "'.$row['raw'].'": '.$res['error'];
+
+            return;
+        }
+
+        $created = array_filter([
+            $res['result']['brand_created'] ? 'brand' : null,
+            $res['result']['model_created'] ? 'model' : null,
+            $res['result']['type_created'] ? 'type' : null,
+        ]);
+
+        $this->linkMessage = '✓ "'.$row['raw'].'" tertaut'.
+            ($created !== [] ? ' (katalog baru: '.implode('+', $created).')' : '').
+            " — {$res['result']['stats_linked']} baris stats di-back-link.";
+    }
+
+    /**
+     * Tautkan satu baris pending — logika bersama tombol per-baris dan
+     * bulk. Nilai yang diketik admin menang atas prefill.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array{ok: bool, error: ?string, result: ?array}
+     */
+    protected function linkRow(array $row): array
+    {
         $form = array_merge(
             [
                 'brand' => $row['brand'],
@@ -344,7 +383,7 @@ class VehicleSalesDirectImport extends Page
                 'category' => null,
                 'size' => null,
             ],
-            $this->forms[$key] ?? [],
+            $this->forms[$row['key']] ?? [],
         );
 
         try {
@@ -354,22 +393,115 @@ class VehicleSalesDirectImport extends Page
                 $form,
             );
         } catch (RuntimeException $e) {
-            $this->linkMessage = '✗ "'.$row['raw'].'": '.$e->getMessage();
+            return ['ok' => false, 'error' => $e->getMessage(), 'result' => null];
+        }
+
+        unset($this->forms[$row['key']]);
+
+        return ['ok' => true, 'error' => null, 'result' => $result];
+    }
+
+    /**
+     * Terapkan kategori (+size bila berlaku) ke seluruh baris terpilih —
+     * untuk batch homogen (mis. semua truk = Truk Ringan) sebelum
+     * Tautkan Semua.
+     */
+    public function applyBulkCategory(): void
+    {
+        $category = VehicleCategories::normalizeCategory($this->bulkCategory);
+
+        if ($category === null) {
+            $this->bulkMessage = '✗ Pilih kategori massal dulu.';
 
             return;
         }
 
-        unset($this->forms[$key]);
+        // Size massal opsional — hanya dipakai bila kategorinya ber-ukuran.
+        $size = in_array($category, VehicleCategories::SIZABLE, true)
+            ? VehicleCategories::normalizeSize($this->bulkSize)
+            : null;
 
-        $created = array_filter([
-            $result['brand_created'] ? 'brand' : null,
-            $result['model_created'] ? 'model' : null,
-            $result['type_created'] ? 'type' : null,
-        ]);
+        $applied = 0;
 
-        $this->linkMessage = '✓ "'.$row['raw'].'" tertaut'.
-            ($created !== [] ? ' (katalog baru: '.implode('+', $created).')' : '').
-            " — {$result['stats_linked']} baris stats di-back-link.";
+        foreach ($this->pending() as $row) {
+            if (! ($this->selected[$row['key']] ?? false)) {
+                continue;
+            }
+
+            $this->forms[$row['key']]['category'] = $category;
+
+            if ($size !== null) {
+                $this->forms[$row['key']]['size'] = $size;
+            }
+
+            $applied++;
+        }
+
+        $this->bulkMessage = '✓ '.($applied > 0
+            ? '"'.$category.'"'.($size !== null ? ' / '.$size : '')." diterapkan ke {$applied} baris terpilih — lanjut ⚡ Tautkan Semua."
+            : 'Tidak ada baris terpilih.');
+    }
+
+    /**
+     * Tautkan SEKALIGUS seluruh baris terpilih — baris tanpa kategori
+     * dilewati dan dilaporkan; tiap baris bertransaksi sendiri agar satu
+     * kegagalan tidak membatalkan batch.
+     */
+    public function bulkLink(): void
+    {
+        $linked = 0;
+        $statsLinked = 0;
+        $createdBrands = 0;
+        $createdModels = 0;
+        $createdTypes = 0;
+        /** @var list<string> $skipped */
+        $skipped = [];
+
+        foreach ($this->pending() as $row) {
+            if (! ($this->selected[$row['key']] ?? false)) {
+                continue;
+            }
+
+            $category = VehicleCategories::normalizeCategory($this->forms[$row['key']]['category'] ?? null);
+
+            if ($category === null) {
+                $skipped[] = $row['raw'].' (kategori belum diisi)';
+
+                continue;
+            }
+
+            $res = $this->linkRow($row);
+
+            if (! $res['ok']) {
+                $skipped[] = $row['raw'].' ('.$res['error'].')';
+
+                continue;
+            }
+
+            $linked++;
+            $statsLinked += $res['result']['stats_linked'];
+            $createdBrands += (int) $res['result']['brand_created'];
+            $createdModels += (int) $res['result']['model_created'];
+            $createdTypes += (int) $res['result']['type_created'];
+        }
+
+        if ($linked === 0) {
+            $this->linkMessage = '✗ Tidak ada yang tertaut — '.(count($skipped) > 0
+                ? 'semua baris terpilih terlewat: '.implode('; ', array_slice($skipped, 0, 5))
+                : 'tidak ada baris terpilih.');
+
+            return;
+        }
+
+        $this->linkMessage = sprintf(
+            '✓ Bulk selesai: %d kombinasi tertaut, %d baris stats di-back-link, katalog baru %d brand / %d model / %d type%s.',
+            $linked,
+            $statsLinked,
+            $createdBrands,
+            $createdModels,
+            $createdTypes,
+            $skipped !== [] ? ' — terlewat '.count($skipped).': '.implode('; ', array_slice($skipped, 0, 5)) : '',
+        );
     }
 
     protected function getViewData(): array

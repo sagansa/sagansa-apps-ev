@@ -360,9 +360,16 @@
                         baris berpindah ke "Ter-match Katalog" dan impor terbuka.
                     </p>
 
-                    <button type="button" wire:click="downloadNew" class="vsp-btn-dark">
-                        📥 Unduh CSV → CONNECTING (alternatif isi manual)
-                    </button>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <button type="button" wire:click="bulkAddToConnecting" wire:loading.attr="disabled" wire:target="bulkAddToConnecting" class="vsp-btn-primary">
+                            <span wire:loading.remove wire:target="bulkAddToConnecting">⚡ ＋ Semua yang Lengkap</span>
+                            <span wire:loading wire:target="bulkAddToConnecting">⏳ Menautkan…</span>
+                        </button>
+
+                        <button type="button" wire:click="downloadNew" class="vsp-btn-dark">
+                            📥 Unduh CSV → CONNECTING (alternatif isi manual)
+                        </button>
+                    </div>
                 </x-filament::section>
             @else
                 <x-filament::section>
