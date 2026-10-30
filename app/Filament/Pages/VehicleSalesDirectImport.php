@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\BrandVehicle;
+use App\Models\VehicleConnecting;
 use App\Models\VehicleSalesStat;
 use App\Services\VehicleNameSplitter;
 use App\Services\VehicleSalesPendingLinker;
@@ -78,6 +79,30 @@ class VehicleSalesDirectImport extends Page
         return ['BEV', 'HEV', 'PHEV', 'ICE'];
     }
 
+    /**
+     * FUEL laporan → bucket powertrain: G/D/CNG → ICE, Hybrid/HEV → HEV,
+     * PHEV → PHEV, BEV/EV → BEV (kebijakan admin 2026-10-30) — delegasi
+     * ke FUEL_MAP pemecah nama agar satu sumber kebenaran.
+     */
+    protected static function fuelToPowertrain(?string $fuel): ?string
+    {
+        return VehicleNameSplitter::fuelToPowertrain($fuel);
+    }
+
+    /** Normalisasi nilai powertrain stats/splitter ke bucket pilihan form. */
+    protected static function normalizePowertrainBucket(mixed $value): ?string
+    {
+        $pt = self::fuelToPowertrain($value);
+
+        if ($pt !== null) {
+            return $pt;
+        }
+
+        $pt = strtoupper(trim((string) $value));
+
+        return in_array($pt, self::powertrainOptions(), true) ? $pt : null;
+    }
+
     public static function getNavigationBadge(): ?string
     {
         $count = self::pendingGroups()->count();
@@ -113,7 +138,7 @@ class VehicleSalesDirectImport extends Page
      * hasil splitter (keluarga + varian penuh); Powertrain dari stats/splitter.
      * Urut unit terbesar dulu — kombinasi ber-impact besar diputuskan duluan.
      *
-     * @return list<array{key: string, raw: string, raw_brand: string, raw_model: string, units: int, years: string, brand: string, model: string, type: string, powertrain: string}>
+     * @return list<array{key: string, raw: string, raw_brand: string, raw_model: string, units: int, years: string, brand: string, model: string, type: string, fuel: ?string, powertrain: string}>
      */
     public function pending(): array
     {
@@ -146,21 +171,25 @@ class VehicleSalesDirectImport extends Page
             $groups[$key] = $g;
         }
 
+        // FUEL mentah file per kombinasi dari master CONNECTING (kolom fuel
+        // diisi dari file saat master dibangun) — referensi utama powertrain.
+        $connectingFuel = VehicleConnecting::query()
+            ->whereIn('raw_gabungan_key', array_keys($groups))
+            ->pluck('fuel', 'raw_gabungan_key');
+
         $options = self::powertrainOptions();
         $result = [];
 
         foreach ($groups as $key => $g) {
             $split = app(VehicleNameSplitter::class)->split($g['raw_brand'], $g['raw_model'], null);
 
-            $powertrain = strtoupper(trim((string) ($g['powertrain'] ?? '')));
+            // Prioritas: FUEL file (master CONNECTING) → powertrain stats
+            // (diisi splitter saat impor) → powertrain splitter sekarang.
+            $fuel = $connectingFuel[$key] ?? null;
 
-            if ($powertrain === '') {
-                $powertrain = strtoupper(trim((string) ($split['powertrain'] ?? '')));
-            }
-
-            if (in_array($powertrain, ['G', 'D', 'CNG'], true)) {
-                $powertrain = 'ICE';
-            }
+            $powertrain = self::fuelToPowertrain($fuel)
+                ?? self::normalizePowertrainBucket($g['powertrain'])
+                ?? self::normalizePowertrainBucket($split['powertrain'] ?? null);
 
             if (! in_array($powertrain, $options, true)) {
                 $powertrain = '';
@@ -176,7 +205,8 @@ class VehicleSalesDirectImport extends Page
                 'brand' => $g['raw_brand'],
                 'model' => trim((string) ($split['model'] ?? '')) !== '' ? $split['model'] : $g['raw_model'],
                 'type' => $g['raw_model'],
-                'powertrain' => $powertrain,
+                'fuel' => $fuel !== null ? strtoupper(trim((string) $fuel)) : null,
+                'powertrain' => (string) $powertrain,
             ];
         }
 

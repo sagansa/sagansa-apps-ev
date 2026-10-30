@@ -45,9 +45,21 @@ class VehicleNameSplitter
         'G' => 'ICE', 'BENSIN' => 'ICE', 'PETROL' => 'ICE', 'GASOLINE' => 'ICE',
         'D' => 'ICE', 'DIESEL' => 'ICE', 'CNG' => 'ICE',
         'BEV' => 'BEV', 'EV' => 'BEV', 'ELECTRIC' => 'BEV', 'LISTRIK' => 'BEV',
-        'HEV' => 'HEV', 'HYBRID' => 'HEV', 'HYBRI' => 'HEV', 'MHEV' => 'HEV',
+        'HEV' => 'HEV', 'HYBRID' => 'HEV', 'HYBRID+' => 'HEV', 'HYBRI' => 'HEV', 'MHEV' => 'HEV',
         'PHEV' => 'PHEV', 'REEV' => 'PHEV',
     ];
+
+    /**
+     * FUEL laporan GAIKINDO → bucket powertrain (G/D/CNG → ICE, Hybrid/HEV
+     * → HEV, PHEV → PHEV, BEV/EV → BEV). Dipakai preview & worklist pending
+     * sebagai referensi prefill — kebijakan admin 2026-10-30.
+     */
+    public static function fuelToPowertrain(?string $fuel): ?string
+    {
+        $key = strtoupper(trim((string) $fuel));
+
+        return $key === '' || $key === '-' ? null : (self::FUEL_MAP[$key] ?? null);
+    }
 
     /** Sinyal nama model listrik (dipakai bila kolom FUEL tidak ada, mis. 2026). */
     protected const BEV_NAME_PATTERNS = [
@@ -210,7 +222,7 @@ class VehicleNameSplitter
 
         foreach ($this->catalogModelsFor($brand) as $entry) {
             if ($entry['norm'] === $remainderNorm
-                || str_starts_with($remainderNorm, $entry['norm'] . ' ')
+                || str_starts_with($remainderNorm, $entry['norm'].' ')
                 || ($entry['nospace'] !== '' && str_starts_with($this->nospace($remainderNorm), $entry['nospace']))) {
                 return $entry['model'];
             }

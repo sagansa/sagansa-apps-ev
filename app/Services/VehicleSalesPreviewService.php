@@ -19,7 +19,7 @@ class VehicleSalesPreviewService
 
     /**
      * @return array{summary: array{rows: int, skipped: int, nonBev: int, matched: int, new: int},
-     *               new: list<array{brand: string, model: string, type: string, powertrain: string, units: int, brand_name: ?string}>}
+     *               new: list<array{brand: string, raw_brand: string, raw_model: string, model: string, type: string, fuel: ?string, powertrain: string, units: int, brand_name: ?string}>}
      */
     public function analyze(string $csvPath, ?int $month = null): array
     {
@@ -35,10 +35,6 @@ class VehicleSalesPreviewService
         /** @var list<array{brand: string, type_model: string, reason: string}> $skippedRows */
         $skippedRows = $junkRows;
 
-        // FUEL → powertrain untuk baris baru (satu-satunya inferensi yang
-        // tersisa; selebihnya murni perbandingan nama ke CONNECTING).
-        $fuelPt = ['EV' => 'BEV', 'BEV' => 'BEV', 'HEV' => 'HEV', 'PHEV' => 'PHEV'];
-
         // Status brand katalog utk badge "model baru di {brand}" vs "belum ada
         // di CONNECTING" — di-cache per brand mentah (probe ringan, tanpa
         // pencocokan model).
@@ -49,8 +45,8 @@ class VehicleSalesPreviewService
             $gabungan = trim(preg_replace('/\s+/', ' ', $row['raw_full']));
 
             // SATU perbandingan: teks utuh baris ↔ raw_gabungan CONNECTING.
-            // Ketemu = match; tidak ketemu = BARU, ditampilkan mentah apa
-            // adanya — tidak ada pemecah nama, tidak ada tebakan.
+            // Ketemu = match; tidak ketemu = BARU — pemecahan nama hanya
+            // sebagai PREFILL agar bisa dilengkapi, bukan sebagai match.
             if ($gabungan !== '' && $this->matcher->connectingHitRaw($gabungan) !== null) {
                 $matched++;
 
@@ -70,11 +66,30 @@ class VehicleSalesPreviewService
                         : ($probe['brand_name'] ?? null);
                 }
 
+                // Prefill keluarga/varian via pemecah nama; powertrain dari
+                // FUEL file (G/D/CNG → ICE, Hybrid/HEV → HEV, PHEV → PHEV).
+                $split = $this->splitter->split($row['brand'], $row['type_model'], $row['fuel']);
+
+                $powertrain = VehicleNameSplitter::fuelToPowertrain($row['fuel']);
+
+                if ($powertrain === null) {
+                    $powertrain = strtoupper(trim((string) ($split['powertrain'] ?? '')));
+                }
+
+                if (! in_array($powertrain, ['BEV', 'HEV', 'PHEV', 'ICE'], true)) {
+                    $powertrain = '';
+                }
+
                 $new[$key] = [
                     'brand' => $gabungan,
-                    'model' => '',
-                    'type' => '',
-                    'powertrain' => $fuelPt[strtoupper((string) $row['fuel'])] ?? '',
+                    'raw_brand' => trim((string) $row['brand']),
+                    'raw_model' => trim((string) $row['type_model']),
+                    'model' => trim((string) ($split['model'] ?? '')) !== ''
+                        ? $split['model']
+                        : trim((string) $row['type_model']),
+                    'type' => trim((string) $row['type_model']),
+                    'fuel' => $row['fuel'] !== null ? strtoupper(trim((string) $row['fuel'])) : null,
+                    'powertrain' => $powertrain,
                     'units' => 0,
                     'brand_name' => $brandStatus[$row['brand']],
                 ];

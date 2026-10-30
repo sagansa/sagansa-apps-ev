@@ -290,7 +290,15 @@
                                         $form = $newRowForms[$i] ?? [];
                                     @endphp
                                     <tr style="border-bottom: 1px solid var(--vsp-border-sub); {{ $saved ? 'opacity: 0.55;' : '' }} background: {{ str_starts_with($row['powertrain'], 'BEV') ? 'transparent' : 'rgba(156, 163, 175, 0.05)' }};">
-                                        <td style="padding: 8px 12px; font-family: monospace; font-weight: 700; color: var(--vsp-text-title);">{{ $row['brand'] }}</td>
+                                        <td style="padding: 8px 12px; font-family: monospace; font-weight: 700; color: var(--vsp-text-title);">
+                                            {{ $row['brand'] }}
+                                            @if ($row['fuel'])
+                                                <span class="vsp-badge vsp-badge-gray" style="margin-left: 6px;" title="FUEL di file laporan">fuel: {{ $row['fuel'] }}</span>
+                                            @endif
+                                            <div style="font-size: 11px; font-weight: 500; color: var(--vsp-text-muted); margin-top: 3px; font-family: sans-serif;">
+                                                → {{ $row['brand_name'] ?? $row['raw_brand'] }} / {{ $row['model'] }} / {{ $row['type'] }}
+                                            </div>
+                                        </td>
                                         <td style="padding: 8px 12px; text-align: right; font-family: monospace; font-weight: 700; color: var(--vsp-text-title);">
                                             {{ number_format($row['units']) }}
                                         </td>
@@ -302,20 +310,14 @@
                                             @endif
                                         </td>
                                         <td style="padding: 8px 12px;">
-                                            @if (in_array($row['powertrain'], ['BEV', 'HEV', 'PHEV']))
-                                                <select wire:model="newRowForms.{{ $i }}.powertrain" class="vsp-input-control" style="padding: 4px 8px; min-width: 90px;">
-                                                    @foreach (['BEV', 'HEV', 'PHEV', 'ICE'] as $pt)
-                                                        <option value="{{ $pt }}" @selected(($form['powertrain'] ?? $row['powertrain']) === $pt)>{{ $pt }}</option>
-                                                    @endforeach
-                                                </select>
-                                            @else
-                                                <select wire:model="newRowForms.{{ $i }}.powertrain" class="vsp-input-control" style="padding: 4px 8px; min-width: 90px;">
+                                            <select wire:model="newRowForms.{{ $i }}.powertrain" class="vsp-input-control" style="padding: 4px 8px; min-width: 90px;">
+                                                @if ($row['powertrain'] === '')
                                                     <option value="">— pilih —</option>
-                                                    @foreach (['BEV', 'HEV', 'PHEV', 'ICE'] as $pt)
-                                                        <option value="{{ $pt }}" @selected(($form['powertrain'] ?? '') === $pt)>{{ $pt }}</option>
-                                                    @endforeach
-                                                </select>
-                                            @endif
+                                                @endif
+                                                @foreach (['BEV', 'HEV', 'PHEV', 'ICE'] as $pt)
+                                                    <option value="{{ $pt }}" @selected(($form['powertrain'] ?? $row['powertrain']) === $pt)>{{ $pt }}</option>
+                                                @endforeach
+                                            </select>
                                         </td>
                                         <td style="padding: 8px 12px;">
                                             <select wire:model="newRowForms.{{ $i }}.category" class="vsp-input-control" style="padding: 4px 8px; min-width: 120px;">
@@ -350,8 +352,10 @@
 
                     <p style="margin-bottom: 12px; font-size: 11px; color: var(--vsp-text-muted);">
                         * Kategori wajib; Size hanya berlaku untuk MPV/Sedan/SUV/Hatchback (otomatis diabaikan untuk kategori lain).
-                        Setelah selesai: buka <strong>Sync CONNECTING</strong> → <strong>Terapkan ke Katalog</strong>, lalu ulangi analisis/impor file ini —
-                        baris yang sudah masuk akan berpindah ke "Ter-match Katalog".
+                        Powertrain diprefill dari FUEL file (G/D/CNG → ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV);
+                        baris ke-2 di kolom nama adalah prefill brand/model/type hasil pemecah nama.
+                        Tombol ＋ langsung membuat katalog + CONNECTING — setelah semua selesai klik <strong>Mulai Analisis Laporan</strong> ulang,
+                        baris berpindah ke "Ter-match Katalog" dan impor terbuka.
                     </p>
 
                     <button type="button" wire:click="downloadNew" class="vsp-btn-dark">

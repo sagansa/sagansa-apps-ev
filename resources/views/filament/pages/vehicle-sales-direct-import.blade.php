@@ -60,6 +60,7 @@
             width: 100%;
         }
         .vsp-input-control:focus { border-color: #10b981; }
+        .vsp-input-control:disabled { opacity: 0.45; cursor: not-allowed; }
         .vsp-btn-primary {
             display: inline-flex;
             align-items: center;
@@ -206,10 +207,11 @@
 
             <p style="margin-top: 2px; margin-bottom: 16px; font-size: 13px; color: var(--vsp-text-muted); line-height: 1.5;">
                 Baris stats yang belum ter-link ke katalog. Lengkapi <strong>Brand, Model, Type, Powertrain,
-                Category, Size</strong> (Model/Type/Powertrain sudah diprefill dari pemecah nama — silakan koreksi),
-                lalu klik <strong>Simpan &amp; Tautkan</strong>: katalog dibuat bila belum ada, master CONNECTING
-                ter-update, dan seluruh baris stats serupa langsung di-back-link. Size hanya berlaku untuk kategori
-                MPV/Sedan/SUV/Hatchback.
+                Category, Size</strong> — Model/Type diprefill pemecah nama, Powertrain mengikuti <strong>FUEL
+                file</strong> (G/D/CNG → ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV), silakan koreksi bila
+                perlu. Klik <strong>Simpan &amp; Tautkan</strong>: katalog dibuat bila belum ada, master CONNECTING
+                ter-update, dan seluruh baris stats serupa langsung di-back-link. Size otomatis nonaktif untuk
+                kategori tanpa ukuran (hanya MPV/Sedan/SUV/Hatchback yang ber-ukuran).
             </p>
 
             @if (count($pendingRows) === 0)
@@ -230,11 +232,15 @@
                 <div style="display: flex; flex-direction: column; gap: 12px;" wire:loading.delay wire:target="linkCombo">
                     @foreach ($pendingRows as $i => $row)
                         @php($form = $forms[$i] ?? [])
-                        <div class="vsp-card">
+                        <div class="vsp-card"
+                             x-data="{ cat: @js($form['category'] ?? ''), sizable: @js(\App\Support\VehicleCategories::SIZABLE) }">
                             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;">
                                 <span style="font-size: 13px; font-weight: 700; color: var(--vsp-text-title);">{{ $row['raw'] }}</span>
                                 <span class="vsp-badge vsp-badge-warn">{{ number_format($row['units']) }} unit</span>
                                 <span class="vsp-badge vsp-badge-gray">Tahun {{ $row['years'] }}</span>
+                                @if ($row['fuel'])
+                                    <span class="vsp-badge vsp-badge-gray" title="FUEL di file laporan">fuel: {{ $row['fuel'] }}</span>
+                                @endif
                                 @if ($row['powertrain'] !== '')
                                     <span class="vsp-badge vsp-badge-gray">{{ $row['powertrain'] }}</span>
                                 @endif
@@ -275,7 +281,7 @@
 
                                 <label class="vsp-field-label">
                                     Category *
-                                    <select wire:model="forms.{{ $i }}.category" class="vsp-input-control">
+                                    <select wire:model="forms.{{ $i }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control">
                                         <option value="">— pilih —</option>
                                         @foreach (\App\Filament\Pages\VehicleSalesDirectImport::categoryOptions() as $cat)
                                             <option value="{{ $cat }}" @selected(($form['category'] ?? '') === $cat)>{{ $cat }}</option>
@@ -285,7 +291,9 @@
 
                                 <label class="vsp-field-label">
                                     Size
-                                    <select wire:model="forms.{{ $i }}.size" class="vsp-input-control">
+                                    <select wire:model="forms.{{ $i }}.size" class="vsp-input-control"
+                            :disabled="! sizable.includes(cat)"
+                            :title="sizable.includes(cat) ? '' : 'Kategori ini tidak ber-ukuran'">
                                         <option value="">—</option>
                                         @foreach (\App\Filament\Pages\VehicleSalesDirectImport::sizeOptions() as $size)
                                             <option value="{{ $size }}" @selected(($form['size'] ?? '') === $size)>{{ $size }}</option>

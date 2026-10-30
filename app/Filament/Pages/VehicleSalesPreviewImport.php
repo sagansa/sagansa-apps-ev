@@ -2,13 +2,9 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\BrandVehicle;
-use App\Models\ModelVehicle;
-use App\Models\TypeVehicle;
-use App\Models\VehicleConnecting;
 use App\Models\VehicleNameMapping;
 use App\Services\VehicleConnectingSyncService;
-use App\Services\VehicleSalesMatcher;
+use App\Services\VehicleSalesPendingLinker;
 use App\Services\VehicleSalesPreviewService;
 use App\Support\VehicleCategories;
 use Filament\Pages\Page;
@@ -104,7 +100,13 @@ class VehicleSalesPreviewImport extends Page
         return VehicleCategories::CATEGORIES;
     }
 
-    /** Tambahkan satu kombinasi baru langsung ke tabel CONNECTING. */
+    /**
+     * Tautkan satu kombinasi baru SEKALIGUS: resolve/create katalog
+     * (brand/model/type) + upsert CONNECTING dgn FK lengkap via
+     * VehicleSalesPendingLinker — analisis ulang otomatis memindahkan
+     * baris ini ke "Ter-match Katalog" (menggantikan alur lama
+     * Sync CONNECTING → Terapkan ke Katalog yang tidak back-link).
+     */
     public function addToConnecting(int $index): void
     {
         $row = $this->result['new'][$index] ?? null;
@@ -119,7 +121,7 @@ class VehicleSalesPreviewImport extends Page
         $size = VehicleCategories::normalizeSize($form['size'] ?? null);
 
         if ($category === null) {
-            $this->newRowMessage = "✗ '{$row['brand']} {$row['model']}': pilih kategori dulu.";
+            $this->newRowMessage = "✗ '{$row['brand']}': pilih kategori dulu.";
 
             return;
         }
@@ -128,46 +130,31 @@ class VehicleSalesPreviewImport extends Page
             $size = null; // size hanya untuk kategori ber-ukuran
         }
 
-        $brand = trim((string) $row['brand']);
-        $model = trim((string) $row['model']);
-        $type = trim((string) $row['type']);
-        $gabungan = trim(preg_replace('/\s+/', ' ', "$brand $model $type"));
-        $key = preg_replace('/[^A-Z0-9]/u', '', mb_strtoupper($gabungan));
+        // Brand katalog dipakai bila dikenali (badge "model baru di X");
+        // selain itu brand mentah laporan — koreksi via Mapping Eksplisit
+        // bila ejaannya berbeda dari katalog (mis. WULING-DBG → Wuling).
+        try {
+            app(VehicleSalesPendingLinker::class)->link(
+                $row['raw_brand'],
+                $row['raw_model'],
+                [
+                    'brand' => $row['brand_name'] ?: $row['raw_brand'],
+                    'model' => $row['model'],
+                    'type' => $row['type'],
+                    'powertrain' => $powertrain !== '' ? $powertrain : null,
+                    'category' => $category,
+                    'size' => $size,
+                ],
+            );
+        } catch (RuntimeException $e) {
+            $this->newRowMessage = '✗ '.$e->getMessage();
 
-        // Link ke katalog bila sudah ada (brand/model baru dibuat nanti oleh
-        // "Terapkan ke Katalog" di halaman Sync CONNECTING).
-        $matcher = app(VehicleSalesMatcher::class);
-        $brandVehicle = BrandVehicle::query()->get()
-            ->first(fn ($b) => $matcher->normalize($matcher->canonicalBrandName($b->name))
-                === $matcher->normalize($matcher->canonicalBrandName($brand)));
-        $modelVehicle = $brandVehicle !== null
-            ? ModelVehicle::where('brand_vehicle_id', $brandVehicle->id)->get()
-                ->first(fn ($m) => $matcher->normalize($m->name) === $matcher->normalize($model))
-            : null;
-        $typeVehicle = ($modelVehicle !== null && $type !== '')
-            ? TypeVehicle::where('model_vehicle_id', $modelVehicle->id)
-                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($type)])->first()
-            : null;
-
-        VehicleConnecting::updateOrCreate(
-            ['raw_gabungan_key' => $key],
-            [
-                'raw_gabungan' => $gabungan,
-                'brand_name' => $brand,
-                'model_name' => $model,
-                'type_name' => $type !== '' ? $type : null,
-                'brand_vehicle_id' => $brandVehicle?->id,
-                'model_vehicle_id' => $modelVehicle?->id,
-                'type_vehicle_id' => $typeVehicle?->id,
-                'powertrain' => $powertrain !== '' ? $powertrain : null,
-                'category' => $category,
-                'size_class' => $size,
-            ],
-        );
+            return;
+        }
 
         $this->newRowSaved[$index] = true;
-        $this->newRowMessage = "✓ '{$gabungan}' masuk CONNECTING ({$category}".($size !== null ? " / {$size}" : '').').'.
-            ' Lanjutkan: halaman Sync CONNECTING → Terapkan ke Katalog → Import Penjualan.';
+        $this->newRowMessage = "✓ '{$row['brand']}' tertaut ke katalog + CONNECTING ({$category}".($size !== null ? " / {$size}" : '').').'.
+            ' Klik "Mulai Analisis Laporan" ulang — baris ini pindah ke Ter-match Katalog.';
     }
 
     public function saveMapping(): void
