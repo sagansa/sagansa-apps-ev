@@ -93,6 +93,13 @@ class ImportVehicleConnecting extends Command
                 ['raw_gabungan_key' => $key],
                 [
                     'raw_gabungan' => $gabungan,
+                    // Nama mentah baris — applyToCatalog() memakai kolom ini
+                    // untuk mempromosikan baris belum-ter-link ke katalog
+                    // (jalur GUI addToConnecting selalu mengisinya; jalur CLI
+                    // kini setara, bukan hanya FK).
+                    'brand_name' => $brand !== '' ? $brand : null,
+                    'model_name' => $model !== '' ? $model : null,
+                    'type_name' => $type !== '' ? $type : null,
                     'fuel' => ($f = trim((string) $r[$iF])) !== '' ? strtoupper($f) : null,
                     'brand_vehicle_id' => $brandVehicle?->id,
                     'model_vehicle_id' => $modelVehicle?->id,

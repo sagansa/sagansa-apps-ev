@@ -112,19 +112,19 @@
         {{-- 1. UPLOAD FORM SECTION --}}
         <x-filament::section>
             <x-slot name="heading">
-                Upload Laporan Penjualan (CSV GAIKINDO)
+                Upload Laporan Penjualan (CSV / XLSX GAIKINDO)
             </x-slot>
 
             <p style="margin-top: 2px; margin-bottom: 16px; font-size: 13px; color: var(--vsp-text-muted); line-height: 1.5;">
-                <strong>Mode Analisis Dry-Run (Read-Only)</strong>: File CSV diperiksa terhadap katalog master (Brand → Model).
+                <strong>Mode Analisis Dry-Run (Read-Only)</strong>: File CSV/XLSX diperiksa terhadap katalog master (Brand → Model).
                 Kombinasi BEV yang belum terdaftar di katalog akan diidentifikasi sebelum data diimpor secara permanen.
             </p>
 
             <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px;">
                 <div style="flex: 1; min-width: 260px;">
                     <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--vsp-text-muted);">
-                        Pilih File CSV GAIKINDO:
-                        <input type="file" accept=".csv"
+                        Pilih File GAIKINDO (.csv / .xlsx):
+                        <input type="file" accept=".csv,.txt,.xlsx,.xls"
                                wire:model.live="csvFile"
                                class="vsp-input-control" style="padding: 6px 10px;" />
                     </label>
@@ -174,7 +174,7 @@
                     <div style="margin-top: 8px; font-size: 22px; font-weight: 800; font-family: monospace; color: var(--vsp-text-title);">
                         {{ number_format($s['rows']) }}
                     </div>
-                    <div style="margin-top: 4px; font-size: 11px; color: var(--vsp-text-muted);">Total baris CSV</div>
+                    <div style="margin-top: 4px; font-size: 11px; color: var(--vsp-text-muted);">Total baris file</div>
                 </div>
 
                 {{-- Dilewati --}}
