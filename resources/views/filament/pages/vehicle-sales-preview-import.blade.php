@@ -259,9 +259,11 @@
                     </x-slot>
 
                     <p style="margin-bottom: 12px; font-size: 12px; color: var(--vsp-text-muted);">
-                        Kombinasi model di bawah ini terdeteksi pada file laporan tetapi belum terdaftar dalam master katalog.
-                        Isi <strong>Kategori</strong> (+ Size bila MPV/Sedan/SUV/Hatchback) lalu klik <strong>＋ CONNECTING</strong> per baris —
-                        tanpa perlu unduh CSV. Verifikasi dulu: baris bertanda <em>typo/varian 0 unit</em> boleh diabaikan.
+                        Model di bawah terdeteksi pada file laporan tetapi belum terdaftar di master, <strong>dikelompokkan
+                        per keluarga (Brand + Model)</strong> — kategori &amp; size melekat pada model (semua varian type
+                        pasti sama), jadi cukup <strong>satu keputusan per keluarga</strong>; powertrain tiap varian
+                        mengikuti FUEL file (G/D/CNG → ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV). Tombol ＋
+                        menautkan <strong>semua varian</strong> dalam keluarga sekaligus.
                     </p>
 
                     @if ($newRowMessage)
@@ -274,54 +276,83 @@
                         <table style="width: 100%; font-size: 13px; text-align: left; border-collapse: collapse;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--vsp-border); color: var(--vsp-text-muted);">
-                                    <th style="padding: 8px 12px; font-weight: 600;">Nama di Laporan (utuh)</th>
+                                    <th style="padding: 8px 12px; font-weight: 600;">Keluarga (Brand + Model)</th>
                                     <th style="padding: 8px 12px; text-align: right;">Unit</th>
-                                    <th style="padding: 8px 12px; font-weight: 600;">Status Katalog</th>
-                                    <th style="padding: 8px 12px; font-weight: 600;">Powertrain</th>
+                                    <th style="padding: 8px 12px; font-weight: 600;">Powertrain <span style="font-weight: 400;">(default)</span></th>
                                     <th style="padding: 8px 12px; font-weight: 600;">Kategori *</th>
                                     <th style="padding: 8px 12px; font-weight: 600;">Size</th>
                                     <th style="padding: 8px 12px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($result['new'] as $i => $row)
+                                @php
+                                    // Kelompokkan kombinasi BARU per keluarga (brand + model).
+                                    $groups = [];
+                                    foreach (($result['new'] ?? []) as $i => $row) {
+                                        $brandName = $row['brand_name'] ?? null;
+                                        $gBrand = $brandName ?: $row['raw_brand'];
+                                        $gKey = preg_replace('/[^A-Z0-9]/u', '', mb_strtoupper(trim((string) $gBrand).' '.trim((string) $row['model'])));
+                                        $g = $groups[$gKey] ??= ['key' => $gKey, 'brand' => $gBrand, 'model' => $row['model'], 'units' => 0, 'fuels' => [], 'brand_name' => $brandName, 'rows' => []];
+                                        $g['units'] += $row['units'];
+                                        $g['fuels'][] = $row['fuel'] ?? '—';
+                                        $g['rows'][] = $i;
+                                        $groups[$gKey] = $g;
+                                    }
+                                    usort($groups, fn ($a, $b) => $b['units'] <=> $a['units']);
+                                @endphp
+                                @foreach ($groups as $group)
                                     @php
-                                        $saved = isset($newRowSaved[$i]);
-                                        $form = $newRowForms[$i] ?? [];
+                                        $gKey = $group['key'];
+                                        $form = $newRowForms[$gKey] ?? [];
+                                        $pendingRows = array_filter($group['rows'], fn ($i) => ! isset($newRowSaved[$i]));
+                                        $saved = $pendingRows === [];
+                                        $firstPt = '';
+                                        foreach ($group['rows'] as $i) {
+                                            if (($result['new'][$i]['powertrain'] ?? '') !== '') { $firstPt = $result['new'][$i]['powertrain']; break; }
+                                        }
                                     @endphp
-                                    <tr style="border-bottom: 1px solid var(--vsp-border-sub); {{ $saved ? 'opacity: 0.55;' : '' }} background: {{ str_starts_with($row['powertrain'], 'BEV') ? 'transparent' : 'rgba(156, 163, 175, 0.05)' }};"
+                                    <tr style="border-bottom: 1px solid var(--vsp-border-sub); {{ $saved ? 'opacity: 0.55;' : '' }}"
                                         x-data="{ cat: @js($form['category'] ?? ''), sizable: @js(\App\Support\VehicleCategories::SIZABLE) }">
-                                        <td style="padding: 8px 12px; font-family: monospace; font-weight: 700; color: var(--vsp-text-title);">
-                                            {{ $row['brand'] }}
-                                            @if ($row['fuel'])
-                                                <span class="vsp-badge vsp-badge-gray" style="margin-left: 6px;" title="FUEL di file laporan">fuel: {{ $row['fuel'] }}</span>
-                                            @endif
-                                            <div style="font-size: 11px; font-weight: 500; color: var(--vsp-text-muted); margin-top: 3px; font-family: sans-serif;">
-                                                → {{ $row['brand_name'] ?? $row['raw_brand'] }} / {{ $row['model'] }} / {{ $row['type'] }}
+                                        <td style="padding: 8px 12px;">
+                                            <div style="font-weight: 700; color: var(--vsp-text-title);">
+                                                {{ $group['brand'] }} {{ $group['model'] }}
+                                                <span class="vsp-badge vsp-badge-gray" style="margin-left: 6px;">{{ count($group['rows']) }} varian</span>
+                                                @foreach (array_slice(array_unique($group['fuels']), 0, 4) as $fuel)
+                                                    <span class="vsp-badge vsp-badge-gray" title="FUEL di file laporan">fuel: {{ $fuel }}</span>
+                                                @endforeach
+                                            </div>
+                                            <div style="font-size: 11px; margin-top: 4px;">
+                                                @if ($group['brand_name'])
+                                                    <span class="vsp-badge vsp-badge-warn">model baru di {{ $group['brand_name'] }}</span>
+                                                @else
+                                                    <span class="vsp-badge vsp-badge-warn">belum ada di CONNECTING</span>
+                                                @endif
+                                                <details style="display: inline-block; margin-left: 8px;">
+                                                    <summary style="font-size: 11px; color: var(--vsp-text-muted); cursor: pointer; display: inline;">daftar varian</summary>
+                                                    <div style="font-family: monospace; font-size: 11px; color: var(--vsp-text-muted); margin-top: 4px;">
+                                                        @foreach ($group['rows'] as $i)
+                                                            @php($r = $result['new'][$i])
+                                                            <div>{{ $r['brand'] }} — {{ $r['powertrain'] !== '' ? $r['powertrain'] : '?' }} · {{ number_format($r['units']) }} unit</div>
+                                                        @endforeach
+                                                    </div>
+                                                </details>
                                             </div>
                                         </td>
                                         <td style="padding: 8px 12px; text-align: right; font-family: monospace; font-weight: 700; color: var(--vsp-text-title);">
-                                            {{ number_format($row['units']) }}
+                                            {{ number_format($group['units']) }}
                                         </td>
                                         <td style="padding: 8px 12px;">
-                                            @if ($row['brand_name'])
-                                                <span class="vsp-badge vsp-badge-warn">model baru di {{ $row['brand_name'] }}</span>
-                                            @else
-                                                <span class="vsp-badge vsp-badge-warn">belum ada di CONNECTING</span>
-                                            @endif
-                                        </td>
-                                        <td style="padding: 8px 12px;">
-                                            <select wire:model="newRowForms.{{ $i }}.powertrain" class="vsp-input-control" style="padding: 4px 8px; min-width: 90px;">
-                                                @if ($row['powertrain'] === '')
+                                            <select wire:model="newRowForms.{{ $gKey }}.powertrain" class="vsp-input-control" style="padding: 4px 8px; min-width: 90px;">
+                                                @if ($firstPt === '')
                                                     <option value="">— pilih —</option>
                                                 @endif
                                                 @foreach (['BEV', 'HEV', 'PHEV', 'ICE'] as $pt)
-                                                    <option value="{{ $pt }}" @selected(($form['powertrain'] ?? $row['powertrain']) === $pt)>{{ $pt }}</option>
+                                                    <option value="{{ $pt }}" @selected(($form['powertrain'] ?? $firstPt) === $pt)>{{ $pt }}</option>
                                                 @endforeach
                                             </select>
                                         </td>
                                         <td style="padding: 8px 12px;">
-                                            <select wire:model="newRowForms.{{ $i }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control" style="padding: 4px 8px; min-width: 120px;">
+                                            <select wire:model="newRowForms.{{ $gKey }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control" style="padding: 4px 8px; min-width: 120px;">
                                                 <option value="">— pilih —</option>
                                                 @foreach (\App\Filament\Pages\VehicleSalesPreviewImport::categoryOptions() as $cat)
                                                     <option value="{{ $cat }}" @selected(($form['category'] ?? '') === $cat)>{{ $cat }}</option>
@@ -329,7 +360,7 @@
                                             </select>
                                         </td>
                                         <td style="padding: 8px 12px;">
-                                            <select x-show="sizable.includes(cat)" wire:model="newRowForms.{{ $i }}.size" class="vsp-input-control" style="padding: 4px 8px; min-width: 95px;">
+                                            <select x-show="sizable.includes(cat)" wire:model="newRowForms.{{ $gKey }}.size" class="vsp-input-control" style="padding: 4px 8px; min-width: 95px;">
                                                 <option value="">—</option>
                                                 @foreach (\App\Support\VehicleCategories::SIZES as $sz)
                                                     <option value="{{ $sz }}" @selected(($form['size'] ?? '') === $sz)>{{ $sz }}</option>
@@ -341,8 +372,8 @@
                                             @if ($saved)
                                                 <span class="vsp-badge vsp-badge-success">✓ masuk CONNECTING</span>
                                             @else
-                                                <button type="button" wire:click="addToConnecting({{ $i }})" wire:loading.attr="disabled" wire:target="addToConnecting({{ $i }})" class="vsp-btn-primary" style="padding: 5px 12px; font-size: 12px;">
-                                                    ＋ CONNECTING
+                                                <button type="button" wire:click="addToConnecting('{{ $gKey }}')" wire:loading.attr="disabled" wire:target="addToConnecting('{{ $gKey }}')" class="vsp-btn-primary" style="padding: 5px 12px; font-size: 12px;">
+                                                    ＋ CONNECTING ({{ count($pendingRows) }} varian)
                                                 </button>
                                             @endif
                                         </td>

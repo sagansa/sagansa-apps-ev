@@ -75,10 +75,10 @@ class VehicleSalesPreviewImportPageTest extends TestCase
         $page->assertSet('result.summary.matched', 0)
             ->assertSet('result.summary.new', 3);
 
-        // Tautkan "BYD Sealion 8" (index 1) dgn kategori SUV.
-        $page->set('newRowForms.1.category', 'SUV')
-            ->set('newRowForms.1.size', 'Medium')
-            ->call('addToConnecting', 1);
+        // Tautkan keluarga "BYD Sealion 8" (kunci grup squashed) dgn SUV.
+        $page->set('newRowForms.BYDSEALION8.category', 'SUV')
+            ->set('newRowForms.BYDSEALION8.size', 'Medium')
+            ->call('addToConnecting', 'BYDSEALION8');
 
         // CONNECTING terisi nama TERPISAH (bukan string mentah utuh) dgn FK
         // lengkap — prasyarat connectingHit agar analisis ulang mengenali.
@@ -104,5 +104,46 @@ class VehicleSalesPreviewImportPageTest extends TestCase
             ->call('analyze')
             ->assertSet('result.summary.matched', 1)
             ->assertSet('result.summary.new', 2);
+    }
+
+    /**
+     * Varian trim dari model YANG SAMA dikelompokkan jadi SATU baris
+     * keluarga — satu pilihan kategori menautkan semua varian sekaligus
+     * (anti inkonsistensi kategori antar varian, mis. 6 varian Creta).
+     */
+    public function test_varian_satu_keluarga_dikelompokkan_satu_baris(): void
+    {
+        $csv = implode("\n", [
+            'BRAND,TYPE MODEL,CC,TRANS,FUEL,JAN,FEB,MAR,APR,MAY,JUN,JUL,AUG,SEP,OCT,NOV,DEC,TOTAL',
+            'BYD,Atto 1 Active 1.5 MT, ,MT,G,7,-, , , , , , 7',
+            'BYD,Atto 1 Trend 1.5 MT, ,MT,G,9,-, , , , , , 9',
+            'BYD,Atto 1 Prime 1.5 IVT, ,IVT,G,11,-, , , , , , 11',
+        ]);
+
+        $page = Livewire::actingAs($this->admin)
+            ->test(VehicleSalesPreviewImport::class)
+            ->set('csvFile', UploadedFile::fake()->createWithContent('laporan.csv', $csv))
+            ->call('analyze');
+
+        // 3 kombinasi BARU, tetapi hanya SATU keluarga form (BYD Atto 1).
+        $this->assertSame(3, $page->get('result')['summary']['new']);
+        $this->assertSame(['BYDATTO1'], array_keys($page->get('newRowForms')));
+
+        // Satu keputusan kategori → tiga varian tertaut sekali jalan.
+        $page->set('newRowForms.BYDATTO1.category', 'SUV')
+            ->set('newRowForms.BYDATTO1.size', 'Medium')
+            ->call('addToConnecting', 'BYDATTO1');
+
+        $this->assertSame(3, VehicleConnecting::query()
+            ->where('raw_gabungan', 'like', 'BYD Atto 1%')->count());
+
+        $model = ModelVehicle::query()
+            ->whereHas('brandVehicle', fn ($q) => $q->where('name', 'BYD'))
+            ->where('name', 'Atto 1')->first();
+
+        $this->assertNotNull($model, 'semua varian menempel di satu keluarga Atto 1');
+        $this->assertSame('SUV', $model->category);
+        $this->assertSame('Medium', $model->size_class);
+        $this->assertSame(3, $model->typeVehicles()->count(), '3 varian type di bawah satu model');
     }
 }

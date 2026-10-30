@@ -101,122 +101,197 @@ class VehicleSalesPreviewImport extends Page
     }
 
     /**
-     * Tautkan satu kombinasi baru SEKALIGUS: resolve/create katalog
-     * (brand/model/type) + upsert CONNECTING dgn FK lengkap via
-     * VehicleSalesPendingLinker — analisis ulang otomatis memindahkan
-     * baris ini ke "Ter-match Katalog" (menggantikan alur lama
-     * Sync CONNECTING → Terapkan ke Katalog yang tidak back-link).
+     * Kelompokkan kombinasi BARU per KELUARGA (brand + model hasil pemecah
+     * nama): kategori/size melekat pada model — semua varian type di bawah
+     * keluarga yang sama mengikuti SATU keputusan, tak mungkin beda-beda.
+     *
+     * @return list<array{key: string, brand: string, model: string, units: int, fuels: list<string>, brand_name: ?string, rows: list<int>}>
      */
-    public function addToConnecting(int $index): void
+    public function newGroups(): array
     {
-        $row = $this->result['new'][$index] ?? null;
+        $groups = [];
 
-        if ($row === null) {
-            return;
+        foreach ($this->result['new'] ?? [] as $i => $row) {
+            $brandName = $row['brand_name'] ?? null;
+            $groupBrand = $brandName ?: $row['raw_brand'];
+            $key = (string) preg_replace(
+                '/[^A-Z0-9]/u',
+                '',
+                mb_strtoupper(trim((string) $groupBrand).' '.trim((string) $row['model'])),
+            );
+
+            $g = $groups[$key] ??= [
+                'key' => $key,
+                'brand' => $groupBrand,
+                'model' => $row['model'],
+                'units' => 0,
+                'fuels' => [],
+                'brand_name' => $brandName,
+                'rows' => [],
+            ];
+
+            $g['units'] += $row['units'];
+            $g['fuels'][] = $row['fuel'] ?? '—';
+            $g['rows'][] = (int) $i;
+
+            $groups[$key] = $g;
         }
 
-        $error = $this->linkNewRow($index);
+        $list = array_values($groups);
+        usort($list, fn (array $a, array $b) => $b['units'] <=> $a['units']);
 
-        if ($error !== null) {
-            $this->newRowMessage = "✗ '{$row['brand']}': {$error}";
-
-            return;
-        }
-
-        $category = VehicleCategories::normalizeCategory($this->newRowForms[$index]['category'] ?? null);
-
-        $this->newRowMessage = "✓ '{$row['brand']}' tertaut ke katalog + CONNECTING ({$category}).".
-            ' Klik "Mulai Analisis Laporan" ulang — baris ini pindah ke Ter-match Katalog.';
+        return $list;
     }
 
     /**
-     * Tautkan satu baris "new" — logika bersama tombol per-baris dan bulk.
-     * Return null bila sukses, atau pesan error.
+     * Tautkan SATU KELOMPOK keluarga sekaligus: kategori/size diambil dari
+     * form keluarga (satu keputusan), semua varian type di bawahnya dibuat
+     * via VehicleSalesPendingLinker — analisis ulang otomatis memindahkan
+     * seluruh varian ke "Ter-match Katalog".
      */
-    protected function linkNewRow(int $index): ?string
+    public function addToConnecting(string $groupKey): void
     {
-        $row = $this->result['new'][$index] ?? null;
+        $group = collect($this->newGroups())->first(fn (array $g): bool => $g['key'] === $groupKey);
 
-        if ($row === null) {
-            return 'baris tidak ditemukan';
+        if ($group === null) {
+            return;
         }
 
-        $form = $this->newRowForms[$index] ?? [];
-        $powertrain = strtoupper(trim((string) ($form['powertrain'] ?? ''))) ?: $row['powertrain'];
+        $res = $this->linkGroup($group);
+
+        if ($res['linked'] === 0) {
+            $this->newRowMessage = '✗ "'.$group['brand'].' '.$group['model'].'": '.implode('; ', $res['errors'] ?: ['tidak ada varian tertaut']);
+
+            return;
+        }
+
+        $category = VehicleCategories::normalizeCategory($this->newRowForms[$groupKey]['category'] ?? null);
+
+        $this->newRowMessage = sprintf(
+            '✓ "%s %s" (kategori %s): %d varian type tertaut ke katalog + CONNECTING.%s Klik "Mulai Analisis Laporan" ulang.',
+            $group['brand'],
+            $group['model'],
+            $category ?? '?',
+            $res['linked'],
+            $res['errors'] !== [] ? ' Terlewat: '.implode('; ', array_slice($res['errors'], 0, 3)).'.' : '',
+        );
+    }
+
+    /**
+     * Tautkan satu kelompok keluarga — logika bersama tombol per-kelompok
+     * dan bulk. Kategori wajib; powertrain per varian dari FUEL (prefill
+     * baris), fallback default keluarga. Tiap varian transaksi sendiri.
+     *
+     * @param  array<string, mixed>  $group
+     * @return array{linked: int, errors: list<string>}
+     */
+    protected function linkGroup(array $group): array
+    {
+        $form = $this->newRowForms[$group['key']] ?? [];
         $category = VehicleCategories::normalizeCategory($form['category'] ?? null);
-        $size = VehicleCategories::normalizeSize($form['size'] ?? null);
 
         if ($category === null) {
-            return 'pilih kategori dulu';
+            return ['linked' => 0, 'errors' => ['pilih kategori model dulu']];
         }
+
+        $size = VehicleCategories::normalizeSize($form['size'] ?? null);
 
         if (! in_array($category, VehicleCategories::SIZABLE, true)) {
             $size = null; // size hanya untuk kategori ber-ukuran
         }
 
-        // Brand katalog dipakai bila dikenali (badge "model baru di X");
-        // selain itu brand mentah laporan — koreksi via Mapping Eksplisit
-        // bila ejaannya berbeda dari katalog (mis. WULING-DBG → Wuling).
-        try {
-            app(VehicleSalesPendingLinker::class)->link(
-                $row['raw_brand'],
-                $row['raw_model'],
-                [
-                    'brand' => $row['brand_name'] ?: $row['raw_brand'],
-                    'model' => $row['model'],
-                    'type' => $row['type'],
-                    'powertrain' => $powertrain !== '' ? $powertrain : null,
-                    'category' => $category,
-                    'size' => $size,
-                ],
-            );
-        } catch (RuntimeException $e) {
-            return $e->getMessage();
+        $out = ['linked' => 0, 'errors' => []];
+
+        foreach ($group['rows'] as $i) {
+            $row = $this->result['new'][$i] ?? null;
+
+            if ($row === null || isset($this->newRowSaved[$i])) {
+                continue;
+            }
+
+            $powertrain = strtoupper(trim((string) ($form['powertrain'] ?? ''))) ?: $row['powertrain'];
+
+            // Brand katalog dipakai bila dikenali (badge "model baru di X");
+            // selain itu brand mentah laporan — koreksi via Mapping Eksplisit
+            // bila ejaannya berbeda dari katalog (mis. WULING-DBG → Wuling).
+            try {
+                app(VehicleSalesPendingLinker::class)->link(
+                    $row['raw_brand'],
+                    $row['raw_model'],
+                    [
+                        'brand' => $row['brand_name'] ?: $row['raw_brand'],
+                        'model' => $row['model'],
+                        'type' => $row['type'],
+                        'powertrain' => $powertrain !== '' ? $powertrain : null,
+                        'category' => $category,
+                        'size' => $size,
+                    ],
+                );
+            } catch (RuntimeException $e) {
+                $out['errors'][] = $row['raw_model'].' ('.$e->getMessage().')';
+
+                continue;
+            }
+
+            $this->newRowSaved[$i] = true;
+            $out['linked']++;
         }
 
-        $this->newRowSaved[$index] = true;
-
-        return null;
+        return $out;
     }
 
     /**
-     * Tautkan SEKALIGUS semua baris "new" yang kategorinya sudah diisi —
-     * baris tanpa kategori dilewati & dilaporkan; tiap baris transaksi
-     * sendiri agar satu kegagalan tidak membatalkan batch.
+     * Tautkan SEKALIGUS semua KELOMPOK yang kategorinya sudah diisi —
+     * kelompok tanpa kategori dilewati & dilaporkan; tiap varian
+     * bertransaksi sendiri agar satu kegagalan tidak membatalkan batch.
      */
     public function bulkAddToConnecting(): void
     {
-        $linked = 0;
+        $linkedGroups = 0;
+        $linkedVariants = 0;
         /** @var list<string> $skipped */
         $skipped = [];
 
-        foreach (array_keys($this->result['new'] ?? []) as $i) {
-            if (isset($this->newRowSaved[$i])) {
+        foreach ($this->newGroups() as $group) {
+            $pending = array_filter(
+                $group['rows'],
+                fn (int $i): bool => ! isset($this->newRowSaved[$i]),
+            );
+
+            if ($pending === []) {
                 continue;
             }
 
-            $error = $this->linkNewRow($i);
+            $res = $this->linkGroup($group);
 
-            if ($error === null) {
-                $linked++;
+            if ($res['linked'] === 0) {
+                $skipped[] = $group['brand'].' '.$group['model'].' ('.implode('; ', $res['errors']).')';
 
                 continue;
             }
 
-            $skipped[] = ($this->result['new'][$i]['brand'] ?? '?').' ('.$error.')';
+            $linkedGroups++;
+            $linkedVariants += $res['linked'];
+
+            if ($res['errors'] !== []) {
+                $skipped[] = $group['brand'].' '.$group['model'].' — sebagian: '.implode('; ', array_slice($res['errors'], 0, 2));
+            }
         }
 
-        if ($linked === 0) {
+        if ($linkedGroups === 0) {
             $this->newRowMessage = '✗ Tidak ada yang tertaut — '.($skipped !== []
                 ? implode('; ', array_slice($skipped, 0, 5))
-                : 'tidak ada kombinasi baru tersisa.');
+                : 'tidak ada kelompok baru tersisa.');
 
             return;
         }
 
-        $this->newRowMessage = "✓ Bulk: {$linked} kombinasi tertaut ke katalog + CONNECTING."
-            .($skipped !== [] ? ' Terlewat '.count($skipped).': '.implode('; ', array_slice($skipped, 0, 5)).'.' : '')
-            .' Klik "Mulai Analisis Laporan" ulang.';
+        $this->newRowMessage = sprintf(
+            '✓ Bulk: %d keluarga (%d varian type) tertaut ke katalog + CONNECTING.%s Klik "Mulai Analisis Laporan" ulang.',
+            $linkedGroups,
+            $linkedVariants,
+            $skipped !== [] ? ' Catatan: '.implode('; ', array_slice($skipped, 0, 3)).'.' : '',
+        );
     }
 
     public function saveMapping(): void
@@ -286,12 +361,20 @@ class VehicleSalesPreviewImport extends Page
                 $this->month,
             );
 
-            // Prefill powertrain (dari FUEL file: G/D/CNG → ICE, Hybrid/HEV
-            // → HEV, PHEV → PHEV, BEV → BEV) ke STATE — atribut selected
-            // server-side ditimpa sinkronisasi Livewire bila propertinya
-            // belum ada di state.
-            foreach ($this->result['new'] as $i => $row) {
-                $this->newRowForms[$i]['powertrain'] ??= ($row['powertrain'] !== '' ? $row['powertrain'] : null);
+            // Prefill powertrain per KELOMPOK keluarga (dari FUEL file:
+            // G/D/CNG → ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV) ke
+            // STATE — atribut selected server-side ditimpa sinkronisasi
+            // Livewire bila propertinya belum ada di state.
+            foreach ($this->newGroups() as $group) {
+                $this->newRowForms[$group['key']] ??= [];
+
+                if (! array_key_exists('powertrain', $this->newRowForms[$group['key']])) {
+                    $first = collect($group['rows'])
+                        ->map(fn (int $i) => $this->result['new'][$i]['powertrain'] ?? '')
+                        ->first(fn (string $p): bool => $p !== '');
+
+                    $this->newRowForms[$group['key']]['powertrain'] = $first ?? null;
+                }
             }
         } catch (RuntimeException $e) {
             $this->result = null;
