@@ -230,8 +230,8 @@
                 </datalist>
 
                 <div style="display: flex; flex-direction: column; gap: 12px;" wire:loading.delay wire:target="linkCombo">
-                    @foreach ($pendingRows as $i => $row)
-                        @php($form = $forms[$i] ?? [])
+                    @foreach ($pendingRows as $row)
+                        @php($form = $forms[$row['key']] ?? [])
                         <div class="vsp-card"
                              x-data="{ cat: @js($form['category'] ?? ''), sizable: @js(\App\Support\VehicleCategories::SIZABLE) }">
                             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;">
@@ -250,28 +250,28 @@
                                 <label class="vsp-field-label">
                                     Brand
                                     <input type="text" list="vsp-brand-options"
-                                           wire:model.lazy="forms.{{ $i }}.brand"
+                                           wire:model.lazy="forms.{{ $row['key'] }}.brand"
                                            class="vsp-input-control"
                                            value="{{ $form['brand'] ?? $row['brand'] }}" />
                                 </label>
 
                                 <label class="vsp-field-label">
                                     Model
-                                    <input type="text" wire:model.lazy="forms.{{ $i }}.model"
+                                    <input type="text" wire:model.lazy="forms.{{ $row['key'] }}.model"
                                            class="vsp-input-control"
                                            value="{{ $form['model'] ?? $row['model'] }}" />
                                 </label>
 
                                 <label class="vsp-field-label">
                                     Type
-                                    <input type="text" wire:model.lazy="forms.{{ $i }}.type"
+                                    <input type="text" wire:model.lazy="forms.{{ $row['key'] }}.type"
                                            class="vsp-input-control"
                                            value="{{ $form['type'] ?? $row['type'] }}" />
                                 </label>
 
                                 <label class="vsp-field-label">
                                     Powertrain
-                                    <select wire:model="forms.{{ $i }}.powertrain" class="vsp-input-control">
+                                    <select wire:model="forms.{{ $row['key'] }}.powertrain" class="vsp-input-control">
                                         <option value="">— pilih —</option>
                                         @foreach (\App\Filament\Pages\VehicleSalesDirectImport::powertrainOptions() as $pt)
                                             <option value="{{ $pt }}" @selected(($form['powertrain'] ?? $row['powertrain']) === $pt)>{{ $pt }}</option>
@@ -281,7 +281,7 @@
 
                                 <label class="vsp-field-label">
                                     Category *
-                                    <select wire:model="forms.{{ $i }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control">
+                                    <select wire:model="forms.{{ $row['key'] }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control">
                                         <option value="">— pilih —</option>
                                         @foreach (\App\Filament\Pages\VehicleSalesDirectImport::categoryOptions() as $cat)
                                             <option value="{{ $cat }}" @selected(($form['category'] ?? '') === $cat)>{{ $cat }}</option>
@@ -290,23 +290,25 @@
                                 </label>
 
                                 <label class="vsp-field-label">
-                                    Size
-                                    <select wire:model="forms.{{ $i }}.size" class="vsp-input-control"
-                            :disabled="! sizable.includes(cat)"
-                            :title="sizable.includes(cat) ? '' : 'Kategori ini tidak ber-ukuran'">
+                                    <span x-show="sizable.includes(cat)">Size</span>
+                                    <span x-show="! sizable.includes(cat)" style="text-transform: none; font-weight: 500;">Size —</span>
+                                    <select x-show="sizable.includes(cat)" wire:model="forms.{{ $row['key'] }}.size" class="vsp-input-control"
+                                            :title="sizable.includes(cat) ? '' : 'Kategori ini tidak ber-ukuran'">
                                         <option value="">—</option>
                                         @foreach (\App\Filament\Pages\VehicleSalesDirectImport::sizeOptions() as $size)
                                             <option value="{{ $size }}" @selected(($form['size'] ?? '') === $size)>{{ $size }}</option>
                                         @endforeach
                                     </select>
+                                    <span x-show="! sizable.includes(cat)" class="vsp-input-control"
+                                          style="display: none; opacity: 0.6; cursor: default; text-align: center;">—</span>
                                 </label>
 
                                 <div>
-                                    <button type="button" wire:click="linkCombo({{ $i }})"
-                                            wire:target="linkCombo({{ $i }})" wire:loading.attr="disabled"
+                                    <button type="button" wire:click="linkCombo('{{ $row['key'] }}')"
+                                            wire:target="linkCombo('{{ $row['key'] }}')" wire:loading.attr="disabled"
                                             class="vsp-btn-primary" style="white-space: nowrap;">
-                                        <span wire:loading.remove wire:target="linkCombo({{ $i }})">🔗 Simpan &amp; Tautkan</span>
-                                        <span wire:loading wire:target="linkCombo({{ $i }})">⏳…</span>
+                                        <span wire:loading.remove wire:target="linkCombo('{{ $row['key'] }}')">🔗 Simpan &amp; Tautkan</span>
+                                        <span wire:loading wire:target="linkCombo('{{ $row['key'] }}')">⏳…</span>
                                     </button>
                                 </div>
                             </div>

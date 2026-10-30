@@ -289,7 +289,8 @@
                                         $saved = isset($newRowSaved[$i]);
                                         $form = $newRowForms[$i] ?? [];
                                     @endphp
-                                    <tr style="border-bottom: 1px solid var(--vsp-border-sub); {{ $saved ? 'opacity: 0.55;' : '' }} background: {{ str_starts_with($row['powertrain'], 'BEV') ? 'transparent' : 'rgba(156, 163, 175, 0.05)' }};">
+                                    <tr style="border-bottom: 1px solid var(--vsp-border-sub); {{ $saved ? 'opacity: 0.55;' : '' }} background: {{ str_starts_with($row['powertrain'], 'BEV') ? 'transparent' : 'rgba(156, 163, 175, 0.05)' }};"
+                                        x-data="{ cat: @js($form['category'] ?? ''), sizable: @js(\App\Support\VehicleCategories::SIZABLE) }">
                                         <td style="padding: 8px 12px; font-family: monospace; font-weight: 700; color: var(--vsp-text-title);">
                                             {{ $row['brand'] }}
                                             @if ($row['fuel'])
@@ -320,7 +321,7 @@
                                             </select>
                                         </td>
                                         <td style="padding: 8px 12px;">
-                                            <select wire:model="newRowForms.{{ $i }}.category" class="vsp-input-control" style="padding: 4px 8px; min-width: 120px;">
+                                            <select wire:model="newRowForms.{{ $i }}.category" x-on:change="cat = $event.target.value" class="vsp-input-control" style="padding: 4px 8px; min-width: 120px;">
                                                 <option value="">— pilih —</option>
                                                 @foreach (\App\Filament\Pages\VehicleSalesPreviewImport::categoryOptions() as $cat)
                                                     <option value="{{ $cat }}" @selected(($form['category'] ?? '') === $cat)>{{ $cat }}</option>
@@ -328,12 +329,13 @@
                                             </select>
                                         </td>
                                         <td style="padding: 8px 12px;">
-                                            <select wire:model="newRowForms.{{ $i }}.size" class="vsp-input-control" style="padding: 4px 8px; min-width: 95px;">
+                                            <select x-show="sizable.includes(cat)" wire:model="newRowForms.{{ $i }}.size" class="vsp-input-control" style="padding: 4px 8px; min-width: 95px;">
                                                 <option value="">—</option>
                                                 @foreach (\App\Support\VehicleCategories::SIZES as $sz)
                                                     <option value="{{ $sz }}" @selected(($form['size'] ?? '') === $sz)>{{ $sz }}</option>
                                                 @endforeach
                                             </select>
+                                            <span x-show="! sizable.includes(cat)" class="vsp-badge vsp-badge-gray" style="display: none;">tanpa ukuran</span>
                                         </td>
                                         <td style="padding: 8px 12px; white-space: nowrap;">
                                             @if ($saved)

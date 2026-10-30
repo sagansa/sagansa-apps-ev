@@ -56,10 +56,41 @@ class VehicleSalesDirectImport extends Page
     /** Baris tabel ringkasan output command impor. @var list<array{0: string, 1: string}> */
     public array $importSummary = [];
 
-    /** Form inline per baris pending: brand/model/type/powertrain/category/size. */
+    /**
+     * Form inline per kombinasi pending, BERKUNCI squashed key (bukan
+     * indeks) agar isian tidak bergeser ke baris lain saat baris
+     * di atasnya ditautkan dan hilang dari daftar.
+     *
+     * @var array<string, array{brand?: string, model?: string, type?: string, powertrain?: ?string, category?: ?string, size?: ?string}>
+     */
     public array $forms = [];
 
     public ?string $linkMessage = null;
+
+    /** @var list<array<mixed>>|null memo pending per-request */
+    protected ?array $pendingMemo = null;
+
+    /**
+     * Prefill form ke STATE — sinkronisasi Livewire menimpa nilai select/
+     * input yang propertinya belum ada di state (atribut selected/value
+     * dari server tidak bertahan), sehingga prefill powertrain-dari-FUEL
+     * "hilang" bila hanya dirender. Powertrain dari FUEL file (G/D/CNG →
+     * ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV).
+     */
+    public function booted(): void
+    {
+        foreach ($this->pending() as $row) {
+            $this->forms[$row['key']] ??= [];
+
+            foreach (['brand' => $row['brand'], 'model' => $row['model'], 'type' => $row['type']] as $field => $value) {
+                $this->forms[$row['key']][$field] ??= $value;
+            }
+
+            if (! array_key_exists('powertrain', $this->forms[$row['key']])) {
+                $this->forms[$row['key']]['powertrain'] = $row['powertrain'] !== '' ? $row['powertrain'] : null;
+            }
+        }
+    }
 
     /** @return list<string> */
     public static function categoryOptions(): array
@@ -142,6 +173,10 @@ class VehicleSalesDirectImport extends Page
      */
     public function pending(): array
     {
+        if ($this->pendingMemo !== null) {
+            return $this->pendingMemo;
+        }
+
         $rows = VehicleSalesStat::query()
             ->whereNull('model_vehicle_id')
             ->get(['raw_brand', 'raw_model', 'powertrain', 'year', 'units']);
@@ -212,7 +247,7 @@ class VehicleSalesDirectImport extends Page
 
         usort($result, fn ($a, $b) => $b['units'] <=> $a['units']);
 
-        return $result;
+        return $this->pendingMemo = $result;
     }
 
     /**
@@ -290,11 +325,10 @@ class VehicleSalesDirectImport extends Page
             : '✓ Import selesai — semua kombinasi otomatis ter-link, tidak ada pekerjaan pending.';
     }
 
-    /** Simpan & Tautkan satu baris pending (buat katalog bila perlu). */
-    public function linkCombo(int $index): void
+    /** Simpan & Tautkan satu kombinasi pending, dipanggil per squashed key. */
+    public function linkCombo(string $key): void
     {
-        $pending = $this->pending();
-        $row = $pending[$index] ?? null;
+        $row = collect($this->pending())->first(fn (array $r): bool => $r['key'] === $key);
 
         if ($row === null) {
             return;
@@ -310,7 +344,7 @@ class VehicleSalesDirectImport extends Page
                 'category' => null,
                 'size' => null,
             ],
-            $this->forms[$index] ?? [],
+            $this->forms[$key] ?? [],
         );
 
         try {
@@ -325,7 +359,7 @@ class VehicleSalesDirectImport extends Page
             return;
         }
 
-        unset($this->forms[$index]);
+        unset($this->forms[$key]);
 
         $created = array_filter([
             $result['brand_created'] ? 'brand' : null,

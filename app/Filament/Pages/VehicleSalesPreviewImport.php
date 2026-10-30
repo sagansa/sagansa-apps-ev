@@ -223,6 +223,14 @@ class VehicleSalesPreviewImport extends Page
                 $this->csvFile->getRealPath(),
                 $this->month,
             );
+
+            // Prefill powertrain (dari FUEL file: G/D/CNG → ICE, Hybrid/HEV
+            // → HEV, PHEV → PHEV, BEV → BEV) ke STATE — atribut selected
+            // server-side ditimpa sinkronisasi Livewire bila propertinya
+            // belum ada di state.
+            foreach ($this->result['new'] as $i => $row) {
+                $this->newRowForms[$i]['powertrain'] ??= ($row['powertrain'] !== '' ? $row['powertrain'] : null);
+            }
         } catch (RuntimeException $e) {
             $this->result = null;
             $this->error = $e->getMessage();
