@@ -206,12 +206,14 @@
             </x-slot>
 
             <p style="margin-top: 2px; margin-bottom: 16px; font-size: 13px; color: var(--vsp-text-muted); line-height: 1.5;">
-                Baris stats yang belum ter-link ke katalog. Lengkapi <strong>Brand, Model, Type, Powertrain,
-                Category, Size</strong> — Model/Type diprefill pemecah nama, Powertrain mengikuti <strong>FUEL
-                file</strong> (G/D/CNG → ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV), silakan koreksi bila
-                perlu. Klik <strong>Simpan &amp; Tautkan</strong>: katalog dibuat bila belum ada, master CONNECTING
-                ter-update, dan seluruh baris stats serupa langsung di-back-link. Size otomatis nonaktif untuk
-                kategori tanpa ukuran (hanya MPV/Sedan/SUV/Hatchback yang ber-ukuran).
+                Baris stats yang belum ter-link, <strong>dikelompokkan per keluarga (Brand + Model)</strong> —
+                kategori &amp; size melekat pada model (semua type pasti sama), jadi cukup <strong>satu keputusan per
+                keluarga</strong>; powertrain tiap type mengikuti <strong>FUEL file</strong> (G/D/CNG → ICE,
+                Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV). Klik <strong>Simpan &amp; Tautkan</strong>: model dibuat
+                bila belum ada, semua type di bawahnya dibuat sekaligus, dan seluruh baris stats serupa (lintas
+                tahun) di-back-link. Size otomatis nonaktif untuk kategori tanpa ukuran (hanya
+                MPV/Sedan/SUV/Hatchback). Keluarga yang modelnya sudah ada di katalog menampilkan kategorinya
+                sebagai prefill (keputusan katalog lama menang).
             </p>
 
             @if (count($pendingRows) === 0)
@@ -282,14 +284,15 @@
                         <div class="vsp-card"
                              x-data="{ cat: @js($form['category'] ?? ''), sizable: @js(\App\Support\VehicleCategories::SIZABLE) }">
                             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                <span style="font-size: 13px; font-weight: 700; color: var(--vsp-text-title);">{{ $row['raw'] }}</span>
+                                <span style="font-size: 14px; font-weight: 700; color: var(--vsp-text-title);">{{ $row['brand'] }} {{ $row['model'] }}</span>
                                 <span class="vsp-badge vsp-badge-warn">{{ number_format($row['units']) }} unit</span>
                                 <span class="vsp-badge vsp-badge-gray">Tahun {{ $row['years'] }}</span>
-                                @if ($row['fuel'])
-                                    <span class="vsp-badge vsp-badge-gray" title="FUEL di file laporan">fuel: {{ $row['fuel'] }}</span>
-                                @endif
-                                @if ($row['powertrain'] !== '')
-                                    <span class="vsp-badge vsp-badge-gray">{{ $row['powertrain'] }}</span>
+                                <span class="vsp-badge vsp-badge-gray">{{ count($row['types']) }} type</span>
+                                @foreach (array_slice($row['fuels'], 0, 4) as $fuel)
+                                    <span class="vsp-badge vsp-badge-gray" title="FUEL di file laporan">fuel: {{ $fuel }}</span>
+                                @endforeach
+                                @if ($row['catalog_model_id'])
+                                    <span class="vsp-badge vsp-badge-success" title="Model sudah ada di katalog — kategori dari katalog dipakai">✓ katalog{{ $row['catalog_category'] ? ': '.$row['catalog_category'].($row['catalog_size'] ? ' / '.$row['catalog_size'] : '') : '' }}</span>
                                 @endif
                             </div>
 
@@ -315,14 +318,7 @@
                                 </label>
 
                                 <label class="vsp-field-label">
-                                    Type
-                                    <input type="text" wire:model.lazy="forms.{{ $row['key'] }}.type"
-                                           class="vsp-input-control"
-                                           value="{{ $form['type'] ?? $row['type'] }}" />
-                                </label>
-
-                                <label class="vsp-field-label">
-                                    Powertrain
+                                    Powertrain <span style="text-transform: none; font-weight: 400;">(default)</span>
                                     <select wire:model="forms.{{ $row['key'] }}.powertrain" class="vsp-input-control">
                                         <option value="">— pilih —</option>
                                         @foreach (\App\Filament\Pages\VehicleSalesDirectImport::powertrainOptions() as $pt)
@@ -359,11 +355,29 @@
                                     <button type="button" wire:click="linkCombo('{{ $row['key'] }}')"
                                             wire:target="linkCombo('{{ $row['key'] }}')" wire:loading.attr="disabled"
                                             class="vsp-btn-primary" style="white-space: nowrap;">
-                                        <span wire:loading.remove wire:target="linkCombo('{{ $row['key'] }}')">🔗 Simpan &amp; Tautkan</span>
+                                        <span wire:loading.remove wire:target="linkCombo('{{ $row['key'] }}')">🔗 Tautkan ({{ count($row['types']) }} type)</span>
                                         <span wire:loading wire:target="linkCombo('{{ $row['key'] }}')">⏳…</span>
                                     </button>
                                 </div>
                             </div>
+
+                            {{-- Daftar type mentah yang mengikuti keputusan keluarga ini --}}
+                            <details style="margin-top: 10px;">
+                                <summary style="font-size: 12px; color: var(--vsp-text-muted); cursor: pointer;">
+                                    {{ count($row['types']) }} type mentah di bawah keluarga ini (dibuat otomatis)
+                                </summary>
+                                <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px;">
+                                    @foreach ($row['types'] as $type)
+                                        <tr style="border-bottom: 1px solid var(--vsp-border-sub);">
+                                            <td style="padding: 4px 10px 4px 0; font-family: monospace; color: var(--vsp-text-body);">{{ $type['raw'] }}</td>
+                                            <td style="padding: 4px 10px; color: var(--vsp-text-muted); white-space: nowrap;">
+                                                @if ($type['fuel'])fuel: {{ $type['fuel'] }} · @endif{{ $type['powertrain'] !== '' ? $type['powertrain'] : '?' }}
+                                            </td>
+                                            <td style="padding: 4px 0; text-align: right; font-weight: 600; white-space: nowrap;">{{ number_format($type['units']) }} unit</td>
+                                        </tr>
+                                    @endforeach
+                                </table>
+                            </details>
                         </div>
                     @endforeach
                 </div>

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Pages\VehicleSalesDirectImport;
+use App\Models\ModelVehicle;
 use App\Models\SalesImport;
 use App\Models\User;
 use App\Models\VehicleConnecting;
@@ -151,5 +152,74 @@ class VehicleSalesDirectImportPageTest extends TestCase
 
         $this->assertSame(0, VehicleSalesStat::whereNull('model_vehicle_id')->count());
         $this->assertNull(VehicleSalesDirectImport::getNavigationBadge());
+    }
+
+    /**
+     * Satu keluarga dgn beberapa type (FUEL beda: G → ICE, HEV → HEV)
+     * cukup SATU keputusan kategori — semua type dibuat di bawah model
+     * yang sama dgn powertrain masing-masing dari FUEL.
+     */
+    public function test_satu_keluarga_multi_type_satu_keputusan_kategori(): void
+    {
+        $import = SalesImport::create([
+            'file_name' => 'uji.xlsx',
+            'source' => 'gaikindo-csv',
+            'year' => 2024,
+            'status' => 'processed',
+        ]);
+
+        $types = [
+            ['Stargazer X', 'G', 'ICE'],
+            ['Stargazer X Hev', 'HEV', 'HEV'],
+        ];
+
+        foreach ($types as [$model, $fuel, $pt]) {
+            VehicleSalesStat::create([
+                'sales_import_id' => $import->id,
+                'raw_brand' => 'HYUNDAI',
+                'raw_model' => $model,
+                'year' => 2024,
+                'month' => 5,
+                'units' => 10,
+                'powertrain' => $pt,
+            ]);
+
+            VehicleConnecting::create([
+                'raw_gabungan' => "HYUNDAI {$model}",
+                'brand_name' => 'HYUNDAI',
+                'model_name' => 'Stargazer X',
+                'type_name' => $model,
+                'fuel' => $fuel,
+            ]);
+        }
+
+        $page = Livewire::actingAs($this->admin)
+            ->test(VehicleSalesDirectImport::class);
+
+        // Kedua type tergabung dalam SATU keluarga "HYUNDAI Stargazer X"
+        // (keys forms = keys grup pending).
+        $formKeys = array_keys($page->get('forms'));
+        $this->assertCount(1, $formKeys, 'kedua type harus tergabung satu keluarga');
+        $gKey = $formKeys[0];
+
+        // Satu keputusan kategori → kedua type tertaut sekaligus.
+        $page->set("forms.{$gKey}.category", 'MPV')
+            ->set("forms.{$gKey}.size", 'Medium')
+            ->call('linkCombo', $gKey);
+
+        $model = ModelVehicle::query()
+            ->whereHas('brandVehicle', fn ($q) => $q->where('name', 'HYUNDAI'))
+            ->where('name', 'Stargazer X')->first();
+
+        $this->assertNotNull($model, 'keluarga Stargazer X dibuat di katalog');
+        $this->assertSame('MPV', $model->category);
+        $this->assertSame('Medium', $model->size_class);
+        $this->assertSame(2, $model->typeVehicles()->count(), 'kedua type di bawah satu model');
+
+        // Powertrain per type mengikuti FUEL: G→ICE, HEV→HEV.
+        $this->assertSame(['HEV', 'ICE'],
+            $model->typeVehicles()->orderBy('name')->pluck('powertrain')->unique()->sort()->values()->all());
+
+        $this->assertSame(0, VehicleSalesStat::whereNull('model_vehicle_id')->count());
     }
 }

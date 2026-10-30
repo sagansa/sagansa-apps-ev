@@ -3,13 +3,13 @@
 namespace App\Filament\Pages;
 
 use App\Models\BrandVehicle;
+use App\Models\ModelVehicle;
 use App\Models\VehicleConnecting;
 use App\Models\VehicleSalesStat;
 use App\Services\VehicleNameSplitter;
 use App\Services\VehicleSalesPendingLinker;
 use App\Support\VehicleCategories;
 use Filament\Pages\Page;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Url;
@@ -19,10 +19,11 @@ use RuntimeException;
 /**
  * Halaman "Impor Langsung Penjualan" — jalur cepat bulanan: upload CSV/XLSX
  * GAIKINDO → stats LANGSUNG masuk (raw preserved, tanpa pra-analisis) →
- * kombinasi yang belum ter-link tampil sebagai worklist "Kombinasi Pending"
- * yang tinggal dilengkapi (Brand/Model/Type/Powertrain/Category/Size) lalu
- * di-tautkan satu klik. Jalur ketat (analisis dulu) tetap di halaman
- * Preview Impor Penjualan.
+ * kombinasi belum ter-link tampil sebagai worklist yang dikelompokkan per
+ * KELUARGA (brand + model): kategori/size melekat pada model (semua type
+ * pasti sama — keputusan satu nilai per keluarga), powertrain per type
+ * dari FUEL file. Satu grup ditautkan sekaligus; semua type di bawahnya
+ * dibuat otomatis. Jalur ketat tetap di halaman Preview Impor Penjualan.
  */
 class VehicleSalesDirectImport extends Page
 {
@@ -57,18 +58,18 @@ class VehicleSalesDirectImport extends Page
     public array $importSummary = [];
 
     /**
-     * Form inline per kombinasi pending, BERKUNCI squashed key (bukan
-     * indeks) agar isian tidak bergeser ke baris lain saat baris
-     * di atasnya ditautkan dan hilang dari daftar.
+     * Form per GRUP keluarga (brand+model), berkunci squashed key grup —
+     * kategori/size satu nilai per model; powertrain = default utk type
+     * yang FUEL-nya kosong.
      *
-     * @var array<string, array{brand?: string, model?: string, type?: string, powertrain?: ?string, category?: ?string, size?: ?string}>
+     * @var array<string, array{brand?: string, model?: string, powertrain?: ?string, category?: ?string, size?: ?string}>
      */
     public array $forms = [];
 
-    /** Baris terpilih untuk bulk (kunci squashed key, default semua). @var array<string, bool> */
+    /** Grup terpilih untuk bulk. @var array<string, bool> */
     public array $selected = [];
 
-    /** Isian massal: kategori/size yang diterapkan ke baris terpilih. */
+    /** Isian massal: kategori/size yang diterapkan ke grup terpilih. */
     public ?string $bulkCategory = null;
 
     public ?string $bulkSize = null;
@@ -81,26 +82,34 @@ class VehicleSalesDirectImport extends Page
     protected ?array $pendingMemo = null;
 
     /**
-     * Prefill form ke STATE — sinkronisasi Livewire menimpa nilai select/
-     * input yang propertinya belum ada di state (atribut selected/value
-     * dari server tidak bertahan), sehingga prefill powertrain-dari-FUEL
-     * "hilang" bila hanya dirender. Powertrain dari FUEL file (G/D/CNG →
-     * ICE, Hybrid/HEV → HEV, PHEV → PHEV, BEV → BEV).
+     * Prefill form ke STATE (sinkronisasi Livewire menimpa select/input
+     * yang propertinya belum ada di state). Kategori/size di-prefill dari
+     * katalog bila keluarga sudah ada (keputusan model lama menang);
+     * powertrain default dari FUEL grup (G/D/CNG → ICE, Hybrid/HEV → HEV,
+     * PHEV → PHEV, BEV → BEV).
      */
     public function booted(): void
     {
-        foreach ($this->pending() as $row) {
-            $this->forms[$row['key']] ??= [];
+        foreach ($this->pending() as $group) {
+            $this->forms[$group['key']] ??= [];
 
-            foreach (['brand' => $row['brand'], 'model' => $row['model'], 'type' => $row['type']] as $field => $value) {
-                $this->forms[$row['key']][$field] ??= $value;
+            foreach (['brand' => $group['brand'], 'model' => $group['model']] as $field => $value) {
+                $this->forms[$group['key']][$field] ??= $value;
             }
 
-            if (! array_key_exists('powertrain', $this->forms[$row['key']])) {
-                $this->forms[$row['key']]['powertrain'] = $row['powertrain'] !== '' ? $row['powertrain'] : null;
+            if (! array_key_exists('category', $this->forms[$group['key']])) {
+                $this->forms[$group['key']]['category'] = $group['catalog_category'];
             }
 
-            $this->selected[$row['key']] ??= true;
+            if (! array_key_exists('size', $this->forms[$group['key']])) {
+                $this->forms[$group['key']]['size'] = $group['catalog_size'];
+            }
+
+            if (! array_key_exists('powertrain', $this->forms[$group['key']])) {
+                $this->forms[$group['key']]['powertrain'] = $group['powertrain'] !== '' ? $group['powertrain'] : null;
+            }
+
+            $this->selected[$group['key']] ??= true;
         }
     }
 
@@ -122,20 +131,28 @@ class VehicleSalesDirectImport extends Page
         return ['BEV', 'HEV', 'PHEV', 'ICE'];
     }
 
-    /**
-     * FUEL laporan → bucket powertrain: G/D/CNG → ICE, Hybrid/HEV → HEV,
-     * PHEV → PHEV, BEV/EV → BEV (kebijakan admin 2026-10-30) — delegasi
-     * ke FUEL_MAP pemecah nama agar satu sumber kebenaran.
-     */
-    protected static function fuelToPowertrain(?string $fuel): ?string
+    public static function getNavigationBadge(): ?string
     {
-        return VehicleNameSplitter::fuelToPowertrain($fuel);
+        $count = count(self::pendingFamilyGroups());
+
+        return $count > 0 ? ($count > 99 ? '99+' : (string) $count) : null;
+    }
+
+    public static function getNavigationBadgeColor(): string|array|null
+    {
+        return 'warning';
+    }
+
+    /** Squash identitas — sama dgn hook saving VehicleConnecting. */
+    protected static function squash(string $value): string
+    {
+        return (string) preg_replace('/[^A-Z0-9]/u', '', mb_strtoupper(trim($value)));
     }
 
     /** Normalisasi nilai powertrain stats/splitter ke bucket pilihan form. */
-    protected static function normalizePowertrainBucket(mixed $value): ?string
+    protected static function bucket(mixed $value): ?string
     {
-        $pt = self::fuelToPowertrain($value);
+        $pt = VehicleNameSplitter::fuelToPowertrain($value);
 
         if ($pt !== null) {
             return $pt;
@@ -146,42 +163,47 @@ class VehicleSalesDirectImport extends Page
         return in_array($pt, self::powertrainOptions(), true) ? $pt : null;
     }
 
-    public static function getNavigationBadge(): ?string
+    /** Kombinasi mentah pending di-agregasi per teks (squashed key). */
+    protected static function pendingCombos(): array
     {
-        $count = self::pendingGroups()->count();
+        $combos = [];
 
-        return $count > 0 ? ($count > 99 ? '99+' : (string) $count) : null;
-    }
-
-    public static function getNavigationBadgeColor(): string|array|null
-    {
-        return 'warning';
-    }
-
-    /**
-     * Kombinasi pending = stats NULL-link dikelompokkan per teks mentah
-     * (squash huruf+angka — identitas sama dgn kunci CONNECTING).
-     *
-     * @return Collection<int, array{raw_brand: string, raw_model: string}>
-     */
-    protected static function pendingGroups()
-    {
-        return VehicleSalesStat::query()
+        VehicleSalesStat::query()
             ->whereNull('model_vehicle_id')
-            ->get(['raw_brand', 'raw_model'])
-            ->groupBy(fn ($r) => (string) preg_replace(
-                '/[^A-Z0-9]/u',
-                '',
-                mb_strtoupper(trim((string) $r->raw_brand).' '.trim((string) $r->raw_model)),
-            ));
+            ->get(['raw_brand', 'raw_model', 'powertrain', 'year', 'units'])
+            ->each(function ($r) use (&$combos): void {
+                $rawBrand = trim((string) $r->raw_brand);
+                $rawModel = trim((string) $r->raw_model);
+                $key = self::squash($rawBrand.' '.$rawModel);
+
+                $c = $combos[$key] ??= [
+                    'raw_brand' => $rawBrand,
+                    'raw_model' => $rawModel,
+                    'units' => 0,
+                    'years' => [],
+                    'stat_powertrain' => null,
+                ];
+
+                $c['units'] += (int) $r->units;
+                $c['years'][$r->year] = true;
+
+                if ($c['stat_powertrain'] === null && filled($r->powertrain)) {
+                    $c['stat_powertrain'] = strtoupper((string) $r->powertrain);
+                }
+
+                $combos[$key] = $c;
+            });
+
+        return $combos;
     }
 
     /**
-     * Worklist pending lengkap dgn prefill: Brand = raw brand; Model/Type =
-     * hasil splitter (keluarga + varian penuh); Powertrain dari stats/splitter.
-     * Urut unit terbesar dulu — kombinasi ber-impact besar diputuskan duluan.
+     * Worklist pending dikelompokkan per KELUARGA (brand + model hasil
+     * pemecah nama): kategori/size = satu keputusan per model; tiap
+     * kombinasi mentah menjadi type di bawahnya dgn powertrain dari FUEL
+     * barisnya (fallback powertrain stats/splitter). Urut unit terbesar.
      *
-     * @return list<array{key: string, raw: string, raw_brand: string, raw_model: string, units: int, years: string, brand: string, model: string, type: string, fuel: ?string, powertrain: string}>
+     * @return list<array{key: string, raw_brand: string, brand: string, model: string, units: int, years: string, fuels: list<string>, powertrain: string, catalog_model_id: ?int, catalog_category: ?string, catalog_size: ?string, types: list<array{key: string, raw: string, raw_model: string, fuel: ?string, powertrain: string, units: int}>}>
      */
     public function pending(): array
     {
@@ -189,77 +211,112 @@ class VehicleSalesDirectImport extends Page
             return $this->pendingMemo;
         }
 
-        $rows = VehicleSalesStat::query()
-            ->whereNull('model_vehicle_id')
-            ->get(['raw_brand', 'raw_model', 'powertrain', 'year', 'units']);
+        $combos = self::pendingCombos();
 
-        $groups = [];
-
-        foreach ($rows as $r) {
-            $rawBrand = trim((string) $r->raw_brand);
-            $rawModel = trim((string) $r->raw_model);
-            $key = (string) preg_replace('/[^A-Z0-9]/u', '', mb_strtoupper($rawBrand.' '.$rawModel));
-
-            $g = $groups[$key] ??= [
-                'raw_brand' => $rawBrand,
-                'raw_model' => $rawModel,
-                'units' => 0,
-                'years' => [],
-                'powertrain' => null,
-            ];
-
-            $g['units'] += (int) $r->units;
-            $g['years'][$r->year] = true;
-
-            if ($g['powertrain'] === null && filled($r->powertrain)) {
-                $g['powertrain'] = strtoupper((string) $r->powertrain);
-            }
-
-            $groups[$key] = $g;
-        }
-
-        // FUEL mentah file per kombinasi dari master CONNECTING (kolom fuel
-        // diisi dari file saat master dibangun) — referensi utama powertrain.
+        // FUEL mentah file per kombinasi dari master CONNECTING — referensi
+        // utama powertrain per type.
         $connectingFuel = VehicleConnecting::query()
-            ->whereIn('raw_gabungan_key', array_keys($groups))
+            ->whereIn('raw_gabungan_key', array_keys($combos))
             ->pluck('fuel', 'raw_gabungan_key');
 
-        $options = self::powertrainOptions();
-        $result = [];
+        // Kelompokkan kombinasi mentah → keluarga.
+        $splitter = app(VehicleNameSplitter::class);
+        $groups = [];
 
-        foreach ($groups as $key => $g) {
-            $split = app(VehicleNameSplitter::class)->split($g['raw_brand'], $g['raw_model'], null);
+        foreach ($combos as $key => $c) {
+            $split = $splitter->split($c['raw_brand'], $c['raw_model'], null);
+            $family = trim((string) ($split['model'] ?? '')) !== '' ? $split['model'] : $c['raw_model'];
 
-            // Prioritas: FUEL file (master CONNECTING) → powertrain stats
-            // (diisi splitter saat impor) → powertrain splitter sekarang.
             $fuel = $connectingFuel[$key] ?? null;
 
-            $powertrain = self::fuelToPowertrain($fuel)
-                ?? self::normalizePowertrainBucket($g['powertrain'])
-                ?? self::normalizePowertrainBucket($split['powertrain'] ?? null);
+            $powertrain = VehicleNameSplitter::fuelToPowertrain($fuel)
+                ?? self::bucket($c['stat_powertrain'])
+                ?? self::bucket($split['powertrain'] ?? null)
+                ?? '';
 
-            if (! in_array($powertrain, $options, true)) {
-                $powertrain = '';
-            }
+            $gKey = self::squash($c['raw_brand'].' '.$family);
 
-            $result[] = [
+            $g = $groups[$gKey] ??= [
+                'key' => $gKey,
+                'raw_brand' => $c['raw_brand'],
+                'family' => $family,
+                'units' => 0,
+                'years' => [],
+                'fuels' => [],
+                'types' => [],
+            ];
+
+            $g['units'] += $c['units'];
+            $g['years'] += $c['years'];
+            $g['fuels'][] = $fuel !== null ? strtoupper(trim((string) $fuel)) : '—';
+            $g['types'][] = [
                 'key' => $key,
-                'raw' => $g['raw_brand'].' '.$g['raw_model'],
-                'raw_brand' => $g['raw_brand'],
-                'raw_model' => $g['raw_model'],
-                'units' => $g['units'],
-                'years' => implode(', ', array_keys($g['years'])),
-                'brand' => $g['raw_brand'],
-                'model' => trim((string) ($split['model'] ?? '')) !== '' ? $split['model'] : $g['raw_model'],
-                'type' => $g['raw_model'],
+                'raw' => $c['raw_brand'].' '.$c['raw_model'],
+                'raw_model' => $c['raw_model'],
                 'fuel' => $fuel !== null ? strtoupper(trim((string) $fuel)) : null,
                 'powertrain' => (string) $powertrain,
+                'units' => $c['units'],
+            ];
+
+            $groups[$gKey] = $g;
+        }
+
+        // Prefill kategori/size dari katalog bila keluarga sudah ada —
+        // keputusan katalog lama menang, form tidak menimpanya.
+        $catalogModels = ModelVehicle::query()->with('brandVehicle')->get();
+
+        foreach ($groups as $gKey => $g) {
+            foreach ($catalogModels as $m) {
+                if (self::squash((string) $m->brandVehicle?->name) === self::squash($g['raw_brand'])
+                    && self::squash((string) $m->name) === self::squash($g['family'])) {
+                    $groups[$gKey]['catalog_model_id'] = $m->id;
+                    $groups[$gKey]['catalog_category'] = $m->category;
+                    $groups[$gKey]['catalog_size'] = $m->size_class;
+
+                    break;
+                }
+            }
+        }
+
+        $result = [];
+
+        foreach ($groups as $g) {
+            usort($g['types'], fn ($a, $b) => $b['units'] <=> $a['units']);
+
+            $result[] = [
+                'key' => $g['key'],
+                'raw_brand' => $g['raw_brand'],
+                'brand' => $g['raw_brand'],
+                'model' => $g['family'],
+                'units' => $g['units'],
+                'years' => implode(', ', array_keys($g['years'])),
+                'fuels' => array_values(array_unique($g['fuels'])),
+                'powertrain' => $g['types'][0]['powertrain'] ?? '',
+                'catalog_model_id' => $g['catalog_model_id'] ?? null,
+                'catalog_category' => $g['catalog_category'] ?? null,
+                'catalog_size' => $g['catalog_size'] ?? null,
+                'types' => $g['types'],
             ];
         }
 
         usort($result, fn ($a, $b) => $b['units'] <=> $a['units']);
 
         return $this->pendingMemo = $result;
+    }
+
+    /** Keluarga unik pending (versi ringan utk badge navigasi). @return list<string> */
+    protected static function pendingFamilyGroups(): array
+    {
+        $families = [];
+        $splitter = app(VehicleNameSplitter::class);
+
+        foreach (self::pendingCombos() as $c) {
+            $split = $splitter->split($c['raw_brand'], $c['raw_model'], null);
+            $family = trim((string) ($split['model'] ?? '')) !== '' ? $split['model'] : $c['raw_model'];
+            $families[self::squash($c['raw_brand'].' '.$family)] = true;
+        }
+
+        return array_keys($families);
     }
 
     /**
@@ -333,78 +390,99 @@ class VehicleSalesDirectImport extends Page
 
         $this->importSuccess = true;
         $this->importMessage = $pending > 0
-            ? "✓ Import selesai — {$pending} kombinasi pending menunggu kelengkapan di bawah."
+            ? "✓ Import selesai — {$pending} keluarga model pending menunggu kelengkapan di bawah."
             : '✓ Import selesai — semua kombinasi otomatis ter-link, tidak ada pekerjaan pending.';
     }
 
-    /** Simpan & Tautkan satu kombinasi pending, dipanggil per squashed key. */
-    public function linkCombo(string $key): void
-    {
-        $row = collect($this->pending())->first(fn (array $r): bool => $r['key'] === $key);
-
-        if ($row === null) {
-            return;
-        }
-
-        $res = $this->linkRow($row);
-
-        if (! $res['ok']) {
-            $this->linkMessage = '✗ "'.$row['raw'].'": '.$res['error'];
-
-            return;
-        }
-
-        $created = array_filter([
-            $res['result']['brand_created'] ? 'brand' : null,
-            $res['result']['model_created'] ? 'model' : null,
-            $res['result']['type_created'] ? 'type' : null,
-        ]);
-
-        $this->linkMessage = '✓ "'.$row['raw'].'" tertaut'.
-            ($created !== [] ? ' (katalog baru: '.implode('+', $created).')' : '').
-            " — {$res['result']['stats_linked']} baris stats di-back-link.";
-    }
-
     /**
-     * Tautkan satu baris pending — logika bersama tombol per-baris dan
-     * bulk. Nilai yang diketik admin menang atas prefill.
+     * Tautkan SATU GRUP keluarga: kategori/size model diambil dari form
+     * grup (satu keputusan per model), tiap type di bawahnya dibuat dengan
+     * powertrain dari FUEL barisnya (fallback default grup). Nilai yang
+     * diketik admin menang atas prefill.
      *
-     * @param  array<string, mixed>  $row
-     * @return array{ok: bool, error: ?string, result: ?array}
+     * @param  array<string, mixed>  $group
+     * @return array{ok: bool, errors: list<string>, types: int, stats: int}
      */
-    protected function linkRow(array $row): array
+    protected function linkGroup(array $group): array
     {
         $form = array_merge(
             [
-                'brand' => $row['brand'],
-                'model' => $row['model'],
-                'type' => $row['type'],
-                'powertrain' => $row['powertrain'] !== '' ? $row['powertrain'] : null,
-                'category' => null,
-                'size' => null,
+                'brand' => $group['brand'],
+                'model' => $group['model'],
+                'powertrain' => $group['powertrain'] !== '' ? $group['powertrain'] : null,
+                'category' => $group['catalog_category'],
+                'size' => $group['catalog_size'],
             ],
-            $this->forms[$row['key']] ?? [],
+            $this->forms[$group['key']] ?? [],
         );
 
-        try {
-            $result = app(VehicleSalesPendingLinker::class)->link(
-                $row['raw_brand'],
-                $row['raw_model'],
-                $form,
-            );
-        } catch (RuntimeException $e) {
-            return ['ok' => false, 'error' => $e->getMessage(), 'result' => null];
+        $category = VehicleCategories::normalizeCategory($form['category'] ?? null);
+
+        if ($category === null) {
+            return ['ok' => false, 'errors' => ['pilih kategori model dulu'], 'types' => 0, 'stats' => 0];
         }
 
-        unset($this->forms[$row['key']]);
+        $out = ['ok' => true, 'errors' => [], 'types' => 0, 'stats' => 0];
+        $linker = app(VehicleSalesPendingLinker::class);
 
-        return ['ok' => true, 'error' => null, 'result' => $result];
+        foreach ($group['types'] as $type) {
+            try {
+                $res = $linker->link(
+                    $group['raw_brand'],
+                    $type['raw_model'],
+                    [
+                        ...$form,
+                        'type' => $type['raw_model'],
+                        'powertrain' => $type['powertrain'] !== '' ? $type['powertrain'] : $form['powertrain'],
+                    ],
+                );
+            } catch (RuntimeException $e) {
+                $out['errors'][] = $type['raw'].' ('.$e->getMessage().')';
+
+                continue;
+            }
+
+            $out['types']++;
+            $out['stats'] += $res['stats_linked'];
+        }
+
+        if ($out['types'] > 0) {
+            unset($this->forms[$group['key']]);
+        }
+
+        return $out;
+    }
+
+    /** Simpan & Tautkan satu grup keluarga (semua type-nya sekaligus). */
+    public function linkCombo(string $key): void
+    {
+        $group = collect($this->pending())->first(fn (array $g): bool => $g['key'] === $key);
+
+        if ($group === null) {
+            return;
+        }
+
+        $res = $this->linkGroup($group);
+
+        if (! $res['ok'] || $res['types'] === 0) {
+            $this->linkMessage = '✗ "'.$group['brand'].' '.$group['model'].'": '.implode('; ', $res['ok'] ? $res['errors'] : ['tidak ada type tertaut']);
+
+            return;
+        }
+
+        $this->linkMessage = sprintf(
+            '✓ "%s %s": %d type tertaut, %d baris stats di-back-link%s.',
+            $group['brand'],
+            $group['model'],
+            $res['types'],
+            $res['stats'],
+            $res['errors'] !== [] ? ' — terlewat: '.implode('; ', array_slice($res['errors'], 0, 3)) : '',
+        );
     }
 
     /**
-     * Terapkan kategori (+size bila berlaku) ke seluruh baris terpilih —
-     * untuk batch homogen (mis. semua truk = Truk Ringan) sebelum
-     * Tautkan Semua.
+     * Terapkan kategori (+size bila berlaku) ke seluruh grup terpilih —
+     * batch homogen (mis. semua truk) sebelum Tautkan Semua.
      */
     public function applyBulkCategory(): void
     {
@@ -423,84 +501,74 @@ class VehicleSalesDirectImport extends Page
 
         $applied = 0;
 
-        foreach ($this->pending() as $row) {
-            if (! ($this->selected[$row['key']] ?? false)) {
+        foreach ($this->pending() as $group) {
+            if (! ($this->selected[$group['key']] ?? false)) {
                 continue;
             }
 
-            $this->forms[$row['key']]['category'] = $category;
+            $this->forms[$group['key']]['category'] = $category;
 
             if ($size !== null) {
-                $this->forms[$row['key']]['size'] = $size;
+                $this->forms[$group['key']]['size'] = $size;
             }
 
             $applied++;
         }
 
         $this->bulkMessage = '✓ '.($applied > 0
-            ? '"'.$category.'"'.($size !== null ? ' / '.$size : '')." diterapkan ke {$applied} baris terpilih — lanjut ⚡ Tautkan Semua."
-            : 'Tidak ada baris terpilih.');
+            ? '"'.$category.'"'.($size !== null ? ' / '.$size : '')." diterapkan ke {$applied} keluarga terpilih — lanjut ⚡ Tautkan Semua."
+            : 'Tidak ada keluarga terpilih.');
     }
 
     /**
-     * Tautkan SEKALIGUS seluruh baris terpilih — baris tanpa kategori
-     * dilewati dan dilaporkan; tiap baris bertransaksi sendiri agar satu
-     * kegagalan tidak membatalkan batch.
+     * Tautkan SEKALIGUS seluruh grup terpilih — grup tanpa kategori (dan
+     * tanpa kategori katalog) dilewati & dilaporkan; tiap type bertransaksi
+     * sendiri agar satu kegagalan tidak membatalkan batch.
      */
     public function bulkLink(): void
     {
-        $linked = 0;
+        $linkedGroups = 0;
+        $linkedTypes = 0;
         $statsLinked = 0;
-        $createdBrands = 0;
-        $createdModels = 0;
-        $createdTypes = 0;
         /** @var list<string> $skipped */
         $skipped = [];
 
-        foreach ($this->pending() as $row) {
-            if (! ($this->selected[$row['key']] ?? false)) {
+        foreach ($this->pending() as $group) {
+            if (! ($this->selected[$group['key']] ?? false)) {
                 continue;
             }
 
-            $category = VehicleCategories::normalizeCategory($this->forms[$row['key']]['category'] ?? null);
+            $res = $this->linkGroup($group);
 
-            if ($category === null) {
-                $skipped[] = $row['raw'].' (kategori belum diisi)';
-
-                continue;
-            }
-
-            $res = $this->linkRow($row);
-
-            if (! $res['ok']) {
-                $skipped[] = $row['raw'].' ('.$res['error'].')';
+            if (! $res['ok'] || $res['types'] === 0) {
+                $skipped[] = $group['brand'].' '.$group['model'].' ('.implode('; ', $res['ok'] ? $res['errors'] : ['tidak ada type tertaut']).')';
 
                 continue;
             }
 
-            $linked++;
-            $statsLinked += $res['result']['stats_linked'];
-            $createdBrands += (int) $res['result']['brand_created'];
-            $createdModels += (int) $res['result']['model_created'];
-            $createdTypes += (int) $res['result']['type_created'];
+            $linkedGroups++;
+            $linkedTypes += $res['types'];
+            $statsLinked += $res['stats'];
+
+            if ($res['errors'] !== []) {
+                $skipped[] = $group['brand'].' '.$group['model'].' — sebagian: '.implode('; ', array_slice($res['errors'], 0, 2));
+            }
         }
 
-        if ($linked === 0) {
+        if ($linkedGroups === 0) {
             $this->linkMessage = '✗ Tidak ada yang tertaut — '.(count($skipped) > 0
-                ? 'semua baris terpilih terlewat: '.implode('; ', array_slice($skipped, 0, 5))
-                : 'tidak ada baris terpilih.');
+                ? implode('; ', array_slice($skipped, 0, 5))
+                : 'tidak ada keluarga terpilih.');
 
             return;
         }
 
         $this->linkMessage = sprintf(
-            '✓ Bulk selesai: %d kombinasi tertaut, %d baris stats di-back-link, katalog baru %d brand / %d model / %d type%s.',
-            $linked,
+            '✓ Bulk selesai: %d keluarga (%d type) tertaut, %d baris stats di-back-link%s.',
+            $linkedGroups,
+            $linkedTypes,
             $statsLinked,
-            $createdBrands,
-            $createdModels,
-            $createdTypes,
-            $skipped !== [] ? ' — terlewat '.count($skipped).': '.implode('; ', array_slice($skipped, 0, 5)) : '',
+            $skipped !== [] ? ' — catatan '.count($skipped).': '.implode('; ', array_slice($skipped, 0, 5)) : '',
         );
     }
 
