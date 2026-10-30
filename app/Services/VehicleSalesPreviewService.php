@@ -15,8 +15,7 @@ class VehicleSalesPreviewService
         protected VehicleNameSplitter $splitter,
         protected VehicleSalesMatcher $matcher,
         protected VehicleSalesRowsLoader $reader,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array{summary: array{rows: int, skipped: int, nonBev: int, matched: int, new: int},
@@ -40,6 +39,12 @@ class VehicleSalesPreviewService
         // tersisa; selebihnya murni perbandingan nama ke CONNECTING).
         $fuelPt = ['EV' => 'BEV', 'BEV' => 'BEV', 'HEV' => 'HEV', 'PHEV' => 'PHEV'];
 
+        // Status brand katalog utk badge "model baru di {brand}" vs "belum ada
+        // di CONNECTING" — di-cache per brand mentah (probe ringan, tanpa
+        // pencocokan model).
+        /** @var array<string, ?string> $brandStatus */
+        $brandStatus = [];
+
         foreach ($rows as $row) {
             $gabungan = trim(preg_replace('/\s+/', ' ', $row['raw_full']));
 
@@ -58,13 +63,20 @@ class VehicleSalesPreviewService
                 : array_sum($row['cells']);
 
             if (! isset($new[$key])) {
+                if (! array_key_exists($row['brand'], $brandStatus)) {
+                    $probe = $this->matcher->preview($row['brand'], '', $row['type_model']);
+                    $brandStatus[$row['brand']] = ($probe['brand_new'] ?? true)
+                        ? null
+                        : ($probe['brand_name'] ?? null);
+                }
+
                 $new[$key] = [
                     'brand' => $gabungan,
                     'model' => '',
                     'type' => '',
                     'powertrain' => $fuelPt[strtoupper((string) $row['fuel'])] ?? '',
                     'units' => 0,
-                    'brand_name' => null,
+                    'brand_name' => $brandStatus[$row['brand']],
                 ];
             }
 

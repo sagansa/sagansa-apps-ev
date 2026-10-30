@@ -2,12 +2,21 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\BrandVehicle;
+use App\Models\ModelVehicle;
+use App\Models\TypeVehicle;
+use App\Models\VehicleConnecting;
+use App\Models\VehicleNameMapping;
+use App\Services\VehicleConnectingSyncService;
+use App\Services\VehicleSalesMatcher;
 use App\Services\VehicleSalesPreviewService;
+use App\Support\VehicleCategories;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Url;
 use Livewire\WithFileUploads;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Halaman "Preview Impor Penjualan" — GUI dari vehicle-sales:preview:
@@ -19,15 +28,15 @@ class VehicleSalesPreviewImport extends Page
 {
     use WithFileUploads;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-m-document-magnifying-glass';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-m-document-magnifying-glass';
 
-    protected static string | \UnitEnum | null $navigationGroup = 'Referensi Kendaraan';
+    protected static string|\UnitEnum|null $navigationGroup = 'Referensi Kendaraan';
 
     protected static ?string $navigationLabel = 'Preview Impor Penjualan';
 
     protected static ?string $title = 'Preview Impor Penjualan vs Katalog';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
 
     protected string $view = 'filament.pages.vehicle-sales-preview-import';
 
@@ -92,7 +101,7 @@ class VehicleSalesPreviewImport extends Page
     /** @return list<string> */
     public static function categoryOptions(): array
     {
-        return \App\Support\VehicleCategories::CATEGORIES;
+        return VehicleCategories::CATEGORIES;
     }
 
     /** Tambahkan satu kombinasi baru langsung ke tabel CONNECTING. */
@@ -106,8 +115,8 @@ class VehicleSalesPreviewImport extends Page
 
         $form = $this->newRowForms[$index] ?? [];
         $powertrain = strtoupper(trim((string) ($form['powertrain'] ?? ''))) ?: $row['powertrain'];
-        $category = \App\Support\VehicleCategories::normalizeCategory($form['category'] ?? null);
-        $size = \App\Support\VehicleCategories::normalizeSize($form['size'] ?? null);
+        $category = VehicleCategories::normalizeCategory($form['category'] ?? null);
+        $size = VehicleCategories::normalizeSize($form['size'] ?? null);
 
         if ($category === null) {
             $this->newRowMessage = "✗ '{$row['brand']} {$row['model']}': pilih kategori dulu.";
@@ -115,7 +124,7 @@ class VehicleSalesPreviewImport extends Page
             return;
         }
 
-        if (! in_array($category, \App\Support\VehicleCategories::SIZABLE, true)) {
+        if (! in_array($category, VehicleCategories::SIZABLE, true)) {
             $size = null; // size hanya untuk kategori ber-ukuran
         }
 
@@ -127,20 +136,20 @@ class VehicleSalesPreviewImport extends Page
 
         // Link ke katalog bila sudah ada (brand/model baru dibuat nanti oleh
         // "Terapkan ke Katalog" di halaman Sync CONNECTING).
-        $matcher = app(\App\Services\VehicleSalesMatcher::class);
-        $brandVehicle = \App\Models\BrandVehicle::query()->get()
+        $matcher = app(VehicleSalesMatcher::class);
+        $brandVehicle = BrandVehicle::query()->get()
             ->first(fn ($b) => $matcher->normalize($matcher->canonicalBrandName($b->name))
                 === $matcher->normalize($matcher->canonicalBrandName($brand)));
         $modelVehicle = $brandVehicle !== null
-            ? \App\Models\ModelVehicle::where('brand_vehicle_id', $brandVehicle->id)->get()
+            ? ModelVehicle::where('brand_vehicle_id', $brandVehicle->id)->get()
                 ->first(fn ($m) => $matcher->normalize($m->name) === $matcher->normalize($model))
             : null;
         $typeVehicle = ($modelVehicle !== null && $type !== '')
-            ? \App\Models\TypeVehicle::where('model_vehicle_id', $modelVehicle->id)
+            ? TypeVehicle::where('model_vehicle_id', $modelVehicle->id)
                 ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($type)])->first()
             : null;
 
-        \App\Models\VehicleConnecting::updateOrCreate(
+        VehicleConnecting::updateOrCreate(
             ['raw_gabungan_key' => $key],
             [
                 'raw_gabungan' => $gabungan,
@@ -175,7 +184,7 @@ class VehicleSalesPreviewImport extends Page
             'mapModelName.required' => 'Model katalog wajib diisi.',
         ]);
 
-        $mapping = \App\Models\VehicleNameMapping::record(
+        $mapping = VehicleNameMapping::record(
             $this->mapRawBrand,
             $this->mapRawModel,
             $this->mapBrandName,
@@ -273,7 +282,7 @@ class VehicleSalesPreviewImport extends Page
 
         try {
             $exit = \Artisan::call('vehicle-sales:import-csv', [
-                'file' => \Illuminate\Support\Facades\Storage::disk('local')->path($this->csvPath),
+                'file' => Storage::disk('local')->path($this->csvPath),
                 '--year' => (string) $year,
                 '--require-full-link' => true,
                 ...($this->month ? ['--month' => (string) $this->month] : []),
@@ -293,12 +302,12 @@ class VehicleSalesPreviewImport extends Page
             return;
         }
 
-        app(\App\Services\VehicleConnectingSyncService::class)->flushMarketCache();
+        app(VehicleConnectingSyncService::class)->flushMarketCache();
         $this->importMessage = '✓ Import berhasil — stats periode '.$year.($this->month ? ' bulan '.$this->month : '').' sudah diganti (data lama periode sama tergantikan). Cache Pasar EV segar. '.$tail;
     }
 
     /** Unduh kombinasi baru sebagai CSV siap gabung ke CONNECTING. */
-    public function downloadNew(): ?\Symfony\Component\HttpFoundation\StreamedResponse
+    public function downloadNew(): ?StreamedResponse
     {
         if ($this->result === null || $this->result['new'] === []) {
             return null;

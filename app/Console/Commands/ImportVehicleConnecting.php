@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\BrandVehicle;
 use App\Models\ModelVehicle;
+use App\Models\TypeVehicle;
 use App\Models\VehicleConnecting;
 use App\Services\VehicleSalesMatcher;
 use Illuminate\Console\Command;
@@ -60,10 +61,15 @@ class ImportVehicleConnecting extends Command
             ->groupBy('brand_vehicle_id')
             ->map(fn ($group) => $group->keyBy(fn (ModelVehicle $m) => $matcher->normalize($m->name)));
 
-        $saved = 0; $unresolved = []; $seen = []; $pruned = 0;
+        $saved = 0;
+        $unresolved = [];
+        $seen = [];
+        $pruned = 0;
 
         while (($r = fgetcsv($handle)) !== false) {
-            if (count($r) < 8 && trim(implode('', $r)) === '') continue;
+            if (count($r) < 8 && trim(implode('', $r)) === '') {
+                continue;
+            }
 
             // Rapatkan whitespace (baris bisa membawa newline artefak Excel).
             $gabungan = trim(preg_replace('/\s+/', ' ', (string) $r[$iG]));
@@ -71,13 +77,21 @@ class ImportVehicleConnecting extends Command
             $model = trim((string) $r[$iM]);
             $type = trim((string) $r[$iT]);
 
-            if ($gabungan === '' && $brand === '' && $model === '') continue;
+            if ($gabungan === '' && $brand === '' && $model === '') {
+                continue;
+            }
 
-            if ($gabungan === '') $gabungan = trim("$brand $model $type");
-            if ($gabungan === '') continue;
+            if ($gabungan === '') {
+                $gabungan = trim("$brand $model $type");
+            }
+            if ($gabungan === '') {
+                continue;
+            }
             // Identitas squash: huruf+angka saja — kebal spasi/kapitalisasi.
             $key = preg_replace('/[^A-Z0-9]/u', '', mb_strtoupper($gabungan));
-            if (isset($seen[$key])) continue;
+            if (isset($seen[$key])) {
+                continue;
+            }
             $seen[$key] = 1;
 
             $brandVehicle = $brandsByKey[$matcher->normalize($matcher->canonicalBrandName($brand))] ?? null;
@@ -85,7 +99,7 @@ class ImportVehicleConnecting extends Command
                 ? ($modelsByBrand[$brandVehicle->id][$matcher->normalize($model)] ?? null)
                 : null;
             $typeVehicle = ($modelVehicle !== null && $type !== '')
-                ? \App\Models\TypeVehicle::where('model_vehicle_id', $modelVehicle->id)
+                ? TypeVehicle::where('model_vehicle_id', $modelVehicle->id)
                     ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($type)])->first()
                 : null;
 
@@ -126,12 +140,14 @@ class ImportVehicleConnecting extends Command
                 ->delete();
         }
 
-        $this->info("Baris tersimpan: ".($saved + count($unresolved))." (link katalog lengkap: $saved)");
+        $this->info('Baris tersimpan: '.($saved + count($unresolved))." (link katalog lengkap: $saved)");
         if ($unresolved !== []) {
             $this->warn('Link katalog belum lengkap: '.count($unresolved));
             $this->line('  contoh: '.implode('; ', array_slice($unresolved, 0, 8)));
         }
-        if ($pruned > 0) $this->info("Baris pruned (tidak ada di CSV): $pruned");
+        if ($pruned > 0) {
+            $this->info("Baris pruned (tidak ada di CSV): $pruned");
+        }
 
         return self::SUCCESS;
     }
