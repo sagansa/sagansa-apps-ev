@@ -33,6 +33,7 @@ class HydrateOcmCanonicalStations extends Command
                 ['Diupdate', $stats['updated']],
                 ['Tidak berubah', $stats['unchanged']],
                 ['Dilewati (tidak layak)', $stats['skipped']],
+                ['Dilewati (delisted OCM)', $stats['skipped_delisted'] ?? 0],
                 ['Child charger ditulis', $stats['chargers']],
                 ['Stasiun stale di-prune', $stats['pruned']],
             ]

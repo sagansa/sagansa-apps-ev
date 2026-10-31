@@ -24,6 +24,8 @@ class OcmReferenceDataService
 
     public const SCOPE_CURRENT_TYPES = 'current_types';
 
+    public const SCOPE_COUNTRIES = 'countries';
+
     /**
      * Key respons referencedata (lowercase) → scope tabel. Catatan: level
      * OCM (Level 1/2/3) dikirim di key `ChargerTypes` — istilah OCM utk
@@ -34,6 +36,7 @@ class OcmReferenceDataService
         'connectiontypes' => self::SCOPE_CONNECTION_TYPES,
         'chargertypes' => self::SCOPE_LEVELS,
         'currenttypes' => self::SCOPE_CURRENT_TYPES,
+        'countries' => self::SCOPE_COUNTRIES,
     ];
 
     private const ALL_SCOPES = [
@@ -41,6 +44,7 @@ class OcmReferenceDataService
         self::SCOPE_CONNECTION_TYPES,
         self::SCOPE_LEVELS,
         self::SCOPE_CURRENT_TYPES,
+        self::SCOPE_COUNTRIES,
     ];
 
     /**
@@ -76,7 +80,12 @@ class OcmReferenceDataService
         foreach (self::SCOPE_BY_RESPONSE_KEY as $responseKey => $scope) {
             $rows = collect($data[$responseKey] ?? [])
                 ->filter(fn ($row) => is_array($row) && isset($row['ID'], $row['Title']))
-                ->map(fn ($row) => ['id' => (int) $row['ID'], 'title' => (string) $row['Title']])
+                ->map(fn ($row) => [
+                    'id' => (int) $row['ID'],
+                    'title' => (string) $row['Title'],
+                    // Hanya scope countries yang memuat ISOCode.
+                    'iso' => isset($row['ISOCode']) ? (string) $row['ISOCode'] : null,
+                ])
                 ->values()
                 ->all();
 
@@ -150,5 +159,35 @@ class OcmReferenceDataService
     public function currentTypeTitle(int $id): ?string
     {
         return $this->map(self::SCOPE_CURRENT_TYPES)[$id] ?? null;
+    }
+
+    public function countryTitle(int $id): ?string
+    {
+        return $this->map(self::SCOPE_COUNTRIES)[$id] ?? null;
+    }
+
+    public function countryIso(int $id): ?string
+    {
+        return $this->countryIsoMap()[$id] ?? null;
+    }
+
+    /**
+     * Map CountryID OCM → kode ISO-2 — dipakai tiling worldwide menurunkan
+     * negara tiap POI (payload compact hanya memuat AddressInfo.CountryID).
+     *
+     * @return array<int, string>
+     */
+    public function countryIsoMap(): array
+    {
+        if (! array_key_exists(__FUNCTION__, $this->maps)) {
+            $row = OcmReferenceData::query()->find(self::SCOPE_COUNTRIES);
+
+            $this->maps[__FUNCTION__] = collect($row?->payload ?? [])
+                ->filter(fn ($entry) => is_array($entry) && ! empty($entry['iso']))
+                ->pluck('iso', 'id')
+                ->all();
+        }
+
+        return $this->maps[__FUNCTION__];
     }
 }

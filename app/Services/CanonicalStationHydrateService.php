@@ -105,6 +105,13 @@ class CanonicalStationHydrateService
     private const ACTIVE_CHARGER_VALUES = ['Y', 'y', '1', 1, true, 'true', 'TRUE', 'aktif', 'Aktif', 'AKTIF'];
 
     /**
+     * SubmissionStatusTypeID OCM >= 1000 = Delisted (1000 umum, 1001 duplikat,
+     * 1002 decommissioned, dst). POI delisted tidak di-hydrate & stasiun
+     * canonical-nya di-prune — baris openchargemap_pois tetap (audit raw).
+     */
+    private const OCM_DELISTED_MIN_STATUS_ID = 1000;
+
+    /**
      * Label charging_type PLN (uppercase di charging_types) → label type_charge
      * canonical. "STANDARD CHARGING" dipetakan ke "Slow Charging" (bukan
      * "Standard") agar konsisten dgn konvensi label ESDM & filter mobile.
@@ -278,10 +285,12 @@ class CanonicalStationHydrateService
      * replace-if-changed, stasiun stale (POI-nya hilang) di-prune.
      *
      * OCM tidak punya status real-time — availability dibiarkan 'unknown'.
-     * Row source='ocm' TIDAK di-serving di Indonesia (spklu.serving_source
-     * tetap pln/esdm); tersimpan utk verifikasi backend & negara lain nanti.
+     * POI delisted (SubmissionStatusTypeID >= 1000) dilewati & canonical-nya
+     * di-prune. Row source='ocm' TIDAK di-serving di Indonesia
+     * (spklu.serving_source tetap pln/esdm); tersimpan utk verifikasi
+     * backend & negara lain nanti.
      *
-     * @return array{processed: int, created: int, updated: int, unchanged: int, skipped: int, chargers: int, pruned: int}
+     * @return array{processed: int, created: int, updated: int, unchanged: int, skipped: int, skipped_delisted: int, chargers: int, pruned: int}
      */
     public function hydrateFromOcm(): array
     {
@@ -290,12 +299,20 @@ class CanonicalStationHydrateService
             ->whereNotNull('longitude')
             ->get();
 
-        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'chargers' => 0, 'pruned' => 0];
+        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'skipped_delisted' => 0, 'chargers' => 0, 'pruned' => 0];
 
         DB::connection('ev')->transaction(function () use ($pois, &$stats) {
             $activeOcmIds = [];
             foreach ($pois as $poi) {
                 $stats['processed']++;
+
+                // Delisted (decommissioned/duplikat/dst) → bukan stasiun aktif;
+                // tidak masuk $activeOcmIds sehingga canonical-nya ikut di-prune.
+                if ($this->isDelistedOcmPoi($poi)) {
+                    $stats['skipped_delisted']++;
+
+                    continue;
+                }
 
                 $data = $this->buildOcmStationData($poi);
                 if ($data === null) {
@@ -941,6 +958,22 @@ class CanonicalStationHydrateService
     }
 
     // ─── OCM (openchargemap_pois) ───────────────────────────────────────────
+
+    /**
+     * Apakah POI berstatus delisted OCM (SubmissionStatusTypeID >= 1000)?
+     * Menerima bentuk compact (SubmissionStatusTypeID int) maupun verbose
+     * (SubmissionStatus.ID). OCM tidak menghapus POI — penonaktifan ditandai
+     * lewat status ini, maka propagasi penghapusan bergantung filter ini.
+     */
+    private function isDelistedOcmPoi(OpenchargemapPoi $poi): bool
+    {
+        $raw = $poi->raw_payload ?? [];
+        $statusId = (int) (data_get($raw, 'SubmissionStatusTypeID')
+            ?? data_get($raw, 'SubmissionStatus.ID')
+            ?? 0);
+
+        return $statusId >= self::OCM_DELISTED_MIN_STATUS_ID;
+    }
 
     /**
      * Bangun data kanonik untuk satu POI OCM. Return null bila tidak layak

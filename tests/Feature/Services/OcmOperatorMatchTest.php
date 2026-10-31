@@ -34,7 +34,7 @@ class OcmOperatorMatchTest extends TestCase
         // Default: katalog referencedata KOSONG tapi segar — ensureFresh tidak
         // melakukan network call. Test yang butuh isinya men-seed scope-nya
         // sendiri (jalur yang sama dgn produksi: katalog dibaca dari tabel).
-        foreach (['operators', 'connection_types', 'levels', 'current_types'] as $scope) {
+        foreach (['operators', 'connection_types', 'levels', 'current_types', 'countries'] as $scope) {
             \DB::table('ocm_reference_data')->insert([
                 'scope' => $scope,
                 'payload' => json_encode([]),
@@ -157,18 +157,40 @@ class OcmOperatorMatchTest extends TestCase
                 'ConnectionTypes' => [['ID' => 33, 'Title' => 'CCS (Type 2)']],
                 'ChargerTypes' => [['ID' => 2, 'Title' => 'Level 2 : Medium (Over 2kW)']],
                 'CurrentTypes' => [['ID' => 20, 'Title' => 'DC (Direct Current)']],
+                'Countries' => [
+                    ['ID' => 107, 'Title' => 'Indonesia', 'ISOCode' => 'ID'],
+                    ['ID' => 4, 'Title' => 'United States', 'ISOCode' => 'US'],
+                ],
             ], 200),
         ]);
 
         $service = app(\App\Services\OcmReferenceDataService::class);
         $result = $service->fetchAndStore();
 
-        $this->assertSame(4, $result['fetched']);
+        $this->assertSame(5, $result['fetched']);
         $this->assertNull($result['error']);
         $this->assertSame('Terra Charge', $service->operatorTitle(3664));
         $this->assertSame('CCS (Type 2)', $service->connectionTypeTitle(33));
         $this->assertSame('DC (Direct Current)', $service->currentTypeTitle(20));
+        $this->assertSame('ID', $service->countryIso(107));
         $this->assertNull($service->operatorTitle(999));
+    }
+
+    public function test_countries_catalog_maps_country_id_to_iso(): void
+    {
+        \DB::table('ocm_reference_data')->where('scope', 'countries')->update([
+            'payload' => json_encode([
+                ['id' => 107, 'title' => 'Indonesia', 'iso' => 'ID'],
+                ['id' => 196, 'title' => 'Cyprus', 'iso' => 'CY'],
+            ]),
+        ]);
+
+        $service = app(\App\Services\OcmReferenceDataService::class);
+
+        $this->assertSame('ID', $service->countryIso(107));
+        $this->assertSame('CY', $service->countryIso(196));
+        $this->assertSame('Indonesia', $service->countryTitle(107));
+        $this->assertNull($service->countryIso(999));
     }
 
     public function test_import_operators_is_idempotent(): void

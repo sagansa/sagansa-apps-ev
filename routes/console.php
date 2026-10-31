@@ -40,17 +40,27 @@ Schedule::command('pln:hydrate-canonical')
     ->name('pln-hydrate-canonical')
     ->description('Hydrate charging_stations (kanonik) dari master PLN — daily');
 
-// Sync POI OpenChargeMap per negara (default: OCM_COUNTRIES env, awalnya ID).
-// Port fetch_openchargemap.py: paginasi + backoff 429 + deteksi halaman
-// duplikat; incremental modifiedsince via tabel ocm_sync_state. Row hanya
+// Sync POI OpenChargeMap — incremental SEMUA negara di katalog referencedata
+// (±250 negara, 1 request kecil per negara/hari). Sebelum bootstrap world
+// dijalankan, katalog kosong → otomatis fallback ke OCM_COUNTRIES. Row hanya
 // masuk openchargemap_pois + charging_stations source='ocm' — TIDAK di-serving
 // di Indonesia (spklu.serving_source tetap pln/esdm).
-Schedule::command('ocm:sync')
+Schedule::command('ocm:sync --all-countries')
     ->dailyAt('04:00')
-    ->withoutOverlapping(120)         // dataset besar per negara; jangan paralel
+    ->withoutOverlapping(120)         // jangan paralel dgn run sebelumnya
     ->runInBackground()
     ->name('ocm-sync')
-    ->description('Sync POI OpenChargeMap per negara (incremental modifiedsince)');
+    ->description('Sync POI OpenChargeMap incremental semua negara katalog (fallback OCM_COUNTRIES)');
+
+// Full sweep worldwide bulanan via quadtree bbox tiling — menembus limit
+// ~1000 POI per query (paginasi offset OCM rusak) sekaligus self-healing
+// utk celah apa pun yang terlewat incremental. 300–800 request sekali sebulan.
+Schedule::command('ocm:sync --tile')
+    ->monthlyOn(1, '02:00')
+    ->withoutOverlapping(360)         // bisa makan 15–30 menit; kill setelah 6 jam
+    ->runInBackground()
+    ->name('ocm-tile-sweep')
+    ->description('Full sweep POI OpenChargeMap seluruh dunia (quadtree bbox) — bulanan');
 
 // Match operator OCM → providers (auto-match + auto-provision) lalu hydrate
 // canonical source='ocm'. Berjalan setelah ocm:sync supaya POI baru sudah ada.

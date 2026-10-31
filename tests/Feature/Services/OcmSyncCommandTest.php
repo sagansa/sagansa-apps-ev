@@ -156,6 +156,88 @@ class OcmSyncCommandTest extends TestCase
             ->assertFailed();
     }
 
+    public function test_all_countries_flag_syncs_every_catalog_country(): void
+    {
+        $this->seedCountriesCatalog();
+
+        // Catatan: pola harus '…/*' pendek — '…/v3/poi/*' tidak pernah cocok
+        // karena Laravel mencocokkan URL dengan trailing-slash ter-trim.
+        Http::fake([
+            'api.openchargemap.io/*' => Http::response([$this->rawPoi(801, -6.2, 106.8)], 200),
+        ]);
+
+        $this->artisan('ocm:sync', [
+            '--all-countries' => true,
+            '--delay' => 0,
+            '--backoff-init' => 0,
+        ])->assertSuccessful();
+
+        // Dua negara katalog → dua request dgn countrycode masing-masing.
+        Http::assertSent(fn ($request) => str_contains(urldecode($request->url()), 'countrycode=ID'));
+        Http::assertSent(fn ($request) => str_contains(urldecode($request->url()), 'countrycode=CY'));
+        Http::assertSentCount(2);
+
+        $this->assertDatabaseHas('ocm_sync_state', ['country' => 'ID']);
+        $this->assertDatabaseHas('ocm_sync_state', ['country' => 'CY']);
+    }
+
+    public function test_tile_flag_invokes_world_bootstrap(): void
+    {
+        $this->seedCountriesCatalog();
+
+        // Semua tile kosong → 1 request, selesai tanpa subdivisi.
+        Http::fake([
+            'api.openchargemap.io/*' => Http::response([], 200),
+        ]);
+
+        $this->artisan('ocm:sync', [
+            '--tile' => true,
+            '--tile-lat-step' => 140,
+            '--tile-lon-step' => 360,
+            '--delay' => 0,
+            '--backoff-init' => 0,
+        ])->assertSuccessful();
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => str_contains(urldecode($request->url()), 'boundingbox=('));
+    }
+
+    public function test_all_countries_falls_back_to_config_when_catalog_empty(): void
+    {
+        // Fase sebelum bootstrap world: katalog countries belum ada isinya.
+        // Entri scheduler harian tidak boleh gagal — jatuh ke OCM_COUNTRIES.
+        config(['services.openchargemap.countries' => 'ID']);
+
+        Http::fake([
+            'api.openchargemap.io/*' => Http::response([$this->rawPoi(901, -6.2, 106.8)], 200),
+        ]);
+
+        $this->artisan('ocm:sync', [
+            '--all-countries' => true,
+            '--delay' => 0,
+            '--backoff-init' => 0,
+        ])
+            ->expectsOutputToContain('Katalog negara kosong')
+            ->assertSuccessful();
+
+        Http::assertSent(fn ($request) => str_contains(urldecode($request->url()), 'countrycode=ID'));
+        $this->assertDatabaseHas('ocm_sync_state', ['country' => 'ID']);
+    }
+
+    private function seedCountriesCatalog(): void
+    {
+        \DB::table('ocm_reference_data')->insert([
+            'scope' => 'countries',
+            'payload' => json_encode([
+                ['id' => 107, 'title' => 'Indonesia', 'iso' => 'ID'],
+                ['id' => 196, 'title' => 'Cyprus', 'iso' => 'CY'],
+            ]),
+            'fetched_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private function seedSyncState(string $country, string $lastSyncUtc): void

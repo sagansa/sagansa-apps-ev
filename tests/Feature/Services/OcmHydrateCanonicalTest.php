@@ -179,6 +179,55 @@ class OcmHydrateCanonicalTest extends TestCase
         $this->assertSame(3, $station->total_konektor);
     }
 
+    public function test_delisted_pois_are_excluded_and_pruned(): void
+    {
+        // POI aktif biasa — tetap di-hydrate.
+        $this->seedPoi([
+            'ocm_id' => 701,
+            'title' => 'Stasiun Aktif',
+            'latitude' => -6.2,
+            'longitude' => 106.8,
+            'connections' => [],
+        ]);
+
+        // POI delisted compact (decommissioned) — SubmissionStatusTypeID >= 1000.
+        $this->seedPoi([
+            'ocm_id' => 702,
+            'title' => 'Stasiun Bekas',
+            'latitude' => -6.2,
+            'longitude' => 106.8,
+            'connections' => [],
+            'raw_payload' => ['ID' => 702, 'SubmissionStatusTypeID' => 1002],
+        ]);
+
+        // POI delisted verbose — SubmissionStatus.ID >= 1000.
+        $this->seedPoi([
+            'ocm_id' => 703,
+            'title' => 'Stasiun Duplikat',
+            'latitude' => -6.2,
+            'longitude' => 106.8,
+            'connections' => [],
+            'raw_payload' => ['ID' => 703, 'SubmissionStatus' => ['ID' => 1001]],
+        ]);
+
+        // Kondisi awal: canonical 702 pernah dibuat sebelum POI di-delist.
+        ChargingStation::create([
+            'source' => 'ocm',
+            'source_station_id' => 702,
+            'nama_lokasi' => 'Stasiun Bekas',
+            'country_code' => 'ID',
+        ]);
+
+        $stats = app(CanonicalStationHydrateService::class)->hydrateFromOcm();
+
+        // Baris raw tetap ada (audit), tapi canonical di-prune.
+        $this->assertDatabaseHas('openchargemap_pois', ['ocm_id' => 702]);
+        $this->assertDatabaseHas('charging_stations', ['source' => 'ocm', 'source_station_id' => 701]);
+        $this->assertDatabaseMissing('charging_stations', ['source' => 'ocm', 'source_station_id' => 702]);
+        $this->assertDatabaseMissing('charging_stations', ['source' => 'ocm', 'source_station_id' => 703]);
+        $this->assertSame(1, $stats['pruned']);
+    }
+
     public function test_idempotent_second_run_writes_nothing(): void
     {
         $this->seedPoi([
