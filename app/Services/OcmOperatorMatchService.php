@@ -31,7 +31,7 @@ class OcmOperatorMatchService
     /**
      * Impor operator dari POI yang tersimpan + resolve provider.
      *
-     * @return array{scanned: int, matched: int, provisioned: int, skipped_noise: int, skipped_existing: int, backfilled_operator: int, reference_error: string|null}
+     * @return array{scanned: int, matched: int, provisioned: int, skipped_noise: int, skipped_existing: int, skipped_out_of_scope: int, backfilled_operator: int, reference_error: string|null}
      */
     public function importFromPois(bool $refreshReferenceData = false): array
     {
@@ -49,6 +49,7 @@ class OcmOperatorMatchService
             'provisioned' => 0,
             'skipped_noise' => 0,
             'skipped_existing' => 0,
+            'skipped_out_of_scope' => 0,
             'backfilled_operator' => 0,
             'reference_error' => $referenceResult['error'],
         ];
@@ -56,8 +57,38 @@ class OcmOperatorMatchService
         ['operators' => $operators, 'noise' => $noise] = $this->collectOperators($operatorTitles);
         $stats['skipped_noise'] = $noise;
 
+        // Kurasi provider hanya utk negara yang dilayani (OCM_COUNTRIES).
+        // Operator dari negara lain TIDAK di-provision ke providers — tabel
+        // itu daftar terkurasi (logo, filter mobile); ribuan operator asing
+        // akan membanjirinya. Operator tsb tetap tercatat di match table
+        // (pending, provider NULL) + judulnya tetap di-backfill ke POI.
+        $servedCountries = array_map('strtoupper', array_filter(array_map('trim', explode(
+            ',',
+            (string) config('services.openchargemap.countries', 'ID')
+        ))));
+
         foreach ($operators as $operator) {
             $stats['scanned']++;
+
+            $isServed = collect($operator['countries'])
+                ->contains(fn ($country) => $country === null || in_array($country, $servedCountries, true));
+
+            if (! $isServed) {
+                OcmOperatorMatch::query()->updateOrCreate(
+                    $operator['id'] > 0
+                        ? ['ocm_operator_id' => $operator['id']]
+                        : ['ocm_operator_id' => null, 'operator_title' => $operator['title']],
+                    [
+                        'operator_title' => $operator['title'],
+                        'provider_id' => null,
+                        'match_status' => 'pending',
+                        'match_method' => null,
+                    ]
+                );
+                $stats['skipped_out_of_scope']++;
+
+                continue;
+            }
 
             // Sudah pernah di-resolve → idempoten (re-run tidak duplikat).
             $exists = OcmOperatorMatch::query()
@@ -142,9 +173,11 @@ class OcmOperatorMatchService
      * Kumpulkan operator unik dari openchargemap_pois. Menerima tiga bentuk:
      * raw API verbose (OperatorInfo), compact sync (OperatorID int — judul
      * dari katalog referencedata), dan import file lama (string operator).
+     * Negara asal ikut dilacak (dari country_code POI; null = legacy ID)
+     * utk memutuskan layak-tidaknya di-provision ke providers.
      *
      * @param  array<int, string>  $operatorTitles  katalog id → judul (referencedata)
-     * @return array{operators: list<array{id: int, title: string}>, noise: int}
+     * @return array{operators: list<array{id: int, title: string, countries: list<string|null>}>, noise: int}
      */
     private function collectOperators(array $operatorTitles): array
     {
@@ -175,7 +208,18 @@ class OcmOperatorMatchService
                     }
 
                     $key = $id > 0 ? "id:{$id}" : 'title:'.strtolower($title);
-                    $operators[$key] = ['id' => $id, 'title' => $title];
+                    $country = $poi->country_code !== null ? strtoupper($poi->country_code) : null;
+
+                    if (isset($operators[$key])) {
+                        $operators[$key]['countries'][$country ?? ''] = $country;
+                        continue;
+                    }
+
+                    $operators[$key] = [
+                        'id' => $id,
+                        'title' => $title,
+                        'countries' => [$country ?? '' => $country],
+                    ];
                 }
             });
 

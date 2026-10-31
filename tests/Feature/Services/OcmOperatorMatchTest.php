@@ -193,6 +193,53 @@ class OcmOperatorMatchTest extends TestCase
         $this->assertNull($service->countryIso(999));
     }
 
+    public function test_import_operators_does_not_provision_non_served_countries(): void
+    {
+        // Kurasi provider hanya utk negara yang dilayani (OCM_COUNTRIES).
+        config(['services.openchargemap.countries' => 'ID']);
+
+        \DB::table('ocm_reference_data')->where('scope', 'operators')->update([
+            'payload' => json_encode([
+                ['id' => 3664, 'title' => 'Terra Charge'],
+                ['id' => 7777, 'title' => 'Op Nusantara'],
+            ]),
+        ]);
+
+        // POI world (SG) — operator TIDAK boleh di-provision ke providers
+        // (tabel providers = daftar terkurasi; jangan banjir operator asing).
+        $this->seedPoi([
+            'ocm_id' => 801,
+            'operator' => null,
+            'country_code' => 'SG',
+            'raw_payload' => ['ID' => 801, 'OperatorID' => 3664],
+        ]);
+
+        // POI ID (legacy tanpa country_code) — diproses normal.
+        $this->seedPoi([
+            'ocm_id' => 802,
+            'operator' => null,
+            'raw_payload' => ['ID' => 802, 'OperatorID' => 7777],
+        ]);
+
+        $this->artisan('ocm:import-operators')->assertSuccessful();
+
+        // SG: match pending TANPA provider — nama operator tetap ter-backfill.
+        $this->assertDatabaseHas('ocm_operator_matches', [
+            'ocm_operator_id' => 3664,
+            'provider_id' => null,
+            'match_status' => 'pending',
+        ]);
+        $this->assertDatabaseHas('openchargemap_pois', ['ocm_id' => 801, 'operator' => 'Terra Charge']);
+        $this->assertNull(Provider::where('name', 'Terra Charge')->first());
+
+        // ID: provision berjalan seperti biasa.
+        $this->assertNotNull(Provider::where('name', 'Op Nusantara')->first());
+        $this->assertDatabaseHas('ocm_operator_matches', [
+            'ocm_operator_id' => 7777,
+            'match_status' => 'auto',
+        ]);
+    }
+
     public function test_import_operators_is_idempotent(): void
     {
         $this->seedPoi([

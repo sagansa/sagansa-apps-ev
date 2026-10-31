@@ -44,6 +44,7 @@ class ImportOcmOperators extends Command
                 ['Provider baru di-provision', $stats['provisioned']],
                 ['Kolom operator POI di-backfill', $stats['backfilled_operator']],
                 ['Dilewati (noise)', $stats['skipped_noise']],
+                ['Dilewati (negara tak dilayani)', $stats['skipped_out_of_scope'] ?? 0],
                 ['Dilewati (sudah ada match)', $stats['skipped_existing']],
             ]
         );

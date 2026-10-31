@@ -215,6 +215,12 @@ class SpkluSourceComparisonService
         return OpenchargemapPoi::query()
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
+            // Perbandingan sumber = diagnostik data INDONESIA (ESDM/PLN hanya
+            // ada di ID). Saat OCM worldwide aktif (±270 ribu POI), memuat
+            // semuanya tidak relevan secara semantik DAN pernah meledakkan
+            // cache 2,3 GB (insiden kuota DB 3 GB, 2026-11). Legacy import
+            // file lama tanpa country_code diasumsikan ID.
+            ->where(fn ($q) => $q->where('country_code', 'ID')->orWhereNull('country_code'))
             ->orderBy('id')
             ->get()
             ->map(fn (OpenchargemapPoi $p) => [
