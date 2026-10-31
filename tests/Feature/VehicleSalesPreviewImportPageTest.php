@@ -64,6 +64,26 @@ class VehicleSalesPreviewImportPageTest extends TestCase
             ->assertHasErrors(['csvFile' => 'required']);
     }
 
+    /** Tahun periode SELALU mengikuti file terbaru; manual hanya utk file tanpa tahun. */
+    public function test_tahun_selalu_mengikuti_file_terbaru(): void
+    {
+        // Nilai basi '2024' (file sebelumnya) HARUS tertimpa oleh file baru.
+        Livewire::actingAs($this->admin)
+            ->test(VehicleSalesPreviewImport::class)
+            ->set('importYear', '2024')
+            ->set('csvFile', UploadedFile::fake()->createWithContent('3_GAIKINDO_wholesales_data_jansep2026.csv', $this->csvContent()))
+            ->call('analyze')
+            ->assertSet('importYear', '2026');
+
+        // Nama file tanpa tahun → nilai manual dipertahankan.
+        Livewire::actingAs($this->admin)
+            ->test(VehicleSalesPreviewImport::class)
+            ->set('importYear', '2024')
+            ->set('csvFile', UploadedFile::fake()->createWithContent('laporan.csv', $this->csvContent()))
+            ->call('analyze')
+            ->assertSet('importYear', '2024');
+    }
+
     public function test_tombol_connecting_menaikkan_match_otomatis(): void
     {
         $page = Livewire::actingAs($this->admin)

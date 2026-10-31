@@ -429,15 +429,15 @@
                     <div style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35); color: #d97706; font-size: 13px; font-weight: 600;">
                         ⚠️ Import terkunci: masih ada <strong>{{ number_format($result['summary']['new']) }} kombinasi baru</strong>
                         dan <strong>{{ number_format($result['summary']['skipped']) }} baris dilewati</strong>.
-                        Tambahkan kombinasi baru ke CONNECTING (＋ di tabel atas) → Sync CONNECTING → Terapkan ke Katalog → analisis ulang.
+                        Tautkan keluarga di tabel atas (＋ CONNECTING) — analisis menyegarkan otomatis dan impor terbuka begitu bersih.
                     </div>
                 @endif
 
                 <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
                     <div style="min-width: 160px;">
                         <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--vsp-text-muted);">
-                            Tahun Periode:
-                            <input type="number" min="2015" max="2100" wire:model="importYear" class="vsp-input-control" placeholder="cth. 2022" />
+                            Tahun Periode <span style="font-weight: 400;">(otomatis dari nama file)</span>:
+                            <input type="number" min="2015" max="2100" wire:model.lazy="importYear" class="vsp-input-control" placeholder="cth. 2022" title="Terisi otomatis dari 4 digit tahun pada nama file yang diunggah; boleh dikoreksi manual" />
                         </label>
                     </div>
                     <div>
