@@ -67,13 +67,22 @@ class ScrapeDedupService
     }
 
     /**
+     * Key TETAP — dulu menyertakan Provider::count() sehingga tiap penambahan
+     * provider menciptakan baris cache baru berisi snapshot daftar provider
+     * (insiden kuota DB 3 GB, 2026-11: ribuan baris menumpuk hingga 2,3 GB).
+     * Key tetap menimpa baris yang sama (upsert); TTL 1 jam menjaga daftar
+     * provider segar maksimal 1 jam setelah berubah.
+     */
+    private const PROVIDERS_CACHE_KEY = 'scrape:providers:matching';
+
+    /**
      * Providers from DB, cached briefly, sorted longest-name-first and with
      * the "generic" providers (Mall/Hotel/...) flagged so they use stricter
      * matching. Returns an array of [Provider model, tokens[], generic bool].
      */
     private function providersForMatching(): array
     {
-        return Cache::remember('scrape:providers:'.Provider::count(), now()->addHour(), function () {
+        return Cache::remember(self::PROVIDERS_CACHE_KEY, now()->addHour(), function () {
             $generic = ['mall', 'hotel', 'rumah', 'kantor', 'parking', 'astra', 'igreen'];
 
             return Provider::query()
