@@ -41,6 +41,11 @@ return [
     'openchargemap' => [
         'key' => env('OCM_API_KEY'),
         'base_url' => env('OCM_BASE_URL', 'https://api.openchargemap.io/v3/poi/'),
+        // Referential data (operator, tipe konektor) — dipakai entity-resolution provider.
+        'referencedata_url' => env('OCM_REFERENCEDATA_URL', 'https://api.openchargemap.io/v3/referencedata/'),
+        // Negara yang di-sync ocm:sync (csv ISO-2) + default harvest nearby.
+        'countries' => env('OCM_COUNTRIES', 'ID'),
+        'default_country' => env('OCM_DEFAULT_COUNTRY', 'ID'),
     ],
 
 ];

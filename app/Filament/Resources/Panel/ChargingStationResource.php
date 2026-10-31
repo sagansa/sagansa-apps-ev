@@ -186,8 +186,16 @@ class ChargingStationResource extends Resource
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'esdm' => 'info',
+                        'pln' => 'success',
+                        'ocm' => 'warning',
                         default => 'gray',
                     }),
+                TextColumn::make('country_code')
+                    ->label('Negara')
+                    ->badge()
+                    ->color('info')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status_updated_at')
                     ->label('Update Status')
                     ->dateTime('d M Y H:i')
@@ -220,7 +228,12 @@ class ChargingStationResource extends Resource
                     ->label('Filter Sumber')
                     ->options([
                         'esdm' => 'esdm',
+                        'pln' => 'pln',
+                        'ocm' => 'ocm (OpenChargeMap)',
                     ]),
+                SelectFilter::make('country_code')
+                    ->label('Filter Negara')
+                    ->options(fn () => ChargingStation::query()->whereNotNull('country_code')->distinct()->orderBy('country_code')->pluck('country_code', 'country_code')->toArray()),
                 SelectFilter::make('provider_id')
                     ->label('Filter Provider')
                     ->relationship('provider', 'name')

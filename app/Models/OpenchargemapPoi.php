@@ -14,6 +14,7 @@ class OpenchargemapPoi extends Model
 
     protected $fillable = [
         'ocm_id',
+        'country_code',
         'uuid',
         'title',
         'address_line1',

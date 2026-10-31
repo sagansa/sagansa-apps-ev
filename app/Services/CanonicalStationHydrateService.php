@@ -7,6 +7,8 @@ use App\Models\ChargingStationCharger;
 use App\Models\ChargingStationConnector;
 use App\Models\EsdmSinggatSpkluStation;
 use App\Models\EsdmSinggatStationStatus;
+use App\Models\OcmOperatorMatch;
+use App\Models\OpenchargemapPoi;
 use App\Models\PlnChargerLocation;
 use App\Models\PlnChargerLocationDetail;
 use App\Models\PlnEsdmStationMatch;
@@ -32,6 +34,8 @@ class CanonicalStationHydrateService
     public const SOURCE_ESDM = 'esdm';
 
     public const SOURCE_PLN = 'pln';
+
+    public const SOURCE_OCM = 'ocm';
 
     /** BPS kode_provinsi → nama provinsi (title case, konsisten dgn data historis). */
     public const PROVINCE_BY_BPS_CODE = [
@@ -262,6 +266,64 @@ class CanonicalStationHydrateService
             }
 
             $stats['pruned'] = $this->pruneStalePlnStations($locations);
+        });
+
+        return $stats;
+    }
+
+    /**
+     * Hydrate seluruh POI OpenChargeMap (openchargemap_pois) ke
+     * charging_stations (source='ocm'). Pola sama dgn hydrateFromPln: upsert
+     * change-aware by (source, source_station_id), child charger
+     * replace-if-changed, stasiun stale (POI-nya hilang) di-prune.
+     *
+     * OCM tidak punya status real-time — availability dibiarkan 'unknown'.
+     * Row source='ocm' TIDAK di-serving di Indonesia (spklu.serving_source
+     * tetap pln/esdm); tersimpan utk verifikasi backend & negara lain nanti.
+     *
+     * @return array{processed: int, created: int, updated: int, unchanged: int, skipped: int, chargers: int, pruned: int}
+     */
+    public function hydrateFromOcm(): array
+    {
+        $pois = OpenchargemapPoi::query()
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->get();
+
+        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'chargers' => 0, 'pruned' => 0];
+
+        DB::connection('ev')->transaction(function () use ($pois, &$stats) {
+            $activeOcmIds = [];
+            foreach ($pois as $poi) {
+                $stats['processed']++;
+
+                $data = $this->buildOcmStationData($poi);
+                if ($data === null) {
+                    $stats['skipped']++;
+
+                    continue;
+                }
+
+                [$canonical, $masterChanged] = $this->upsertCanonicalStation(
+                    self::SOURCE_OCM,
+                    $poi->ocm_id,
+                    $data
+                );
+                $stats[$canonical->wasRecentlyCreated
+                    ? 'created'
+                    : ($masterChanged ? 'updated' : 'unchanged')]++;
+
+                [$chargersWritten, $chargersChanged] = $this->replaceOcmChargersIfChanged($canonical, $poi);
+                $stats['chargers'] += $chargersWritten;
+
+                if ($chargersChanged && ! $canonical->wasRecentlyCreated) {
+                    $canonical->touch();
+                }
+
+                $activeOcmIds[] = $poi->ocm_id;
+            }
+
+            $stats['pruned'] = $this->pruneStaleOcmStations($activeOcmIds);
         });
 
         return $stats;
@@ -633,8 +695,8 @@ class CanonicalStationHydrateService
         return $desired;
     }
 
-    /** Snapshot existing charger+connector ESDM utk perbandingan. */
-    private function buildExistingEsdmChargers(ChargingStation $canonical): array
+    /** Snapshot existing charger+connector utk perbandingan (dipakai semua source). */
+    private function buildExistingChargerSnapshot(ChargingStation $canonical): array
     {
         return $canonical->chargers()->with('connectors')->get()->map(fn ($charger) => [
             'charger' => [
@@ -668,7 +730,7 @@ class CanonicalStationHydrateService
     {
         $desired = $this->buildDesiredEsdmChargers($station);
 
-        if ($this->buildExistingEsdmChargers($canonical) == $desired) {
+        if ($this->buildExistingChargerSnapshot($canonical) == $desired) {
             return [count($desired), false];
         }
 
@@ -876,6 +938,266 @@ class CanonicalStationHydrateService
                 'merk_charger' => $detail->merkCharger?->name,
             ])->all(),
         ];
+    }
+
+    // ─── OCM (openchargemap_pois) ───────────────────────────────────────────
+
+    /**
+     * Bangun data kanonik untuk satu POI OCM. Return null bila tidak layak
+     * (nama & koordinat kosong — koordinat sudah di-filter di query).
+     */
+    private function buildOcmStationData(OpenchargemapPoi $poi): ?array
+    {
+        $namaLokasi = trim((string) $poi->title);
+        if ($namaLokasi === '') {
+            $namaLokasi = 'OCM POI '.$poi->ocm_id;
+        }
+
+        $connectionRows = $this->ocmConnectionRows($poi->connections);
+        $primaryType = $this->resolvePrimaryTypeCharge(
+            array_map(fn ($row) => $row['type_charge'], $connectionRows)
+        );
+
+        $totalKonektor = (int) array_sum(array_map(fn ($row) => $row['jumlah'], $connectionRows));
+        if ($totalKonektor === 0 && $poi->number_of_points !== null) {
+            $totalKonektor = (int) $poi->number_of_points;
+        }
+
+        $alamat = implode(', ', array_filter([
+            trim((string) $poi->address_line1),
+            trim((string) $poi->address_line2),
+        ])) ?: null;
+
+        [$providerId, $providerName] = $this->resolveOcmProvider($poi);
+
+        return [
+            'nama_lokasi' => $namaLokasi,
+            'alamat' => $alamat,
+            'latitude' => $poi->latitude,
+            'longitude' => $poi->longitude,
+            'kode_provinsi' => null, // OCM tidak menyediakan kode BPS
+            'provinsi' => $this->normalizeOcmRegion($poi->state_or_province),
+            'kabupaten_kota' => $this->normalizeOcmRegion($poi->town),
+            'kategori_tol' => null,
+            'kategori_lokasi' => null,
+            'toll_category' => $this->resolveTollCategory(null, $namaLokasi, $alamat),
+            'location_category' => $this->resolveLocationCategory(null, $namaLokasi, $alamat),
+            'type_charge' => $primaryType,
+            'watt' => $primaryType !== null ? (self::TYPE_CHARGE_WATT[$primaryType] ?? null) : null,
+            'total_charger' => count($connectionRows),
+            'total_konektor' => $totalKonektor,
+            'nama_badan_usaha' => $poi->operator,
+            'provider_id' => $providerId,
+            'provider_name' => $providerName,
+            'harga_pengisian' => $poi->usage_cost, // teks bebas OCM (mis. "IDR 2467/kWh")
+            'harga_layanan' => null,
+            'availability_level' => 'unknown', // OCM tanpa realtime
+            'available_count' => 0,
+            'charging_count' => 0,
+            'finishing_count' => 0,
+            'status_updated_at' => null,
+            // Legacy import file (data ID lama) tidak menyimpan negara —
+            // seluruhnya Indonesia.
+            'country_code' => $poi->country_code ?: 'ID',
+            'raw_payload' => $poi->raw_payload ?? ['ocm_id' => $poi->ocm_id],
+        ];
+    }
+
+    /**
+     * Normalisasi entri Connections OCM — menerima TIGA bentuk yang tersimpan
+     * di openchargemap_pois.connections: raw verbose (ConnectionType.Title /
+     * PowerKW / Quantity), raw compact hasil ocm:sync (ConnectionTypeID /
+     * LevelID / CurrentTypeID int — nama dari katalog referencedata), dan
+     * bentuk normalisasi tools Python (nama / daya_kw / jumlah — hasil
+     * ocm:import dari file JSON).
+     *
+     * @return list<array{nama: string|null, daya_kw: float|null, arus: string|null, level: string|null, jumlah: int, type_charge: string|null}>
+     */
+    private function ocmConnectionRows(?array $connections): array
+    {
+        $reference = app(OcmReferenceDataService::class);
+        $rows = [];
+
+        foreach ((array) $connections as $connection) {
+            if (! is_array($connection)) {
+                continue;
+            }
+
+            $dayaKw = $connection['daya_kw'] ?? $connection['PowerKW'] ?? null;
+            $dayaKw = is_numeric($dayaKw) ? (float) $dayaKw : null;
+
+            $typeId = (int) ($connection['ConnectionTypeID'] ?? data_get($connection, 'ConnectionType.ID') ?? 0);
+            $currentTypeId = (int) ($connection['CurrentTypeID'] ?? data_get($connection, 'CurrentType.ID') ?? 0);
+            $levelTitle = $connection['level']
+                ?? data_get($connection, 'Level.Title')
+                ?? (($levelId = (int) ($connection['LevelID'] ?? 0)) > 0 ? $reference->levelTitle($levelId) : null);
+
+            $rows[] = [
+                'nama' => $connection['nama']
+                    ?? data_get($connection, 'ConnectionType.Title')
+                    ?? ($typeId > 0 ? $reference->connectionTypeTitle($typeId) : null),
+                'daya_kw' => $dayaKw,
+                'arus' => $connection['arus']
+                    ?? data_get($connection, 'CurrentType.Title')
+                    ?? ($currentTypeId > 0 ? $reference->currentTypeTitle($currentTypeId) : null),
+                'level' => $levelTitle,
+                'jumlah' => max(0, (int) ($connection['jumlah'] ?? $connection['Quantity'] ?? 1)),
+                'type_charge' => $this->ocmConnectionType($dayaKw, $levelTitle),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Tier kecepatan satu koneksi OCM. Daya (PowerKW) diutamakan lewat
+     * deriveCanonicalTypeFromPower (aturan sama dgn charger PLN); fallback ke
+     * judul Level OCM bila daya tidak tersedia.
+     */
+    private function ocmConnectionType(?float $dayaKw, ?string $levelTitle): ?string
+    {
+        $fromPower = $this->deriveCanonicalTypeFromPower($dayaKw);
+        if ($fromPower !== null) {
+            return $fromPower;
+        }
+
+        $level = strtolower(trim((string) $levelTitle));
+
+        return match (true) {
+            str_contains($level, 'level 1') => 'Slow Charging',
+            str_contains($level, 'level 2') => 'Medium Charging',
+            str_contains($level, 'level 3') => 'Fast Charging',
+            default => null,
+        };
+    }
+
+    /** Title-case nama wilayah OCM ("DKI JAKARTA" → "Dki Jakarta"). */
+    private function normalizeOcmRegion(?string $region): ?string
+    {
+        $region = trim((string) $region);
+
+        return $region === '' ? null : ucwords(strtolower($region));
+    }
+
+    /**
+     * Resolve provider utk POI OCM lewat ocm_operator_matches: by
+     * OperatorInfo.ID dulu (paling spesifik), fallback by-title utk POI jalur
+     * import file lama yang tanpa OperatorInfo. Hanya match status
+     * auto/manual yang dipakai — pending menunggu review admin.
+     * Tanpa match → provider_name string mentah, provider_id null.
+     *
+     * @return array{0: string|null, 1: string|null} [provider_id, provider_name]
+     */
+    private function resolveOcmProvider(OpenchargemapPoi $poi): array
+    {
+        $raw = $poi->raw_payload ?? [];
+        $reference = app(OcmReferenceDataService::class);
+
+        // Bentuk verbose (OperatorInfo.ID) maupun compact (OperatorID int)
+        // sama-sama diterima; judul fallback dari katalog referencedata.
+        $operatorId = (int) (data_get($raw, 'OperatorInfo.ID')
+            ?? data_get($raw, 'OperatorID')
+            ?? 0);
+        $title = trim((string) (data_get($raw, 'OperatorInfo.Title')
+            ?? ($operatorId > 0 ? $reference->operatorTitle($operatorId) : null)
+            ?? $poi->operator
+            ?? ''));
+
+        $match = OcmOperatorMatch::query()
+            ->whereIn('match_status', ['auto', 'manual'])
+            ->when($operatorId > 0, function ($query) use ($operatorId, $title) {
+                $query->where(function ($sub) use ($operatorId, $title) {
+                    $sub->where('ocm_operator_id', $operatorId);
+                    if ($title !== '') {
+                        $sub->orWhereRaw('LOWER(operator_title) = ?', [strtolower($title)]);
+                    }
+                });
+            }, function ($query) use ($title) {
+                if ($title !== '') {
+                    $query->whereRaw('LOWER(operator_title) = ?', [strtolower($title)]);
+                }
+            })
+            // ID match lebih spesifik daripada title match.
+            ->orderByDesc('ocm_operator_id')
+            ->first();
+
+        if ($match !== null && $match->provider_id !== null) {
+            return [$match->provider_id, $match->provider?->name];
+        }
+
+        return $title === '' ? [null, null] : [null, $title];
+    }
+
+    /**
+     * Bangun snapshot desired charger OCM — satu charger per tipe koneksi
+     * (CCS2, CHAdeMO, ...) dgn jumlah konektor dari Quantity.
+     *
+     * @return array<int, array{charger: array<string, mixed>, connectors: list<array<string, mixed>>}>
+     */
+    private function buildDesiredOcmChargers(OpenchargemapPoi $poi): array
+    {
+        $desired = [];
+        foreach ($this->ocmConnectionRows($poi->connections) as $row) {
+            $desired[] = [
+                'charger' => [
+                    'source_charger_id' => null,
+                    'chargerbox_id' => null,
+                    'type_charge' => $row['type_charge'],
+                    'nama' => $row['nama'],
+                    // Daya aktual OCM lebih akurat daripada label tier.
+                    'watt' => $row['daya_kw'] !== null
+                        ? rtrim(rtrim(number_format($row['daya_kw'], 1, '.', ''), '0'), '.').' kW'
+                        : ($row['type_charge'] !== null ? (self::TYPE_CHARGE_WATT[$row['type_charge']] ?? null) : null),
+                    'jumlah_charger' => 1,
+                    'jumlah_konektor' => $row['jumlah'] > 0 ? $row['jumlah'] : 1,
+                    'icon' => null,
+                    'gambar' => null,
+                    'harga_pengisian' => null,
+                    'harga_layanan' => null,
+                ],
+                'connectors' => [], // plug individual tidak dilacak OCM
+            ];
+        }
+
+        return $desired;
+    }
+
+    /**
+     * Replace child charger OCM HANYA bila berbeda — pola replaceChargersIfChanged
+     * ESDM. Identik → nol penulisan (idempoten).
+     *
+     * @return array{0: int, 1: bool}
+     */
+    private function replaceOcmChargersIfChanged(ChargingStation $canonical, OpenchargemapPoi $poi): array
+    {
+        $desired = $this->buildDesiredOcmChargers($poi);
+
+        if ($this->buildExistingChargerSnapshot($canonical) == $desired) {
+            return [count($desired), false];
+        }
+
+        $canonical->chargers()->delete();
+
+        foreach ($desired as $row) {
+            ChargingStationCharger::create(
+                array_merge($row['charger'], ['station_id' => $canonical->id])
+            );
+        }
+
+        return [count($desired), true];
+    }
+
+    /**
+     * Hapus stasiun canonical source='ocm' yang POI-nya sudah tidak ada di
+     * openchargemap_pois (terhapus oleh ocm:import --replace / sync).
+     * Child chargers ikut terhapus via FK cascade.
+     */
+    private function pruneStaleOcmStations(array $activeOcmIds): int
+    {
+        return ChargingStation::query()
+            ->where('source', self::SOURCE_OCM)
+            ->when($activeOcmIds !== [], fn ($query) => $query->whereNotIn('source_station_id', $activeOcmIds))
+            ->delete();
     }
 
     /**

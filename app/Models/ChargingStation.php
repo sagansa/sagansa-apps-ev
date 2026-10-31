@@ -25,6 +25,7 @@ class ChargingStation extends Model
     protected $fillable = [
         'source',
         'source_station_id',
+        'country_code',
         'nama_lokasi',
         'alamat',
         'latitude',

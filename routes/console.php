@@ -40,3 +40,29 @@ Schedule::command('pln:hydrate-canonical')
     ->name('pln-hydrate-canonical')
     ->description('Hydrate charging_stations (kanonik) dari master PLN — daily');
 
+// Sync POI OpenChargeMap per negara (default: OCM_COUNTRIES env, awalnya ID).
+// Port fetch_openchargemap.py: paginasi + backoff 429 + deteksi halaman
+// duplikat; incremental modifiedsince via tabel ocm_sync_state. Row hanya
+// masuk openchargemap_pois + charging_stations source='ocm' — TIDAK di-serving
+// di Indonesia (spklu.serving_source tetap pln/esdm).
+Schedule::command('ocm:sync')
+    ->dailyAt('04:00')
+    ->withoutOverlapping(120)         // dataset besar per negara; jangan paralel
+    ->runInBackground()
+    ->name('ocm-sync')
+    ->description('Sync POI OpenChargeMap per negara (incremental modifiedsince)');
+
+// Match operator OCM → providers (auto-match + auto-provision) lalu hydrate
+// canonical source='ocm'. Berjalan setelah ocm:sync supaya POI baru sudah ada.
+Schedule::command('ocm:import-operators')
+    ->dailyAt('04:20')
+    ->withoutOverlapping(60)
+    ->name('ocm-import-operators')
+    ->description('Entity-resolution operator OCM ke providers');
+
+Schedule::command('ocm:hydrate-canonical')
+    ->dailyAt('04:30')
+    ->withoutOverlapping(60)
+    ->name('ocm-hydrate-canonical')
+    ->description('Hydrate charging_stations (kanonik) dari POI OpenChargeMap — daily');
+

@@ -15,9 +15,10 @@ class OcmHarvestService
     private const MAX_RADIUS_KM = 20;
     private const MAX_RESULTS = 500;
 
-    public function harvestNearby(float $lat, float $lng, float $radiusKm): array
+    public function harvestNearby(float $lat, float $lng, float $radiusKm, ?string $country = null): array
     {
         $radiusKm = min($radiusKm, self::MAX_RADIUS_KM);
+        $country = strtoupper($country ?? config('services.openchargemap.default_country', 'ID'));
 
         if ($this->isWithinCooldown($lat, $lng)) {
             return ['fetched' => 0, 'inserted' => 0, 'cooldown' => true];
@@ -35,7 +36,7 @@ class OcmHarvestService
                 'longitude' => $lng,
                 'distance' => $radiusKm,
                 'distanceunit' => 'KM',
-                'countrycode' => 'ID',
+                'countrycode' => $country,
                 'maxresults' => self::MAX_RESULTS,
                 'compact' => 'true',
                 'verbose' => 'false',
@@ -56,7 +57,7 @@ class OcmHarvestService
             $updated = 0;
 
             foreach ($data as $point) {
-                if ($this->upsertPoi($point)) {
+                if ($this->upsertPoi($point, $country)) {
                     $inserted++;
                 } else {
                     $updated++;
@@ -103,9 +104,17 @@ class OcmHarvestService
      * Upsert satu POI dari bentuk API mentah (AddressInfo/Connections) maupun
      * bentuk normalisasi tools (nama/lat/lng/konektor).
      *
+     * Publik karena dipakai OcmSyncService (ocm:sync) — jalur import file
+     * (ocm:import) & harvest nearby memakai mapper yang sama supaya bentuk
+     * data identik.
+     *
+     * @param  string|null  $countryCode  ISO-2 dari konteks sync/harvest —
+     *                                    diutamakan daripada infer dari payload
+     *                                    (respons compact hanya memuat CountryID
+     *                                    numerik, bukan kode ISO).
      * @return bool true bila POI benar-benar baru (insert), false bila update
      */
-    private function upsertPoi(array $point): bool
+    public function upsertPoi(array $point, ?string $countryCode = null): bool
     {
         $ocmId = (int) ($point['ID'] ?? $point['id'] ?? $point['external_id'] ?? 0);
         if ($ocmId === 0) {
@@ -123,6 +132,10 @@ class OcmHarvestService
         }
 
         $attributes = [
+            'country_code' => strtoupper((string) ($countryCode
+                ?? $addressInfo['Country']['ISOCode']
+                ?? $point['negara']
+                ?? '')) ?: null,
             'uuid' => $point['UUID'] ?? $point['uuid'] ?? null,
             'title' => $addressInfo['Title'] ?? $point['nama'] ?? $point['title'] ?? null,
             'address_line1' => $addressInfo['AddressLine1'] ?? $point['alamat'] ?? null,
@@ -149,6 +162,12 @@ class OcmHarvestService
             OpenchargemapPoi::create($attributes + ['ocm_id' => $ocmId]);
 
             return true;
+        }
+
+        // Jangan hapus country_code yang sudah ada hanya karena jalur import
+        // lama (file JSON) tidak menyuplai negara.
+        if (($attributes['country_code'] ?? null) === null) {
+            unset($attributes['country_code']);
         }
 
         $existing->fill($attributes)->save();
