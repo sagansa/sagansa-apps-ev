@@ -228,6 +228,28 @@ class OcmHydrateCanonicalTest extends TestCase
         $this->assertSame(1, $stats['pruned']);
     }
 
+    public function test_hydrates_all_pois_across_chunk_boundaries(): void
+    {
+        // Penjaga utk pemrosesan chunked (worldwide ±272 ribu POI): POI yang
+        // tersebar melintasi batas chunk harus tetap ter-hydrate semuanya.
+        for ($i = 0; $i < 5; $i++) {
+            $this->seedPoi([
+                'ocm_id' => 900 + $i,
+                'title' => 'Chunk POI '.$i,
+                'latitude' => -6.2,
+                'longitude' => 106.8,
+                'connections' => [['nama' => 'CCS2', 'daya_kw' => 60, 'jumlah' => 1]],
+            ]);
+        }
+
+        $stats = app()->makeWith(CanonicalStationHydrateService::class, ['ocmChunkSize' => 2])->hydrateFromOcm();
+
+        $this->assertSame(5, $stats['processed']);
+        $this->assertSame(5, $stats['created']);
+        $this->assertSame(5, ChargingStation::where('source', 'ocm')->count());
+        $this->assertSame(5, ChargingStationCharger::count());
+    }
+
     public function test_idempotent_second_run_writes_nothing(): void
     {
         $this->seedPoi([

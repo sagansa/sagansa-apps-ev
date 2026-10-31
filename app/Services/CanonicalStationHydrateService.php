@@ -31,6 +31,18 @@ use Illuminate\Support\Facades\DB;
  */
 class CanonicalStationHydrateService
 {
+    /**
+     * Ukuran chunk hydrate OCM — dataset worldwide ±272 ribu POI TIDAK boleh
+     * dimuat sekaligus (memori >1 GB); diproses per batch dgn transaksinya
+     * sendiri agar idempoten antar-chunk.
+     */
+    private readonly int $ocmChunkSize;
+
+    public function __construct(?int $ocmChunkSize = null)
+    {
+        $this->ocmChunkSize = $ocmChunkSize ?? 500;
+    }
+
     public const SOURCE_ESDM = 'esdm';
 
     public const SOURCE_PLN = 'pln';
@@ -294,54 +306,58 @@ class CanonicalStationHydrateService
      */
     public function hydrateFromOcm(): array
     {
-        $pois = OpenchargemapPoi::query()
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->get();
-
         $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'skipped_delisted' => 0, 'chargers' => 0, 'pruned' => 0];
 
-        DB::connection('ev')->transaction(function () use ($pois, &$stats) {
-            $activeOcmIds = [];
-            foreach ($pois as $poi) {
-                $stats['processed']++;
+        $activeOcmIds = [];
 
-                // Delisted (decommissioned/duplikat/dst) → bukan stasiun aktif;
-                // tidak masuk $activeOcmIds sehingga canonical-nya ikut di-prune.
-                if ($this->isDelistedOcmPoi($poi)) {
-                    $stats['skipped_delisted']++;
+        // Chunked: worldwide ±272 ribu POI — satu transaksi per batch, bukan
+        // satu transaksi raksasa / seluruh dataset di memori.
+        OpenchargemapPoi::query()
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->chunkById($this->ocmChunkSize, function ($pois) use (&$stats, &$activeOcmIds): void {
+                DB::connection('ev')->transaction(function () use ($pois, &$stats, &$activeOcmIds): void {
+                    foreach ($pois as $poi) {
+                        $stats['processed']++;
 
-                    continue;
-                }
+                        // Delisted (decommissioned/duplikat/dst) → bukan stasiun
+                        // aktif; tidak masuk $activeOcmIds sehingga canonical-nya
+                        // ikut di-prune.
+                        if ($this->isDelistedOcmPoi($poi)) {
+                            $stats['skipped_delisted']++;
 
-                $data = $this->buildOcmStationData($poi);
-                if ($data === null) {
-                    $stats['skipped']++;
+                            continue;
+                        }
 
-                    continue;
-                }
+                        $data = $this->buildOcmStationData($poi);
+                        if ($data === null) {
+                            $stats['skipped']++;
 
-                [$canonical, $masterChanged] = $this->upsertCanonicalStation(
-                    self::SOURCE_OCM,
-                    $poi->ocm_id,
-                    $data
-                );
-                $stats[$canonical->wasRecentlyCreated
-                    ? 'created'
-                    : ($masterChanged ? 'updated' : 'unchanged')]++;
+                            continue;
+                        }
 
-                [$chargersWritten, $chargersChanged] = $this->replaceOcmChargersIfChanged($canonical, $poi);
-                $stats['chargers'] += $chargersWritten;
+                        [$canonical, $masterChanged] = $this->upsertCanonicalStation(
+                            self::SOURCE_OCM,
+                            $poi->ocm_id,
+                            $data
+                        );
+                        $stats[$canonical->wasRecentlyCreated
+                            ? 'created'
+                            : ($masterChanged ? 'updated' : 'unchanged')]++;
 
-                if ($chargersChanged && ! $canonical->wasRecentlyCreated) {
-                    $canonical->touch();
-                }
+                        [$chargersWritten, $chargersChanged] = $this->replaceOcmChargersIfChanged($canonical, $poi);
+                        $stats['chargers'] += $chargersWritten;
 
-                $activeOcmIds[] = $poi->ocm_id;
-            }
+                        if ($chargersChanged && ! $canonical->wasRecentlyCreated) {
+                            $canonical->touch();
+                        }
 
-            $stats['pruned'] = $this->pruneStaleOcmStations($activeOcmIds);
-        });
+                        $activeOcmIds[] = $poi->ocm_id;
+                    }
+                });
+            });
+
+        $stats['pruned'] = $this->pruneStaleOcmStations($activeOcmIds);
 
         return $stats;
     }
