@@ -73,11 +73,12 @@ class VehicleMarketController extends Controller
         ]);
     }
 
-    /** GET /vehicle-market/top?year=&powertrain=&brand=&limit= — top brand & model. */
+    /** GET /vehicle-market/top?year=&month=&powertrain=&brand=&limit= — top brand & model (month = 1..12 utk ranking bulanan). */
     public function top(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'year' => ['nullable', 'string', 'max:10'],
+            'month' => ['nullable', 'integer', 'min:1', 'max:12'],
             'powertrain' => ['nullable', 'string', 'in:BEV,PHEV,HEV,ICE,ALL,EV'],
             'brand' => ['nullable', 'string', 'max:100'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
@@ -90,20 +91,25 @@ class VehicleMarketController extends Controller
                 $validated['powertrain'] ?? null,
                 $validated['brand'] ?? null,
                 $validated['limit'] ?? 10,
+                $validated['month'] ?? null,
             ),
         ]);
     }
 
-    /** GET /vehicle-market/catalog?year= — peta brand → model utk filter. */
+    /** GET /vehicle-market/catalog?year=&month= — peta brand → model utk filter (month = 1..12 utk katalog bulanan). */
     public function catalog(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'year' => ['nullable', 'string', 'max:10'],
+            'month' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
 
         return response()->json([
             'success' => true,
-            'data' => $this->market->catalog($this->normalizeYear($validated['year'] ?? null)),
+            'data' => $this->market->catalog(
+                $this->normalizeYear($validated['year'] ?? null),
+                $validated['month'] ?? null,
+            ),
         ]);
     }
 

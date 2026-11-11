@@ -409,7 +409,7 @@ class VehicleMarketService
         return (int) ($query->max('year') ?: now()->year);
     }
 
-    public function top(int|string|null $year = null, ?string $powertrain = null, ?string $brand = null, int $limit = 10): array
+    public function top(int|string|null $year = null, ?string $powertrain = null, ?string $brand = null, int $limit = 10, ?int $month = null): array
     {
         $isAll = $year === 'all';
         // Default: tahun terbaru yang punya baris LEVEL MODEL — tahun yang
@@ -419,14 +419,17 @@ class VehicleMarketService
         }
         $powertrain = strtoupper($powertrain ?? 'BEV');
         $cacheYear = $isAll ? 'all' : $year;
-        $key = "top:v5:{$cacheYear}:{$powertrain}:" . ($brand ?? '-') . ":{$limit}";
+        $monthKey = $month ?? 'all';
+        $key = "top:v6:{$cacheYear}:{$monthKey}:{$powertrain}:" . ($brand ?? '-') . ":{$limit}";
 
-        return $this->cached($key, function () use ($year, $isAll, $powertrain, $brand, $limit) {
+        return $this->cached($key, function () use ($year, $isAll, $powertrain, $brand, $limit, $month) {
             $brandLogoMap = $this->rawBrandLogoMap();
 
+            // month = 1..12 → baris granularitas bulanan; null → agregat tahunan
+            // (paritas perilaku lama).
             $base = VehicleSalesStat::query()
                 ->latestImports()
-                ->whereNull('month')
+                ->when($month !== null, fn ($q) => $q->where('month', $month), fn ($q) => $q->whereNull('month'))
                 ->powertrain($powertrain);
             if (! $isAll) {
                 $base->where('year', $year);
@@ -456,7 +459,7 @@ class VehicleMarketService
             // ALL/EV juga benar, bukan where `= 'ALL'` yang selalu kosong.
             $linkedQuery = VehicleSalesStat::query()
                 ->latestImports()
-                ->whereNull('month')
+                ->when($month !== null, fn ($q) => $q->where('month', $month), fn ($q) => $q->whereNull('month'))
                 ->powertrain($powertrain)
                 ->whereNotNull('vehicle_sales_stats.model_vehicle_id')
                 ->join('model_vehicles', 'model_vehicles.id', '=', 'vehicle_sales_stats.model_vehicle_id')
@@ -547,6 +550,7 @@ class VehicleMarketService
 
             return [
                 'year' => $isAll ? null : $year,
+                'month' => $month,
                 'powertrain' => $powertrain,
                 'brands' => $brands,
                 'models' => $models,
@@ -575,29 +579,31 @@ class VehicleMarketService
      * Brand diurutkan berdasarkan penjualan EV tahun sebelumnya (fallback tahun berjalan).
      * year=all → agregasi lintas tahun, urutkan by Σ units desc (abaikan prev_year).
      */
-    public function catalog(int|string|null $year = null): array
+    public function catalog(int|string|null $year = null, ?int $month = null): array
     {
         $isAll = $year === 'all';
         if (! $isAll) {
             $year ??= (int) VehicleSalesStat::query()->latestImports()->whereNull('month')->max('year');
         }
         $cacheYear = $isAll ? 'all' : $year;
+        $monthKey = $month ?? 'all';
         $prevYear = $isAll ? null : $year - 1;
 
-        return $this->cached("catalog:v8:{$cacheYear}", function () use ($year, $isAll, $prevYear) {
+        return $this->cached("catalog:v9:{$cacheYear}:{$monthKey}", function () use ($year, $isAll, $prevYear, $month) {
             $brandLogoMap = $this->rawBrandLogoMap();
 
             // Level KELUARGA MODEL (bukan varian/type): baris ter-link ke
             // katalog digroup per model_vehicle; yang belum ter-link tetap
             // ditampilkan per raw_model (agar data tidak hilang).
+            // month = 1..12 → granularitas bulanan; null → agregat tahunan.
             $linkedQuery = VehicleSalesStat::query()
                 ->latestImports()
-                ->whereNull('month')
+                ->when($month !== null, fn ($q) => $q->where('month', $month), fn ($q) => $q->whereNull('month'))
                 ->whereIn('powertrain', ['BEV', 'PHEV'])
                 ->whereNotNull('model_vehicle_id');
             $unlinkedQuery = VehicleSalesStat::query()
                 ->latestImports()
-                ->whereNull('month')
+                ->when($month !== null, fn ($q) => $q->where('month', $month), fn ($q) => $q->whereNull('month'))
                 ->whereIn('powertrain', ['BEV', 'PHEV'])
                 ->whereNull('model_vehicle_id');
             if (! $isAll) {
@@ -625,12 +631,13 @@ class VehicleMarketService
             // termasuk raw alias via jalur link model.
             $groupByName = $this->rawBrandGroupMap();
 
-            // Ambil penjualan tahun sebelumnya untuk pengurutan (skip saat all)
+            // Ambil penjualan periode sebelumnya untuk pengurutan (skip saat
+            // all): bulanan → bulan sama tahun lalu; tahunan → tahun lalu.
             $prevYearSales = [];
             if (! $isAll && $prevYear !== null) {
                 $prevYearSales = VehicleSalesStat::query()
                     ->latestImports()
-                    ->whereNull('month')
+                    ->when($month !== null, fn ($q) => $q->where('month', $month), fn ($q) => $q->whereNull('month'))
                     ->where('year', $prevYear)
                     ->whereIn('powertrain', ['BEV', 'PHEV'])
                     ->selectRaw('raw_brand, SUM(units) as units')
@@ -696,6 +703,7 @@ class VehicleMarketService
 
             return [
                 'year' => $isAll ? null : $year,
+                'month' => $month,
                 'brands' => $sortedBrands,
             ];
         });

@@ -426,5 +426,69 @@ class VehicleMarketTest extends TestCase
         $this->assertEquals(30, $hevMonths->firstWhere('month', 1)['units']);
         $this->assertSame('BEV', $hevMonths->firstWhere('month', 1)['powertrain']);
     }
+
+    public function test_top_bulanan_mengurutkan_sesuai_bulan_terpilih(): void
+    {
+        // Seed bulan-3 2026: BYD Atto 1 (5000) > Wuling Binguo (2000) →
+        // ranking bulan 3 dipimpin BYD; ranking tahunan tetap dipimpin Wuling
+        // (6000 total vs 0 tahunan BYD di 2026).
+        $byd = BrandVehicle::where('name', 'BYD')->first();
+        $atto = ModelVehicle::where('name', 'Atto 1')->first();
+        $import2026 = SalesImport::where('year', 2026)->first();
+        VehicleSalesStat::create([
+            'sales_import_id' => $import2026->id, 'raw_brand' => 'BYD', 'raw_model' => 'Atto 1',
+            'brand_vehicle_id' => $byd->id, 'model_vehicle_id' => $atto->id, 'segment' => 'Sedan',
+            'powertrain' => 'BEV', 'year' => 2026, 'month' => 3, 'units' => 5000,
+        ]);
+        app(\App\Services\VehicleMarketService::class)->flush();
+
+        // Bulanan: BYD (5000) di atas Wuling (2000); month ter-echo.
+        $res = $this->getJson('/api/v1/vehicle-market/top?year=2026&month=3');
+        $res->assertOk();
+        $this->assertEquals(3, $res->json('data.month'));
+        $models = collect($res->json('data.models'));
+        $this->assertSame('Atto 1', $models->first()['model']);
+        $this->assertEquals(5000, $models->first()['units']);
+        $brands = collect($res->json('data.brands'));
+        $this->assertSame('BYD', $brands->first()['brand']);
+
+        // Tanpa month → perilaku lama (agregat tahunan).
+        $annual = $this->getJson('/api/v1/vehicle-market/top?year=2026');
+        $annual->assertOk();
+        $this->assertNull($annual->json('data.month'));
+        $this->assertSame('Binguo', collect($annual->json('data.models'))->first()['model']);
+    }
+
+    public function test_catalog_bulanan_peta_brand_ke_model_bulan_tersebut(): void
+    {
+        $byd = BrandVehicle::where('name', 'BYD')->first();
+        $atto = ModelVehicle::where('name', 'Atto 1')->first();
+        $import2026 = SalesImport::where('year', 2026)->first();
+        VehicleSalesStat::create([
+            'sales_import_id' => $import2026->id, 'raw_brand' => 'BYD', 'raw_model' => 'Atto 1',
+            'brand_vehicle_id' => $byd->id, 'model_vehicle_id' => $atto->id, 'segment' => 'Sedan',
+            'powertrain' => 'BEV', 'year' => 2026, 'month' => 2, 'units' => 7000,
+        ]);
+        app(\App\Services\VehicleMarketService::class)->flush();
+
+        $res = $this->getJson('/api/v1/vehicle-market/catalog?year=2026&month=2');
+        $res->assertOk();
+        $this->assertEquals(2, $res->json('data.month'));
+
+        $brands = collect($res->json('data.brands'))->keyBy('brand');
+        $this->assertEquals(7000, $brands['BYD']['units']);
+        $this->assertEquals(2000, $brands['Wuling']['units']); // hanya bulan-2 Wuling
+    }
+
+    public function test_top_bulanan_tanpa_data_mengembalikan_ranking_kosong(): void
+    {
+        // 2026 hanya punya bulan 1-3 → month=12 valid tapi tanpa baris.
+        $res = $this->getJson('/api/v1/vehicle-market/top?year=2026&month=12');
+        $res->assertOk();
+        $this->assertEquals(12, $res->json('data.month'));
+        $this->assertSame([], $res->json('data.brands'));
+        $this->assertSame([], $res->json('data.models'));
+        $this->assertSame([], $res->json('data.groups'));
+    }
 }
 
