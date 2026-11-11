@@ -179,6 +179,10 @@ class ChargingSessionController extends Controller
         }
         $validated = $this->validateSession($request, requireOwnership: true, partial: true);
 
+        // Kendaraan asli sebelum update — bila vehicle_id berubah, rantai odometer
+        // kedua kendaraan (lama & baru) harus dihitung ulang.
+        $originalVehicleId = $chargingSession->vehicle_id;
+
         $data = $validated;
         // Re-snapshot bila charging_station_id berubah (termasuk dihapus).
         if (array_key_exists('charging_station_id', $validated) || array_key_exists('station_name', $validated)) {
@@ -206,6 +210,17 @@ class ChargingSessionController extends Controller
         }
 
         $chargingSession->update($data);
+
+        // Hitung ulang rantai km_before/finish_charging_before setelah edit — store()
+        // meng-auto-fill field tsb saat create, tapi tanpa ini edit km_now/
+        // date/vehicle_id meninggalkan km_before basi pada sesi berikutnya
+        // (jarak & efisiensi turunannya ikut salah permanen).
+        $this->rechainVehicleSessions($chargingSession->vehicle_id);
+        if ($originalVehicleId && $originalVehicleId !== $chargingSession->vehicle_id) {
+            $this->rechainVehicleSessions($originalVehicleId);
+        }
+
+        $chargingSession->refresh();
         $chargingSession->load(['vehicle', 'battery', 'chargingStation', 'chargerLocation']);
 
         return response()->json([
@@ -258,6 +273,59 @@ class ChargingSessionController extends Controller
             ->latest('date')
             ->latest('created_at')
             ->first();
+    }
+
+    /**
+     * Hitung ulang rantai km_before/finish_charging_before seluruh sesi satu
+     * kendaraan, urut kronologis (date, created_at, id — kebalikan urutan
+     * latestForVehicle). Semantik per baris identik dgn auto-fill store():
+     * km_before ← km_now sesi sebelumnya (fallback initial_odometer utk sesi
+     * pertama / km_now null); finish_charging_before ← finish_charging_now
+     * sesi sebelumnya. Dipanggil setelah update() agar edit km_now/date/
+     * vehicle_id tidak menyisakan km_before basi di sesi berikutnya.
+     * Idempoten — hanya menulis baris yang nilainya benar-benar berubah.
+     */
+    private function rechainVehicleSessions(?string $vehicleId): void
+    {
+        if (empty($vehicleId)) {
+            return;
+        }
+
+        $vehicle = Vehicle::find($vehicleId);
+        $sessions = Charge::where('user_id', Auth::id())
+            ->where('vehicle_id', $vehicleId)
+            ->orderBy('date')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        $hasPrev = false;
+        $prevKmNow = null;
+        $prevFinishNow = null;
+
+        foreach ($sessions as $session) {
+            $targetKmBefore = $hasPrev ? $prevKmNow : null;
+            $targetKmBefore = $targetKmBefore ?? $vehicle?->initial_odometer;
+            $targetFinishBefore = $hasPrev ? $prevFinishNow : null;
+
+            // Kolom decimal kembali sbg string dari PDO — normalisasi ke float
+            // supaya perbandingan !== tidak salah mendeteksi perubahan.
+            $currentKmBefore = $session->km_before !== null ? (float) $session->km_before : null;
+            $normalizedTargetKm = $targetKmBefore !== null ? (float) $targetKmBefore : null;
+            $currentFinishBefore = $session->finish_charging_before !== null ? (float) $session->finish_charging_before : null;
+            $normalizedTargetFinish = $targetFinishBefore !== null ? (float) $targetFinishBefore : null;
+
+            if ($currentKmBefore !== $normalizedTargetKm || $currentFinishBefore !== $normalizedTargetFinish) {
+                $session->update([
+                    'km_before' => $targetKmBefore,
+                    'finish_charging_before' => $targetFinishBefore,
+                ]);
+            }
+
+            $hasPrev = true;
+            $prevKmNow = $session->km_now;
+            $prevFinishNow = $session->finish_charging_now;
+        }
     }
 
     /**

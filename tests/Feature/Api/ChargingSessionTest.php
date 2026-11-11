@@ -935,4 +935,109 @@ class ChargingSessionTest extends ApiTestCase
         $response->assertOk()
             ->assertJsonPath('data.is_finish_charging', true);
     }
+
+    public function test_update_rechains_km_before_on_following_session(): void
+    {
+        // Bug: store() meng-auto-fill km_before, tapi update() tidak pernah
+        // menghitung ulang — edit km_now yang salah membiarkan km_before sesi
+        // BERIKUTNYA basi (jarak & efisiensi turunannya salah permanen).
+        $vehicle = Vehicle::factory()->for($this->authUser)->create([
+            'initial_odometer' => 1000,
+        ]);
+
+        $sessionA = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle->id,
+            'date' => '2026-01-05', 'km_before' => 1000, 'km_now' => 1100,
+            'is_finish_charging' => true,
+        ]);
+        $sessionB = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle->id,
+            'date' => '2026-02-05', 'km_before' => 1100, 'km_now' => 1200,
+            'is_finish_charging' => true,
+        ]);
+        $sessionC = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle->id,
+            'date' => '2026-03-05', 'km_before' => 1200, 'km_now' => 1300,
+            'is_finish_charging' => true,
+        ]);
+
+        // User salah isi 1200, koreksi jadi 1150 via edit.
+        $this->putJson("/api/v1/charging-sessions/{$sessionB->id}", [
+            'km_now' => 1150,
+        ])->assertOk();
+
+        // km_before B tetap dari A; km_before C mengikuti km_now B yang baru.
+        $this->assertDatabaseHas('charges', ['id' => $sessionA->id, 'km_before' => 1000]);
+        $this->assertDatabaseHas('charges', ['id' => $sessionB->id, 'km_before' => 1100, 'km_now' => 1150]);
+        $this->assertDatabaseHas('charges', ['id' => $sessionC->id, 'km_before' => 1150, 'km_now' => 1300]);
+    }
+
+    public function test_update_rechains_when_date_reorders_sessions(): void
+    {
+        $vehicle = Vehicle::factory()->for($this->authUser)->create([
+            'initial_odometer' => 1000,
+        ]);
+
+        $sessionA = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle->id,
+            'date' => '2026-01-05', 'km_before' => 1000, 'km_now' => 1100,
+            'is_finish_charging' => true,
+        ]);
+        $sessionB = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle->id,
+            'date' => '2026-02-05', 'km_before' => 1100, 'km_now' => 1200,
+            'is_finish_charging' => true,
+        ]);
+        $sessionC = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle->id,
+            'date' => '2026-03-05', 'km_before' => 1200, 'km_now' => 1300,
+            'is_finish_charging' => true,
+        ]);
+
+        // Pindah B ke setelah C → urutan baru A, C, B → rantai dihitung ulang.
+        $this->putJson("/api/v1/charging-sessions/{$sessionB->id}", [
+            'date' => '2026-04-05',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('charges', ['id' => $sessionA->id, 'km_before' => 1000]);
+        $this->assertDatabaseHas('charges', ['id' => $sessionC->id, 'km_before' => 1100]);
+        $this->assertDatabaseHas('charges', ['id' => $sessionB->id, 'km_before' => 1300]);
+    }
+
+    public function test_update_rechains_both_vehicles_when_vehicle_id_changes(): void
+    {
+        $vehicle1 = Vehicle::factory()->for($this->authUser)->create([
+            'initial_odometer' => 500,
+        ]);
+        $vehicle2 = Vehicle::factory()->for($this->authUser)->create([
+            'initial_odometer' => 2000,
+        ]);
+
+        $sessionA = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle1->id,
+            'date' => '2026-01-05', 'km_before' => 500, 'km_now' => 600,
+            'is_finish_charging' => true,
+        ]);
+        $sessionB = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle1->id,
+            'date' => '2026-02-05', 'km_before' => 600, 'km_now' => 700,
+            'is_finish_charging' => true,
+        ]);
+        $sessionC = Charge::create([
+            'user_id' => $this->authUser->id, 'vehicle_id' => $vehicle2->id,
+            'date' => '2026-02-06', 'km_before' => 2000, 'km_now' => 2100,
+            'is_finish_charging' => true,
+        ]);
+
+        // Pindahkan B ke kendaraan 2 dengan tanggal setelah C → dua rantai
+        // dikoreksi: kendaraan 1 hanya tersisa A; kendaraan 2: B mengikuti C.
+        $this->putJson("/api/v1/charging-sessions/{$sessionB->id}", [
+            'vehicle_id' => $vehicle2->id,
+            'date' => '2026-03-01',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('charges', ['id' => $sessionA->id, 'km_before' => 500, 'km_now' => 600]);
+        $this->assertDatabaseHas('charges', ['id' => $sessionC->id, 'km_before' => 2000]);
+        $this->assertDatabaseHas('charges', ['id' => $sessionB->id, 'vehicle_id' => $vehicle2->id, 'km_before' => 2100]);
+    }
 }
