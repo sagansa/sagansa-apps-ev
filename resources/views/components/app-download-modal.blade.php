@@ -427,12 +427,14 @@
         </p>
         @endif
 
-        <!-- Desktop QR Code -->
+        <!-- Desktop QR Code — meng-encode halaman pintar /download (deteksi OS ponsel
+             pemindai: Android → Google Play, iOS → App Store/Segera Hadir), bukan
+             link store mentah, agar satu QR benar untuk semua ponsel. -->
         @if($setting->qr_code_enabled && $setting->android_url)
         <div class="ev-qr-box">
             <div style="background:#ffffff; padding:6px; border-radius:10px; display:flex; flex-shrink:0;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=2&data={{ urlencode($setting->android_url) }}"
-                     alt="QR Code Play Store"
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=2&data={{ urlencode(route('app.download')) }}"
+                     alt="QR Code Download Aplikasi"
                      style="width:48px; height:48px; display:block;">
             </div>
             <div>
@@ -441,9 +443,9 @@
                 </strong>
                 <p style="margin:2px 0 0 0; font-size:11px; color:#94a3b8; line-height:1.3;">
                     @if($preRelease)
-                        Scan dari HP, lalu aktifkan <strong>Internal App Sharing</strong> dulu (lihat Opsi 1 lewat tombol Google Play) bila aplikasi belum terpasang.
+                        Scan dari HP Android, lalu aktifkan <strong>Internal App Sharing</strong> dulu (lihat Opsi 1 lewat tombol Google Play) bila aplikasi belum terpasang.
                     @else
-                        Buka kamera smartphone untuk langsung mengunduh aplikasi melalui Google Play Store.
+                        Buka kamera smartphone — link otomatis menyesuaikan ponsel Anda: Android ke Google Play, iOS ke App Store.
                     @endif
                 </p>
             </div>

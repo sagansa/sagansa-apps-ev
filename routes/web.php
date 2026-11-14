@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AppDownloadController;
 use App\Http\Controllers\EmailLinkVerificationController;
 use App\Http\Controllers\EvController;
 use App\Http\Controllers\PlnChargerLocationController;
@@ -40,6 +41,10 @@ Route::get('/email/verify-link/{id}/{hash}', [EmailLinkVerificationController::c
     ->name('verification.verify');
 
 Route::get('/', [EvController::class, 'plnMap'])->name('home');
+
+// QR pintar download app — konten QR di popup desktop mengarah ke sini agar
+// OS ponsel pemindai dideteksi saat link dibuka (lihat AppDownloadController).
+Route::get('/download', AppDownloadController::class)->name('app.download');
 
 // Route::get('/', [PlnChargerLocationController::class, 'index'])->name('home');
 Route::get('/pln-map', [EvController::class, 'plnMap'])->name('pln-map');
