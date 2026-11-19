@@ -197,19 +197,10 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
 
     public function canAccessPanel(Panel $panel): bool
     {
-        if ($this->hasRole('super_admin')) {
-            return true;
-        }
-
-        if ($panel->getId() === 'admin') {
-            return $this->hasRole('admin');
-        }
-
-        if ($panel->getId() === 'user') {
-            return $this->hasRole('user');
-        }
-
-        return false;
+        // Hanya super_admin yang boleh masuk panel Filament (keputusan owner
+        // 2026-11-19): role admin/user tidak lagi punya akses panel, dan
+        // panel user sudah dihapus.
+        return $this->hasRole('super_admin');
     }
 
     protected static function boot(): void
