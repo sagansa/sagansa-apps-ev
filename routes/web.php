@@ -47,32 +47,40 @@ Route::get('/', [EvController::class, 'plnMap'])->name('home');
 Route::get('/download', AppDownloadController::class)->name('app.download');
 
 // Route::get('/', [PlnChargerLocationController::class, 'index'])->name('home');
-Route::get('/pln-map', [EvController::class, 'plnMap'])->name('pln-map');
-Route::get('/map', [EvController::class, 'map'])->name('map');
-Route::get('/providers', [EvController::class, 'providers'])->name('providers');
-Route::get('/products', [EvController::class, 'products'])->name('products');
-Route::get('/contact', [EvController::class, 'contact'])->name('contact');
-Route::get('/training', [EvController::class, 'training'])->name('training');
-Route::get('/chargers', [EvController::class, 'chargers'])->name('chargers');
-Route::get('/pln-chargers', [EvController::class, 'plnChargers'])->name('pln-chargers');
+// Halaman publik situs marketing dibungkus RedirectPublicPages (spec
+// docs/superpowers/specs/2026-11-19-protect-public-pages-remove-signup-design.md):
+// akses manual dialihkan 302 ke homepage; hanya homepage & /admin/login
+// yang boleh diakses publik. Endpoint AJAX homepage di bawah sengaja
+// di luar grup karena masih dipakai halaman `/`.
+Route::middleware(\App\Http\Middleware\RedirectPublicPages::class)->group(function () {
+    Route::get('/pln-map', [EvController::class, 'plnMap'])->name('pln-map');
+    Route::get('/map', [EvController::class, 'map'])->name('map');
+    Route::get('/providers', [EvController::class, 'providers'])->name('providers');
+    Route::get('/products', [EvController::class, 'products'])->name('products');
+    Route::get('/contact', [EvController::class, 'contact'])->name('contact');
+    Route::get('/training', [EvController::class, 'training'])->name('training');
+    Route::get('/chargers', [EvController::class, 'chargers'])->name('chargers');
+    Route::get('/pln-chargers', [EvController::class, 'plnChargers'])->name('pln-chargers');
+
+    // YouTube Collection Routes
+    Route::get('/youtube', [YouTubeCollectionController::class, 'index'])->name('youtube.index');
+    Route::get('/youtube/{id}', [YouTubeCollectionController::class, 'show'])->name('youtube.show');
+
+    // Show Find Nearby Chargers Page
+    Route::get('/find-nearby-chargers', [EvController::class, 'showFindNearbyChargers'])->name('find.nearby.chargers.page');
+});
+
 Route::get('/get-cities/{province}', [EvController::class, 'getCities'])->name('get.cities');
 Route::get('/get-type-chargers/{current}', [EvController::class, 'getTypeChargers'])->name('get.type.chargers');
 Route::get('/get-power-chargers/{type}', [EvController::class, 'getPowerChargers'])->name('get.power.chargers');
 Route::get('/get-provider-details/{provider}', [EvController::class, 'getProviderDetails']);
 Route::get('/filter-pln-locations/{chargingType?}/{locationCategory?}', [EvController::class, 'filterPlnLocations'])->name('filter.pln.locations');
 
-// YouTube Collection Routes
-Route::get('/youtube', [YouTubeCollectionController::class, 'index'])->name('youtube.index');
-Route::get('/youtube/{id}', [YouTubeCollectionController::class, 'show'])->name('youtube.show');
-
 // Address Search Route
 Route::post('/search-address', [EvController::class, 'searchAddress'])->name('search.address');
 
 // Find Nearby Chargers Route
 Route::post('/find-nearby-chargers', [EvController::class, 'findNearbyChargers'])->name('find.nearby.chargers');
-
-// Show Find Nearby Chargers Page
-Route::get('/find-nearby-chargers', [EvController::class, 'showFindNearbyChargers'])->name('find.nearby.chargers.page');
 
 // Sitemap
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
