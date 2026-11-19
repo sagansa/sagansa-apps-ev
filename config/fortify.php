@@ -144,8 +144,13 @@ return [
     */
 
     'features' => [
-        Features::registration(),
-        Features::resetPasswords(),
+        // registration() & resetPasswords() dihapus — jalur self-service auth
+        // web ditutup (spec 2026-11-19): /register, /forgot-password dan
+        // /reset-password/* tidak lagi terdaftar, link "Forgot your password?"
+        // di resources/views/auth/login.blade.php hilang otomatis karena
+        // di-guard @if (Route::has('password.request')). Update profil &
+        // password user yang sudah login tetap hidup. API mobile
+        // /api/v1/auth/* tidak lewat config ini dan tidak berubah.
         // Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),

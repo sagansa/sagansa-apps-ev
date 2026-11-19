@@ -28,9 +28,11 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            // registration() & passwordReset() dihapus — jalur self-service
+            // auth web ditutup (spec 2026-11-19): tidak ada pendaftaran akun
+            // dari luar dan link register/reset hilang dari halaman login.
+            // Lupa password admin = reset manual via artisan/DB.
             ->login()
-            ->registration()
-            ->passwordReset()
             ->emailVerification()
             ->maxContentWidth('full')
             ->brandLogo(fn () => asset('images/logo.png'))
