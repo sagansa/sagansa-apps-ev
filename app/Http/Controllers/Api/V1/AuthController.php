@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Facades\Password as PasswordBroker;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -199,12 +198,20 @@ class AuthController extends Controller
     }
 
     /**
-     * Kirim link reset password (Laravel/Fortify bawaan, bukan OTP). Selalu
-     * return 200 generic agar tidak membocorkan email mana yang terdaftar
-     * (anti user-enumeration).
+     * @deprecated No-op: reset password via email tidak dipakai — auth mobile
+     * ditangani Google/Gmail Sign-In (keputusan owner, 2026-11-19). Endpoint
+     * tetap dibuka supaya versi app lama menerima kontrak respons yang sama,
+     * bukan error — bukan mengirim apa pun.
      *
-     * Link mengarah ke halaman web Fortify `/reset-password/{token}` — user
-     * set password baru di browser, lalu kembali login di app.
+     * Balasan sengaja dibuat generic 200 (anti user-enumeration): email
+     * terdaftar maupun tidak memperoleh respons identik, supaya endpoint ini
+     * tidak bisa dipakai membedakan email mana yang ada di sistem.
+     *
+     * TIDAK lagi memanggil Password::sendResetLink karena notifikasi bawaan
+     * Laravel membangun link via route `password.reset` yang sudah dihapus
+     * saat self-service auth web ditutup → request dulu 500, bukan kirim
+     * email. Kalau nanti reset password via email dibutuhkan lagi, route
+     * tersebut harus dihidupkan kembali lebih dulu.
      */
     public function forgotPassword(Request $request): JsonResponse
     {
@@ -212,22 +219,19 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $status = PasswordBroker::sendResetLink(['email' => $request->email]);
-
         return response()->json([
-            'success' => in_array($status, [
-                PasswordBroker::RESET_LINK_SENT,
-                PasswordBroker::INVALID_USER,
-            ], true),
+            'success' => true,
             'message' => 'Jika email terdaftar, link reset password telah dikirim.',
         ]);
     }
 
     /**
-     * @deprecated OTP reset digantikan link reset web (forgotPassword →
-     * Password::sendResetLink). Endpoint dipertahankan sementara utk kompat
-     * versi app lama; password baru TIDAK akan berubah karena tidak ada OTP
-     * yang tersimpan lagi.
+     * @deprecated OTP reset sudah lama dimatikan, dan jalur penggantinya
+     * (link reset web via forgotPassword → Password::sendResetLink) kini
+     * juga tidak dipakai lagi — reset password via email dihentikan karena
+     * auth mobile memakai Google/Gmail Sign-In. Endpoint dipertahankan
+     * sementara utk kompat versi app lama; password baru TIDAK akan berubah
+     * karena tidak ada OTP yang tersimpan lagi.
      */
     public function resetPassword(Request $request): JsonResponse
     {

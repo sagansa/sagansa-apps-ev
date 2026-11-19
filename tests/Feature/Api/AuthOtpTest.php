@@ -159,7 +159,7 @@ class AuthOtpTest extends TestCase
             ->assertJsonPath('message', fn ($m) => str_contains($m, 'tautan verifikasi'));
     }
 
-    public function test_forgot_password_generic_dan_stub_reset_otp_422(): void
+    public function test_forgot_password_noop_generic_dan_stub_reset_otp_422(): void
     {
         $user = User::factory()->create([
             'email' => 'reset@example.com',
@@ -176,8 +176,9 @@ class AuthOtpTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', 'Jika email terdaftar, link reset password telah dikirim.');
 
-        // Broker Laravel mengirim notifikasi reset untuk email terdaftar.
-        Notification::assertSentTo($user, \Illuminate\Auth\Notifications\ResetPassword::class);
+        // Reset via email tidak dipakai lagi (auth mobile via Google/Gmail
+        // Sign-In) — endpoint hanya no-op, TIDAK boleh ada notifikasi keluar.
+        Notification::assertNothingSent();
 
         // Stub /auth/verify otp-reset tanpa cache → 422, tanpa mengubah password.
         $this->postJson('/api/v1/auth/reset-password', [
