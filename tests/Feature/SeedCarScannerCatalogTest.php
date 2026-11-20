@@ -93,4 +93,39 @@ class SeedCarScannerCatalogTest extends TestCase
             @rmdir($dir);
         }
     }
+
+    /**
+     * ETag mitigasi payload (13 MB): GET kedua dengan If-None-Match yang cocok
+     * harus 304 TANPA body — bukan 500/fatal maupun re-render JSON penuh.
+     */
+    public function test_etag_304_on_if_none_match(): void
+    {
+        Config::set('obd.enabled', true);
+
+        $relativePath = 'storage/framework/testing/obd-catalog-etag-test-' . uniqid();
+        $dir = base_path($relativePath);
+        mkdir($dir, 0777, true);
+
+        try {
+            $this->writeProfile($dir, '1111222233334444');
+            $this->artisan('obd:seed-profiles', [
+                'path' => $relativePath,
+                '--grade' => 'community',
+                '--no-resolve' => true,
+            ])->expectsOutputToContain('Selesai: 1 baru, 0 diperbarui.');
+
+            $user = User::factory()->create();
+            Sanctum::actingAs($user);
+
+            $first = $this->getJson('/api/v1/obd/profiles')->assertOk();
+            $etag = $first->headers->get('ETag');
+            $this->assertNotEmpty($etag);
+
+            $this->getJson('/api/v1/obd/profiles', ['If-None-Match' => $etag])
+                ->assertNoContent(304);
+        } finally {
+            @unlink($dir . '/1111222233334444.json');
+            @rmdir($dir);
+        }
+    }
 }

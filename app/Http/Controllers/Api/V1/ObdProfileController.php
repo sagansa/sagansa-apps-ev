@@ -13,7 +13,7 @@ class ObdProfileController extends Controller
      * List public OBD vehicle profiles with optional filtering.
      * Supports ETag for caching.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|\Illuminate\Http\Response
     {
         if (! config('obd.enabled')) {
             return response()->json(['message' => 'Not found'], 404);
@@ -41,7 +41,7 @@ class ObdProfileController extends Controller
         // ETag support for client-side caching
         $etag = md5($profiles->toJson());
         if ($request->header('If-None-Match') === $etag) {
-            return response()->null();
+            return Response::make('', 304)->header('ETag', $etag);
         }
 
         $response = Response::json([
