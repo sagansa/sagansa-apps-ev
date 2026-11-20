@@ -56,6 +56,23 @@ class AuthSelfServiceClosedTest extends TestCase
         $this->get('/user/password-reset/request')->assertNotFound();
     }
 
+    public function test_halaman_publik_tidak_crash_karena_link_register_dihapus(): void
+    {
+        // Layout publik layouts/main.blade.php dulu masih memanggil
+        // route('filament.admin.auth.register') di menu desktop & mobile
+        // padahal route-nya sudah tidak terdaftar — setiap halaman publik
+        // jadi RouteNotFoundException (500). Link Register memang harus
+        // hilang (bukan redirect) sesuai spec penutupan self-service.
+        //
+        // Homepage satu-satunya halaman yang dirender dengan layout ini
+        // (halaman publik lain dialihkan 302 oleh RedirectPublicPages).
+        // Kedua cabang menu harus lolos: @else (tamu) dan @auth (login).
+        $this->get('/')->assertOk();
+
+        $user = \App\Models\User::factory()->create();
+        $this->actingAs($user)->get('/')->assertOk();
+    }
+
     public function test_halaman_login_admin_tetap_bisa_diakses(): void
     {
         $this->get('/admin/login')->assertOk();

@@ -210,9 +210,6 @@
                         <li><a href="{{ route('filament.admin.auth.login') }}"
                                 class="transition duration-300 text-ev-white hover:text-ev-green-400 {{ request()->routeIs('login') ? 'font-bold text-ev-green-400' : '' }}">Login</a>
                         </li>
-                        <li><a href="{{ route('filament.admin.auth.register') }}"
-                                class="transition duration-300 text-ev-white hover:text-ev-green-400 {{ request()->routeIs('register') ? 'font-bold text-ev-green-400' : '' }}">Register</a>
-                        </li>
                     @endauth
                 </ul>
             </div>
@@ -313,9 +310,6 @@
                 @else
                     <li><a href="{{ route('filament.admin.auth.login') }}"
                             class="block px-4 py-2 text-ev-white hover:bg-ev-blue-700 {{ request()->routeIs('login') ? 'font-bold bg-ev-blue-700 text-ev-green-400' : '' }}">Login</a>
-                    </li>
-                    <li><a href="{{ route('filament.admin.auth.register') }}"
-                            class="block px-4 py-2 text-ev-white hover:bg-ev-blue-700 {{ request()->routeIs('register') ? 'font-bold bg-ev-blue-700 text-ev-green-400' : '' }}">Register</a>
                     </li>
                 @endauth
             </ul>
