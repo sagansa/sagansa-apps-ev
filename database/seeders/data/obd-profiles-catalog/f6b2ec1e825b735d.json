@@ -1,10 +1,10 @@
 {
  "platform": "CS-f6b2ec1e",
  "brand": null,
- "modelName": "System.Collections.ObjectModel.Collection`1[[CarScannerMaui.OBD2.PIDS.CustomPID, CarScannerMaui, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+ "modelName": "Fiat: Ducato; Peugeot: Boxer/Manager; Citroen: Relay/Jumper; RAM: ProMaster; Opel/Vauxhall: Movano 2.0 HDI / 2.2 HDI (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,
