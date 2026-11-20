@@ -130,6 +130,12 @@ class ModelVehicleResource extends Resource
                             ->options(array_combine(VehicleCategories::SIZES, VehicleCategories::SIZES))
                             ->label('Ukuran (Size Class)')
                             ->placeholder('Pilih Ukuran (Compact, Medium, Large)'),
+
+                        TextInput::make('platform')
+                            ->label('Platform Teknis')
+                            ->placeholder('cth. E-GMP, BYD e-Platform 3.0')
+                            ->helperText('Pengikat profil OBD level-platform: satu baris profil (tanpa model) dipakai bersama semua model yang platform-nya sama. Kosongkan bila belum diketahui.')
+                            ->columnSpanFull(),
                     ]),
                 ]),
         ]);
@@ -174,6 +180,12 @@ class ModelVehicleResource extends Resource
                     ->label('Ukuran')
                     ->badge()
                     ->color('gray')
+                    ->sortable(),
+
+                TextColumn::make('platform')
+                    ->label('Platform')
+                    ->badge()
+                    ->color('info')
                     ->sortable(),
 
                 TextColumn::make('type_vehicles_count')

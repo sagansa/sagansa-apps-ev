@@ -55,7 +55,7 @@ class VehicleController extends Controller
     public function options(): JsonResponse
     {
         $brands = BrandVehicle::select('id', 'name', 'image')->orderBy('name')->get();
-        $models = ModelVehicle::select('id', 'brand_vehicle_id', 'name', 'image', 'category', 'size_class')->orderBy('name')->get();
+        $models = ModelVehicle::select('id', 'brand_vehicle_id', 'name', 'image', 'category', 'size_class', 'platform')->orderBy('name')->get();
         $types = TypeVehicle::select('id', 'model_vehicle_id', 'name', 'powertrain', 'battery_capacity')->orderBy('name')->get();
 
         [$brandSales, $modelSales] = $this->latestYearSales();
@@ -76,6 +76,9 @@ class VehicleController extends Controller
                     'image' => $m->image,
                     'category' => $m->category,
                     'size_class' => $m->size_class,
+                    // Platform teknis (cth. "BYD e-Platform 3.0") — pengikat profil
+                    // OBD level-platform; null = belum diketahui.
+                    'platform' => $m->platform,
                     'sales_units' => (int) ($modelSales[$m->id] ?? 0),
                 ]),
                 'types' => $types,

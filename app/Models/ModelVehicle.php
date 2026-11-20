@@ -20,12 +20,14 @@ class ModelVehicle extends Model
         'name',
         'category',
         'size_class',
+        'platform',
         'brand_vehicle_id',
     ];
 
     protected $casts = [
         'category' => 'string',
         'size_class' => 'string',
+        'platform' => 'string',
     ];
 
     public function brandVehicle()
