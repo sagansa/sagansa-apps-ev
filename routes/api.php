@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Api\V1\VehicleMarketController;
 use App\Http\Controllers\Api\V1\ObdAccessController;
 use App\Http\Controllers\Api\V1\ObdProfileController;
+use App\Http\Controllers\Api\V1\ObdVehicleController;
 use App\Http\Controllers\Api\V1\ObdCompatibilityReportController;
 use App\Http\Controllers\Api\V1\ObdAdapterProductController;
 use Illuminate\Http\Request;
@@ -213,6 +214,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/profiles', [ObdProfileController::class, 'index']);
             Route::post('/compatibility-reports', [ObdCompatibilityReportController::class, 'store']);
             Route::get('/adapter-products', [ObdAdapterProductController::class, 'index']);
+            // Registry kendaraan OBD2 per-user (2026-11-20 — pindahan internal
+            // storage mobile; server-first + cache lokal offline).
+            Route::get('/vehicles', [ObdVehicleController::class, 'index']);
+            Route::post('/vehicles', [ObdVehicleController::class, 'store']);
+            Route::put('/vehicles/{id}', [ObdVehicleController::class, 'update']);
+            Route::delete('/vehicles/{id}', [ObdVehicleController::class, 'destroy']);
         });
     });
 });
