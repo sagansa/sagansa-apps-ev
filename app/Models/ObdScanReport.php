@@ -20,6 +20,9 @@ class ObdScanReport extends Model
     use HasUuids;
     use UsesDefaultConnectionWhenTesting;
 
+    /** Siklus hidup review kurasi di Filament (kolom `review_status`). */
+    public const REVIEW_STATUSES = ['new', 'reviewed', 'promoted', 'discarded'];
+
     protected $connection = 'ev';
 
     protected $fillable = [
@@ -33,9 +36,12 @@ class ObdScanReport extends Model
         'profile_id',
         'profile_version',
         'profile_match',
+        'review_status',
         'ecus_responded',
         'supported_pids',
         'unsupported_pids',
+        'supported_count',
+        'unsupported_count',
         'discovery',
         'dtc_codes',
         'atrv_voltage',
@@ -49,6 +55,8 @@ class ObdScanReport extends Model
     protected $casts = [
         'vin_shared' => 'boolean',
         'profile_id' => 'integer',
+        'supported_count' => 'integer',
+        'unsupported_count' => 'integer',
         'ecus_responded' => 'array',
         'supported_pids' => 'array',
         'unsupported_pids' => 'array',

@@ -73,6 +73,12 @@ class ObdScanReportController extends Controller
             }
         }
 
+        // Hitungan PID per laporan — diisi saat ingest supaya agregat penanda
+        // dukungan per model (badge garage picker) murni SUM SQL (lintas
+        // MySQL/sqlite), tanpa JSON_LENGTH.
+        $validated['supported_count'] = count($validated['supported_pids'] ?? []);
+        $validated['unsupported_count'] = count($validated['unsupported_pids'] ?? []);
+
         $report = Auth::user()->obdScanReports()->create([
             ...$validated,
             'vin_shared' => $request->boolean('vin_shared', true),

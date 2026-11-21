@@ -76,7 +76,10 @@ class ObdScanReportResource extends Resource
                 Forms\Components\Placeholder::make('profile_version')
                     ->label('Versi')
                     ->content(fn ($record) => $record?->profile_version ?? '-'),
-            ])->columns(3),
+                Forms\Components\Placeholder::make('review_status')
+                    ->label('Review')
+                    ->content(fn ($record) => $record?->review_status ?? '-'),
+            ])->columns(4),
 
             Forms\Components\Section::make('ECU yang Membalas')->schema([
                 Textarea::make('ecus_responded')
@@ -155,6 +158,14 @@ class ObdScanReportResource extends Resource
                         'universal' => 'warning',
                         default => 'danger',
                     }),
+                TextColumn::make('review_status')
+                    ->label('Review')
+                    ->badge(fn (string $state) => match ($state) {
+                        'reviewed' => 'info',
+                        'promoted' => 'success',
+                        'discarded' => 'gray',
+                        default => 'warning',
+                    }),
                 TextColumn::make('atrv_voltage')
                     ->label('ATRV')
                     ->placeholder('-'),
@@ -173,6 +184,14 @@ class ObdScanReportResource extends Resource
                         'universal' => 'Universal',
                         'seed' => 'Seed',
                         'backend' => 'Backend',
+                    ]),
+                Tables\Filters\SelectFilter::make('review_status')
+                    ->label('Review')
+                    ->options([
+                        'new' => 'Baru',
+                        'reviewed' => 'Direview',
+                        'promoted' => 'Dipromosikan',
+                        'discarded' => 'Dibuang',
                     ]),
             ]);
     }

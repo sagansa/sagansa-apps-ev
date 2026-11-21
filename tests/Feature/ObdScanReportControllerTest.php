@@ -85,20 +85,52 @@ class ObdScanReportControllerTest extends TestCase
         $this->assertArrayNotHasKey('raw_response', $report->unsupported_pids[0]);
         $this->assertSame(12.4, (float) $report->atrv_voltage);
         $this->assertNotNull($report->captured_at);
+        // Hitungan PID per laporan (bahan agregat badge garage picker).
+        $this->assertSame(1, $report->supported_count);
+        $this->assertSame(1, $report->unsupported_count);
+        $this->assertSame('new', $report->review_status);
+    }
+
+    public function test_counts_menghitung_semua_pid(): void
+    {
+        Config::set('obd.enabled', true);
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $payload = $this->validPayload();
+        $payload['supported_pids'] = [
+            ['mode' => 1, 'pid' => 4],
+            ['mode' => 1, 'pid' => 5],
+            ['mode' => 1, 'pid' => 91],
+        ];
+        $payload['unsupported_pids'] = [];
+        unset($payload['discovery']);
+
+        $this->postJson('/api/v1/obd/scan-reports', $payload)->assertStatus(201);
+
+        // Instance user bertindak — lihat catatan test_defaults_vin_shared_true.
+        $report = $user->obdScanReports()->firstOrFail();
+        $this->assertSame(3, $report->supported_count);
+        $this->assertSame(0, $report->unsupported_count);
     }
 
     public function test_defaults_vin_shared_true(): void
     {
         Config::set('obd.enabled', true);
 
-        Sanctum::actingAs(User::factory()->create());
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
 
         $payload = $this->validPayload();
         unset($payload['vin_shared']);
 
         $this->postJson('/api/v1/obd/scan-reports', $payload)->assertStatus(201);
 
-        $this->assertTrue(User::first()->obdScanReports()->firstOrFail()->vin_shared);
+        // Lewat instance user bertindak, BUKAN User::first() — di full suite
+        // baris user sisa test lain bisa lolos commit di sqlite testing dan
+        // mengganggu asumsi "user pertama".
+        $this->assertTrue($user->obdScanReports()->firstOrFail()->vin_shared);
     }
 
     public function test_validates_payload(): void

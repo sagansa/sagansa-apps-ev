@@ -6,11 +6,13 @@ use App\Http\Controllers\Api\V1\Controller;
 use App\Models\BrandVehicle;
 use App\Models\Charge;
 use App\Models\ModelVehicle;
+use App\Models\ObdScanReport;
 use App\Models\TypeVehicle;
 use App\Models\Vehicle;
 use App\Models\VehicleSalesStat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class VehicleController extends Controller
@@ -59,6 +61,8 @@ class VehicleController extends Controller
         $types = TypeVehicle::select('id', 'model_vehicle_id', 'name', 'powertrain', 'battery_capacity')->orderBy('name')->get();
 
         [$brandSales, $modelSales] = $this->latestYearSales();
+        $obdEnabled = (bool) config('obd.enabled');
+        $obdSupport = $this->obdSupportByModel($models->pluck('id'));
 
         return response()->json([
             'success' => true,
@@ -69,18 +73,30 @@ class VehicleController extends Controller
                     'image' => $b->image,
                     'sales_units' => (int) ($brandSales[$b->id] ?? 0),
                 ]),
-                'models' => $models->map(fn (ModelVehicle $m) => [
-                    'id' => $m->id,
-                    'brand_vehicle_id' => $m->brand_vehicle_id,
-                    'name' => $m->name,
-                    'image' => $m->image,
-                    'category' => $m->category,
-                    'size_class' => $m->size_class,
-                    // Platform teknis (cth. "BYD e-Platform 3.0") — pengikat profil
-                    // OBD level-platform; null = belum diketahui.
-                    'platform' => $m->platform,
-                    'sales_units' => (int) ($modelSales[$m->id] ?? 0),
-                ]),
+                'models' => $models->map(function (ModelVehicle $m) use ($obdEnabled, $obdSupport, $modelSales) {
+                    $row = [
+                        'id' => $m->id,
+                        'brand_vehicle_id' => $m->brand_vehicle_id,
+                        'name' => $m->name,
+                        'image' => $m->image,
+                        'category' => $m->category,
+                        'size_class' => $m->size_class,
+                        // Platform teknis (cth. "BYD e-Platform 3.0") — pengikat profil
+                        // OBD level-platform; null = belum diketahui.
+                        'platform' => $m->platform,
+                        'sales_units' => (int) ($modelSales[$m->id] ?? 0),
+                    ];
+
+                    // Hasil scan OBD2 nyata untuk badge penanda di picker garasi
+                    // (verified/issues/untested). Kill switch mati → key tidak
+                    // dikirim sama sekali (additive: mobile meng-decode absen
+                    // sebagai "tanpa data OBD").
+                    if ($obdEnabled) {
+                        $row['obd_support'] = $obdSupport[$m->id] ?? null;
+                    }
+
+                    return $row;
+                }),
                 'types' => $types,
             ],
         ]);
@@ -118,6 +134,42 @@ class VehicleController extends Controller
             ->pluck('total', 'model_vehicle_id');
 
         return [$brandSales, $modelSales];
+    }
+
+    /**
+     * Agregat laporan scan OBD2 per model (badge penanda garage picker):
+     * jumlah sesi, total PID didukung/gagal, dan scan terakhir. Hitungan per
+     * laporan diisi saat ingest (ObdScanReportController), jadi ini murni
+     * SUM/COUNT/MAX SQL — aman lintas MySQL (prod) dan sqlite (testing).
+     *
+     * Kill switch `obd.enabled` mati → field tidak dikirim sama sekali
+     * (additive: mobile men-decode null/nominal sebagai "tanpa data OBD").
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $modelIds
+     * @return array<int, array{n_reports: int, supported: int, unsupported: int, last_tested_at: string}>
+     */
+    protected function obdSupportByModel($modelIds): array
+    {
+        if (! config('obd.enabled') || $modelIds->isEmpty()) {
+            return [];
+        }
+
+        return ObdScanReport::query()
+            ->whereNotNull('model_vehicle_id')
+            ->whereIn('model_vehicle_id', $modelIds)
+            ->selectRaw('model_vehicle_id, COUNT(*) as n_reports, SUM(supported_count) as supported, SUM(unsupported_count) as unsupported, MAX(captured_at) as last_tested_at')
+            ->groupBy('model_vehicle_id')
+            ->get()
+            ->mapWithKeys(fn ($row) => [$row->model_vehicle_id => [
+                'n_reports' => (int) $row->n_reports,
+                'supported' => (int) $row->supported,
+                'unsupported' => (int) $row->unsupported,
+                // Alias agregat = string mentah (bukan kolom ber-cast datetime).
+                'last_tested_at' => $row->last_tested_at
+                    ? Carbon::parse($row->last_tested_at)->toISOString()
+                    : null,
+            ]])
+            ->all();
     }
 
     /**

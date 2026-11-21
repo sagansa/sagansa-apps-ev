@@ -34,7 +34,7 @@ use App\Http\Controllers\Api\V1\VehicleMarketController;
 use App\Http\Controllers\Api\V1\ObdAccessController;
 use App\Http\Controllers\Api\V1\ObdProfileController;
 use App\Http\Controllers\Api\V1\ObdVehicleController;
-use App\Http\Controllers\Api\V1\ObdCompatibilityReportController;
+use App\Http\Controllers\Api\V1\ObdScanReportController;
 use App\Http\Controllers\Api\V1\ObdAdapterProductController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -212,7 +212,10 @@ Route::prefix('v1')->group(function () {
         Route::prefix('obd')->group(function () {
             Route::get('/access', [ObdAccessController::class, 'index']);
             Route::get('/profiles', [ObdProfileController::class, 'index']);
-            Route::post('/compatibility-reports', [ObdCompatibilityReportController::class, 'store']);
+            // Laporan scan OBD2 per sesi (2026-11-21 — bahan kurasi profil baru
+            // via Filament). Outbox mobile flush di koneksi berikutnya.
+            Route::post('/scan-reports', [ObdScanReportController::class, 'store'])
+                ->middleware('throttle:60,1');
             Route::get('/adapter-products', [ObdAdapterProductController::class, 'index']);
             // Registry kendaraan OBD2 per-user (2026-11-20 — pindahan internal
             // storage mobile; server-first + cache lokal offline).

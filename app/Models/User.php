@@ -201,6 +201,12 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
         return $this->hasMany(ObdVehicle::class);
     }
 
+    /** Laporan scan OBD2 per sesi (2026-11-21 — bahan kurasi profil). */
+    public function obdScanReports()
+    {
+        return $this->hasMany(ObdScanReport::class);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         // Hanya super_admin yang boleh masuk panel Filament (keputusan owner
