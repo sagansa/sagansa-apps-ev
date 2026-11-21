@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Panel;
 
 use App\Models\ObdAccess;
 use App\Models\User;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -76,11 +77,11 @@ class ObdAccessResource extends Resource
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
             ])
             ->toolbarActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }

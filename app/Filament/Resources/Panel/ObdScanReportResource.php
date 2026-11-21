@@ -137,7 +137,7 @@ class ObdScanReportResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with(['user', 'modelVehicle']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'modelVehicle']))
             ->columns([
                 TextColumn::make('user.email')
                     ->label('User')

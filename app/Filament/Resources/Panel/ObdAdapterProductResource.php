@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Panel;
 
 use App\Models\ObdAdapterProduct;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -129,11 +130,11 @@ class ObdAdapterProductResource extends Resource
             ])
             ->defaultSort('sort_order')
             ->recordActions([
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
             ])
             ->toolbarActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }

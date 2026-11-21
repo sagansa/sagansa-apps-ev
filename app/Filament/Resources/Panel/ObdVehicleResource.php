@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Panel;
 use App\Models\ModelVehicle;
 use App\Models\ObdVehicle;
 use App\Models\User;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
@@ -149,7 +150,7 @@ class ObdVehicleResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with(['user', 'modelVehicle']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['user', 'modelVehicle']))
             ->columns([
                 TextColumn::make('nickname')
                     ->label('Nickname')
@@ -178,11 +179,11 @@ class ObdVehicleResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
-                Tables\Actions\EditAction::make(),
+                Actions\EditAction::make(),
             ])
             ->toolbarActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                Actions\BulkActionGroup::make([
+                    Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
