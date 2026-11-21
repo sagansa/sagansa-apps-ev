@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Panel;
 
 use App\Models\ObdScanReport;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\Resource;
@@ -175,7 +176,7 @@ class ObdScanReportResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
-                Tables\Actions\ViewAction::make(),
+                Actions\ViewAction::make(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('profile_match')
