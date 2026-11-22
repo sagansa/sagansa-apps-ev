@@ -7,6 +7,7 @@ use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\Textarea;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -36,7 +37,7 @@ class ObdScanReportResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
-            Forms\Components\Section::make('Kendaraan')->schema([
+            Section::make('Kendaraan')->schema([
                 Forms\Components\Placeholder::make('user')
                     ->label('User')
                     ->content(fn ($record) => $record?->user?->email ?? '-'),
@@ -50,7 +51,7 @@ class ObdScanReportResource extends Resource
                         : '- (tidak dibagikan)'),
             ])->columns(3),
 
-            Forms\Components\Section::make('Sesi & Adapter')->schema([
+            Section::make('Sesi & Adapter')->schema([
                 Forms\Components\Placeholder::make('adapter_type')
                     ->label('Adapter')
                     ->content(fn ($record) => $record?->adapter_type ?? '-'),
@@ -67,7 +68,7 @@ class ObdScanReportResource extends Resource
                         : '-'),
             ])->columns(4),
 
-            Forms\Components\Section::make('Profil Dipakai')->schema([
+            Section::make('Profil Dipakai')->schema([
                 Forms\Components\Placeholder::make('profile_match')
                     ->label('Match')
                     ->content(fn ($record) => $record?->profile_match ?? '-'),
@@ -82,7 +83,7 @@ class ObdScanReportResource extends Resource
                     ->content(fn ($record) => $record?->review_status ?? '-'),
             ])->columns(4),
 
-            Forms\Components\Section::make('ECU yang Membalas')->schema([
+            Section::make('ECU yang Membalas')->schema([
                 Textarea::make('ecus_responded')
                     ->formatStateUsing(fn ($state) => json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))
                     ->rows(2)
@@ -90,7 +91,7 @@ class ObdScanReportResource extends Resource
                     ->dehydrated(false),
             ]),
 
-            Forms\Components\Section::make('PID')->schema([
+            Section::make('PID')->schema([
                 Forms\Components\Placeholder::make('pid_counts')
                     ->label('Ringkas')
                     ->content(fn ($record) => ($record?->supported_pids ? count($record->supported_pids) : 0)
@@ -109,7 +110,7 @@ class ObdScanReportResource extends Resource
                     ->dehydrated(false),
             ])->columns(2),
 
-            Forms\Components\Section::make('Discovery (kendaraan unknown)')->schema([
+            Section::make('Discovery (kendaraan unknown)')->schema([
                 Textarea::make('discovery')
                     ->formatStateUsing(fn ($state) => json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))
                     ->rows(8)
@@ -123,7 +124,7 @@ class ObdScanReportResource extends Resource
                     ->dehydrated(false),
             ]),
 
-            Forms\Components\Section::make('Meta')->schema([
+            Section::make('Meta')->schema([
                 Forms\Components\Placeholder::make('app_version')
                     ->label('App')
                     ->content(fn ($record) => trim(($record?->app_version ?? '-') . ' / ' . ($record?->device_platform ?? '-'))),

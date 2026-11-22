@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Panel\ModelVehicleResource\RelationManagers;
 
 use App\Filament\Forms\ImageFileUpload;
 use Filament\Actions;
-use Filament\Forms\Components\Grid;
+use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;

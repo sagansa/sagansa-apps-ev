@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Panel\BrandVehicleResource\RelationManagers;
 use App\Filament\Forms\ImageFileUpload;
 use App\Support\VehicleCategories;
 use Filament\Actions;
-use Filament\Forms\Components\Grid;
+use Filament\Schemas\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;

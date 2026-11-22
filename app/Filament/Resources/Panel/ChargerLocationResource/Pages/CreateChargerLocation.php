@@ -6,9 +6,9 @@ use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use App\Filament\Resources\Panel\ChargerLocationResource;
 use Illuminate\Support\Facades\Auth;
-use Filament\Forms\Components\Wizard\Step;
+use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Wizard;
+use Filament\Schemas\Components\Wizard;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Filament\Schemas\Schema;
 
