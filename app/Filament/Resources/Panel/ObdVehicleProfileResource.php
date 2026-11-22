@@ -255,14 +255,34 @@ class ObdVehicleProfileResource extends Resource
             ->modifyQueryUsing(fn (Builder $query) => $query->with('modelVehicle.brandVehicle'))
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('modelVehicle.brandVehicle.name')
+                TextColumn::make('brand')
                     ->label('Brand')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('modelVehicle.name')
+                    // Prioritas: hasil mapping admin/resmi (hijau); fallback:
+                    // identitas katalog Car Scanner (abu-abu — indikasi, belum
+                    // dikonfirmasi). Profil yang teridentifikasi tidak pernah
+                    // tampil kosong di sini.
+                    ->state(fn (ObdVehicleProfile $record) => $record->modelVehicle?->brandVehicle?->name
+                        ?? ($record->metadata['brand'] ?? null))
+                    ->badge()
+                    ->color(fn (ObdVehicleProfile $record) => $record->modelVehicle !== null ? 'success' : 'gray')
+                    ->placeholder('—')
+                    ->searchable(query: fn (Builder $query, string $search) => $query
+                        ->where(fn ($q) => $q
+                            ->whereHas('modelVehicle.brandVehicle', fn ($q2) => $q2->where('name', 'like', "%{$search}%"))
+                            ->orWhere('metadata->brand', 'like', "%{$search}%"))),
+                TextColumn::make('model')
                     ->label('Model')
-                    ->searchable()
-                    ->sortable(),
+                    ->state(fn (ObdVehicleProfile $record) => $record->modelVehicle?->name
+                        ?? (isset($record->metadata['model_name']) && ! str_starts_with((string) $record->metadata['model_name'], 'Katalog CS ')
+                            ? $record->metadata['model_name']
+                            : null))
+                    ->badge()
+                    ->color(fn (ObdVehicleProfile $record) => $record->modelVehicle !== null ? 'success' : 'gray')
+                    ->placeholder('—')
+                    ->searchable(query: fn (Builder $query, string $search) => $query
+                        ->where(fn ($q) => $q
+                            ->whereHas('modelVehicle', fn ($q2) => $q2->where('name', 'like', "%{$search}%"))
+                            ->orWhere('metadata->model_name', 'like', "%{$search}%"))),
                 TextColumn::make('catalog_name')
                     ->label('Catalog Name')
                     // Nama mentah dari JSON katalog ("Katalog CS xxx") —
