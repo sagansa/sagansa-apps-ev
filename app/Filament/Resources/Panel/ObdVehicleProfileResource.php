@@ -18,6 +18,7 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\Panel\ObdVehicleProfileResource\Pages;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Filters\TernaryFilter;
 
 class ObdVehicleProfileResource extends Resource
 {
@@ -162,13 +163,28 @@ class ObdVehicleProfileResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('modelVehicle'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('modelVehicle.brandVehicle'))
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('modelVehicle.name')
-                    ->label('Vehicle')
+                TextColumn::make('modelVehicle.brandVehicle.name')
+                    ->label('Brand')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('modelVehicle.name')
+                    ->label('Model')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('catalog_name')
+                    ->label('Catalog Name')
+                    // Nama mentah dari JSON katalog ("Katalog CS xxx") —
+                    // identitas profil sebelum di-map admin.
+                    ->state(fn (ObdVehicleProfile $record) => $record->metadata['model_name'] ?? null)
+                    ->badge()
+                    ->color('gray'),
+                TextColumn::make('metric_count')
+                    ->label('Metrics')
+                    // pid_list = JSON profil utuh (cast array) — tanpa query tambahan.
+                    ->state(fn (ObdVehicleProfile $record) => count($record->pid_list['metrics'] ?? [])),
                 TextColumn::make('platform')
                     ->badge()
                     ->sortable(),
@@ -187,6 +203,14 @@ class ObdVehicleProfileResource extends Resource
                 TextColumn::make('version'),
                 TextColumn::make('year_min'),
                 TextColumn::make('year_max'),
+            ])
+            ->filters([
+                TernaryFilter::make('mapped')
+                    ->label('Ter-Map')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('model_vehicle_id'),
+                        false: fn (Builder $query) => $query->whereNull('model_vehicle_id'),
+                    ),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
