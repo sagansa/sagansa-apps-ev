@@ -133,28 +133,6 @@ class ObdScanReportControllerTest extends TestCase
         $this->assertTrue($user->obdScanReports()->firstOrFail()->vin_shared);
     }
 
-    public function test_stores_demo_report(): void
-    {
-        Config::set('obd.enabled', true);
-
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
-
-        $payload = $this->validPayload();
-        // DEMO-SEND (temporary): laporan sesi demo mobile — tanpa VIN nyata.
-        $payload['adapter_type'] = 'DEMO';
-        $payload['vin'] = null;
-        $payload['vin_shared'] = false;
-        unset($payload['discovery']);
-
-        $this->postJson('/api/v1/obd/scan-reports', $payload)->assertStatus(201);
-
-        $report = $user->obdScanReports()->firstOrFail();
-        $this->assertSame('DEMO', $report->adapter_type);
-        $this->assertNull($report->vin);
-        $this->assertFalse((bool) $report->vin_shared);
-    }
-
     public function test_validates_payload(): void
     {
         Config::set('obd.enabled', true);
@@ -166,6 +144,19 @@ class ObdScanReportControllerTest extends TestCase
             'profile_match' => 'magic', // tidak valid
             'vin' => 'PENDek', // bukan 17 char
             'atrv_voltage' => 99,
+        ]))->assertStatus(422);
+    }
+
+    public function test_rejects_demo_adapter_type(): void
+    {
+        // Fitur demo-send dihapus (2026-11-22) — sesi demo mobile tidak pernah
+        // mengirim; DEMO kembali ditolak seperti type di luar whitelist.
+        Config::set('obd.enabled', true);
+
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson('/api/v1/obd/scan-reports', array_merge($this->validPayload(), [
+            'adapter_type' => 'DEMO',
         ]))->assertStatus(422);
     }
 }
