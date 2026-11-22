@@ -20,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\Panel\ObdVehicleProfileResource\Pages;
 use App\Models\BrandVehicle;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Actions\BulkAction;
 use Illuminate\Support\Collection;
@@ -299,6 +300,15 @@ class ObdVehicleProfileResource extends Resource
                         true: fn (Builder $query) => $query->whereNotNull('model_vehicle_id'),
                         false: fn (Builder $query) => $query->whereNull('model_vehicle_id'),
                     ),
+                // Pemisah seed resmi (IONIQ 5, Wuling Air EV — grade official)
+                // dari ±1.600 profil katalog Car Scanner (grade community).
+                SelectFilter::make('grade')
+                    ->label('Grade')
+                    ->options([
+                        'official' => 'Official',
+                        'community' => 'Community',
+                        'experimental' => 'Experimental',
+                    ]),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([
