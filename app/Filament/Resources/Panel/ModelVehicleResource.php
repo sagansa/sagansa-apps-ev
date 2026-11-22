@@ -324,12 +324,16 @@ class ModelVehicleResource extends Resource
                     ->columnSpanFull()
                     ->getSearchResultsUsing(fn (string $search) => ObdVehicleProfile::query()
                         ->with('modelVehicle.brandVehicle')
+                        // Cari di pid_list (JSON profil UTUH — berisi modelName
+                        // & brand) + platform: LIKE raw tanpa fungsi JSON, aman
+                        // di semua versi MySQL/MariaDB. Path JSON
+                        // (metadata->model_name) ternyata tak reliable di
+                        // beberapa versi hosting → 0 hasil diam-diam.
                         ->where(function ($q) use ($search) {
                             $q->where('platform', 'like', "%{$search}%")
-                                ->orWhere('metadata->model_name', 'like', "%{$search}%")
-                                ->orWhere('metadata->brand', 'like', "%{$search}%");
+                                ->orWhere('pid_list', 'like', "%{$search}%");
                         })
-                        ->orderBy('metadata->model_name')
+                        ->orderBy('platform')
                         ->limit(50)
                         ->get()
                         ->mapWithKeys(fn (ObdVehicleProfile $p) => [$p->id => self::profileOptionLabel($p)])
