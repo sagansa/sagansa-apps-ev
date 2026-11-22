@@ -1,11 +1,11 @@
 {
  "platform": "CS-5701e489",
  "brand": "GMC",
- "modelName": "Auris TS Hybrid",
+ "modelName": "Auris TS Hybrid / Camry Hybrid XV50 / RAV4 Hybrid 2016-2018",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

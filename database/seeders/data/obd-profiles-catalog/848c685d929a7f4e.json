@@ -1,11 +1,11 @@
 {
  "platform": "CS-848c685d",
  "brand": "Volvo",
- "modelName": "S60 2014-18",
+ "modelName": "S60 2014-18 / S80 2014-2016 / V40-2 2014- / V60 2014-2018 / V70 2014-2016 / XC 60 2014-2016 / XC70 2014-2016",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

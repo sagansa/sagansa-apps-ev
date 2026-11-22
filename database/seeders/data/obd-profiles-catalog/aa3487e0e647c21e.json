@@ -1,11 +1,11 @@
 {
  "platform": "CS-aa3487e0",
  "brand": "Nissan",
- "modelName": "Interstar (2022-) 2.3L M9T+AdBlue, ECU: Siemens SID321",
+ "modelName": "Interstar (2022-) 2.3L M9T+AdBlue, ECU: Siemens SID321 / NV400 (2010-2021) 2.3L M9T+AdBlue, ECU: Siemens SID321 / Movano (2010-2021) 2.3L M9T+AdBlue, ECU: Siemens SID321 / Master 3 (2010-) 2.3L M9T+AdBlue, ECU: Siemens SID321",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2022,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

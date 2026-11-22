@@ -1,10 +1,10 @@
 {
  "platform": "CS-0d0c1850",
  "brand": "Polestar",
- "modelName": "Polestar 2",
+ "modelName": "Polestar 2 / XC40 EV/C40 EV E400V2/E400V5/E400V6 2020-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

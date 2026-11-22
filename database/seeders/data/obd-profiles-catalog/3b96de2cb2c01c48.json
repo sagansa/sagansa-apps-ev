@@ -1,11 +1,11 @@
 {
  "platform": "CS-3b96de2c",
  "brand": "Acura",
- "modelName": "ZDX EV (2026-)",
+ "modelName": "ZDX EV (2026-) / Celestiq EV (2026-) / Lyriq EV (2026-) / Vistiq EV (2026-) / Blazer EV (2026-) / BOLT gen.2 (2026-) / Equinox EV (2026-) / Hummer EV (2021-2025) / Sierra EV (2021-2025) / Silverado EV (2021-2025) / Prologue EV (2021-2025)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2026,
- "yearMax": null,
+ "yearMin": 2021,
+ "yearMax": 2025,
  "grade": "community",
  "version": 1,
  "metrics": [

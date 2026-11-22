@@ -1,11 +1,11 @@
 {
  "platform": "CS-9796d7bf",
  "brand": "Ford",
- "modelName": "Everest Gen.2",
+ "modelName": "Everest Gen.2 / Ranger (-2022) Gen.2 / BT-50 (2011-2019) Gen.2",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

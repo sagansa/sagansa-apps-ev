@@ -1,11 +1,11 @@
 {
  "platform": "CS-288c1989",
  "brand": "Dacia",
- "modelName": "Dokker 2019- 1.5 dCi K9K 872",
+ "modelName": "Dokker 2019- 1.5 dCi K9K 872 / Duster II 2019- 1.5 dCi K9K 872 / Lodgy 2019- 1.5 dCi K9K 872 / Logan II 2019-2022 1.5 dCi K9K 872 / Sandero II 2019-2022 1.5 dCi K9K 872 / Sandero III 2020- 1.5 dCi K9K 872 / Captur II 2019- 1.5 dCi K9K 872 / Clio V 2019- 1.5 dCi K9K 872 / Kadjar 2019-2022 1.5 dCi K9K 872 / Kangoo II 2019-2021 1.5 dCi K9K 872 / Megane IV 2019- 1.5 dCi K9K 872",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2019,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [
