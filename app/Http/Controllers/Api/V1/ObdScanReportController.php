@@ -30,7 +30,8 @@ class ObdScanReportController extends Controller
             'model_vehicle_id' => 'nullable|integer|min:1',
             'vin' => 'nullable|string|size:17',
             'vin_shared' => 'nullable|boolean',
-            'adapter_type' => 'required|string|in:WIFI,BLE,SPP',
+            // DEMO-SEND (temporary): laporan sesi demo mobile utk testing pipeline.
+            'adapter_type' => 'required|string|in:WIFI,BLE,SPP,DEMO',
             'elm_protocol' => 'nullable|string|max:64',
             'profile_key' => 'nullable|string|max:64',
             'profile_id' => 'nullable|integer|min:1',
