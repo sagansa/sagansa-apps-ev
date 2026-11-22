@@ -17,8 +17,11 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\Panel\ObdVehicleProfileResource\Pages;
+use App\Models\BrandVehicle;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Actions\BulkAction;
+use Illuminate\Support\Collection;
 
 class ObdVehicleProfileResource extends Resource
 {
@@ -218,6 +221,35 @@ class ObdVehicleProfileResource extends Resource
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
+                    // Kasus nyata: satu mobil punya beberapa hash profil katalog
+                    // (beda sensor/ECU) → assign sekaligus ke satu model katalog.
+                    BulkAction::make('assignToModel')
+                        ->label('Assign to Model Vehicle')
+                        ->icon('heroicon-o-link')
+                        ->color('success')
+                        ->form([
+                            Select::make('brand_vehicle_id')
+                                ->label('Brand Vehicle')
+                                ->options(fn () => BrandVehicle::orderBy('name')->pluck('name', 'id'))
+                                ->searchable()
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(fn ($set) => $set('model_vehicle_id', null)),
+                            Select::make('model_vehicle_id')
+                                ->label('Model Vehicle')
+                                ->options(fn ($get) => ModelVehicle::query()
+                                    ->when($get('brand_vehicle_id'), fn ($q, $brandId) => $q->where('brand_vehicle_id', $brandId))
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id'))
+                                ->searchable()
+                                ->required(),
+                        ])
+                        ->action(fn (Collection $records, array $data) => $records->each(
+                            fn (ObdVehicleProfile $record) => $record->update([
+                                'model_vehicle_id' => $data['model_vehicle_id'],
+                            ]),
+                        ))
+                        ->deselectRecordsAfterCompletion(),
                     Actions\DeleteBulkAction::make(),
                 ]),
             ]);

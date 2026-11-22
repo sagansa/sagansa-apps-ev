@@ -81,4 +81,35 @@ class ObdVehicleProfileResourceTest extends TestCase
             ->assertCanSeeTableRecords([$unmapped])
             ->assertCanNotSeeTableRecords([$mapped]);
     }
+
+    public function test_bulk_assign_sets_model_vehicle_id(): void
+    {
+        $brand = BrandVehicle::create(['name' => 'Hyundai']);
+        $model = ModelVehicle::create(['name' => 'IONIQ 5', 'brand_vehicle_id' => $brand->id]);
+
+        $a = $this->makeProfile(['platform' => 'CS-aaaa1111']);
+        $b = $this->makeProfile(['platform' => 'CS-bbbb2222']);
+
+        Livewire::actingAs($this->admin)
+            ->test(ListObdProfiles::class)
+            ->callTableBulkAction('assignToModel', [$a, $b], [
+                'brand_vehicle_id' => $brand->id,
+                'model_vehicle_id' => $model->id,
+            ]);
+
+        $this->assertSame($model->id, $a->refresh()->model_vehicle_id);
+        $this->assertSame($model->id, $b->refresh()->model_vehicle_id);
+    }
+
+    public function test_bulk_assign_requires_model_selection(): void
+    {
+        $a = $this->makeProfile(['platform' => 'CS-cccc3333']);
+
+        Livewire::actingAs($this->admin)
+            ->test(ListObdProfiles::class)
+            ->callTableBulkAction('assignToModel', [$a], [])
+            ->assertHasActionErrors();
+
+        $this->assertNull($a->refresh()->model_vehicle_id);
+    }
 }
