@@ -24,7 +24,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Collection;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;

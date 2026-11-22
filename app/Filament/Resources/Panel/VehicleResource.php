@@ -26,7 +26,6 @@ use App\Tables\Columns\StatusActiveColumn;
 use Filament\Schemas\Components\Group;
 use Filament\Forms\Components\Repeater;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Actions\ActionGroup;
 use Filament\Tables\Columns\ImageColumn;
 use Illuminate\Support\Facades\Auth;
