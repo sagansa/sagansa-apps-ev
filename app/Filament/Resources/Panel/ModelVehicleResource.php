@@ -258,51 +258,7 @@ class ModelVehicleResource extends Resource
             ->recordActions([
                 Actions\EditAction::make(),
                 Actions\ViewAction::make(),
-
-                // Arah mapping sebaliknya: dari model katalog memilih profil
-                // OBD (katalog CS-* maupun resmi) langsung dari daftar model —
-                // melengkapi kolom Profil OBD + filter "Belum Ada Profil".
-                // Assign menimpa mapping lama profil terpilih (label opsi
-                // menampilkan mapping saat ini agar admin sadar memindahkan).
-                Actions\Action::make('pilihProfilObd')
-                    ->label('Pilih Profil OBD')
-                    ->icon('heroicon-o-cpu-chip')
-                    ->color('info')
-                    ->form([
-                        Select::make('profile_ids')
-                            ->label('Profil OBD untuk model ini')
-                            ->multiple()
-                            ->required()
-                            ->searchable()
-                            ->helperText('Ketik nama model/brand/hash. Format: [grade • metrik] Catalog Name → mapping saat ini. Aturan: pilih profil dengan metrik > 13 untuk EV; satu model cukup satu profil utama.')
-                            ->columnSpanFull()
-                            ->getSearchResultsUsing(fn (string $search) => ObdVehicleProfile::query()
-                                ->with('modelVehicle.brandVehicle')
-                                ->where(function ($q) use ($search) {
-                                    $q->where('platform', 'like', "%{$search}%")
-                                        ->orWhere('metadata->model_name', 'like', "%{$search}%")
-                                        ->orWhere('metadata->brand', 'like', "%{$search}%");
-                                })
-                                ->orderBy('metadata->model_name')
-                                ->limit(50)
-                                ->get()
-                                ->mapWithKeys(fn (ObdVehicleProfile $p) => [$p->id => self::profileOptionLabel($p)])
-                                ->all())
-                            ->getOptionLabelUsing(fn ($value): ?string => self::profileOptionLabel(
-                                ObdVehicleProfile::query()->with('modelVehicle.brandVehicle')->find($value),
-                            )),
-                    ])
-                    ->databaseTransaction()
-                    ->action(function (array $data, ModelVehicle $record) {
-                        $count = ObdVehicleProfile::query()
-                            ->whereIn('id', $data['profile_ids'] ?? [])
-                            ->update(['model_vehicle_id' => $record->id]);
-
-                        Notification::make()
-                            ->title("{$count} profil OBD di-assign ke {$record->brandVehicle?->name} {$record->name}")
-                            ->success()
-                            ->send();
-                    }),
+                self::pilihProfilObdAction(),
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
@@ -344,6 +300,55 @@ class ModelVehicleResource extends Resource
             $p->metadata['model_name'] ?? $p->platform,
             $mapped,
         );
+    }
+
+    /**
+     * Arah mapping sebaliknya: dari model katalog memilih profil OBD
+     * (katalog CS-* maupun resmi) — di baris daftar Model Vehicles dan di
+     * header halaman Edit. Assign menimpa mapping lama profil terpilih
+     * (label opsi menampilkan mapping saat ini agar admin sadar memindahkan).
+     */
+    public static function pilihProfilObdAction(): Actions\Action
+    {
+        return Actions\Action::make('pilihProfilObd')
+            ->label('Pilih Profil OBD')
+            ->icon('heroicon-o-cpu-chip')
+            ->color('info')
+            ->form([
+                Select::make('profile_ids')
+                    ->label('Profil OBD untuk model ini')
+                    ->multiple()
+                    ->required()
+                    ->searchable()
+                    ->helperText('Ketik nama model/brand/hash. Format: [grade • metrik] Catalog Name → mapping saat ini. Aturan: pilih profil dengan metrik > 13 untuk EV; satu model cukup satu profil utama.')
+                    ->columnSpanFull()
+                    ->getSearchResultsUsing(fn (string $search) => ObdVehicleProfile::query()
+                        ->with('modelVehicle.brandVehicle')
+                        ->where(function ($q) use ($search) {
+                            $q->where('platform', 'like', "%{$search}%")
+                                ->orWhere('metadata->model_name', 'like', "%{$search}%")
+                                ->orWhere('metadata->brand', 'like', "%{$search}%");
+                        })
+                        ->orderBy('metadata->model_name')
+                        ->limit(50)
+                        ->get()
+                        ->mapWithKeys(fn (ObdVehicleProfile $p) => [$p->id => self::profileOptionLabel($p)])
+                        ->all())
+                    ->getOptionLabelUsing(fn ($value): ?string => self::profileOptionLabel(
+                        ObdVehicleProfile::query()->with('modelVehicle.brandVehicle')->find($value),
+                    )),
+            ])
+            ->databaseTransaction()
+            ->action(function (array $data, ModelVehicle $record) {
+                $count = ObdVehicleProfile::query()
+                    ->whereIn('id', $data['profile_ids'] ?? [])
+                    ->update(['model_vehicle_id' => $record->id]);
+
+                Notification::make()
+                    ->title("{$count} profil OBD di-assign ke {$record->brandVehicle?->name} {$record->name}")
+                    ->success()
+                    ->send();
+            });
     }
 
     public static function getPages(): array

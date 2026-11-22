@@ -12,6 +12,11 @@ class EditModelVehicle extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [Actions\DeleteAction::make()];
+        // Pilih profil OBD langsung dari halaman edit model (definisi sama
+        // dengan aksi baris di daftar Model Vehicles).
+        return [
+            Actions\DeleteAction::make(),
+            ModelVehicleResource::pilihProfilObdAction(),
+        ];
     }
 }
