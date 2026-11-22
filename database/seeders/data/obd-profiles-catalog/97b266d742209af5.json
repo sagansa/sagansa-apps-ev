@@ -1,11 +1,11 @@
 {
  "platform": "CS-97b266d7",
- "brand": "Hyundai",
- "modelName": "Tucson LM, ix35 EL 1.7 CRDI Diesel (2009-2015)",
+ "brand": "Kia",
+ "modelName": "Sportage III SL 1.7 CRDI Diesel (2010-2016)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2009,
- "yearMax": 2015,
+ "yearMin": 2010,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

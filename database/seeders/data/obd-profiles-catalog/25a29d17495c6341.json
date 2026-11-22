@@ -1,10 +1,10 @@
 {
  "platform": "CS-25a29d17",
- "brand": "Hyundai",
- "modelName": "Sonata LF 2.0 LPI (2014-2020)",
+ "brand": "Kia",
+ "modelName": "K5 JF LPI 2.0 (2015-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2014,
+ "yearMin": 2015,
  "yearMax": 2020,
  "grade": "community",
  "version": 1,

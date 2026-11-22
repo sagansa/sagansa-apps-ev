@@ -1,11 +1,11 @@
 {
  "platform": "CS-24ff9f18",
- "brand": null,
- "modelName": "Katalog CS 24ff9f18",
+ "brand": "Hyundai",
+ "modelName": "Santa Fe CM-A 2.7 V6 MPI (2005-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2005,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

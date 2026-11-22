@@ -1,10 +1,10 @@
 {
  "platform": "CS-327b8c83",
- "brand": null,
- "modelName": "Katalog CS 327b8c83",
+ "brand": "Ford",
+ "modelName": "Ranger Gen.2 P703/RA (2022-n.d.) 3.0 Diesel + 10AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2022,
  "yearMax": null,
  "grade": "community",
  "version": 1,

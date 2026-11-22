@@ -1,11 +1,11 @@
 {
  "platform": "CS-8d2acca8",
  "brand": "Lexus",
- "modelName": "RAV4 Prime PHEV (2019-2025), Prius Prime (2023-n.d.) / Lexus NX450h+ PHEV",
+ "modelName": "NX450h+ PHEV",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2019,
- "yearMax": 2025,
+ "yearMin": null,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-f6b40c43",
  "brand": "Nissan",
- "modelName": "Pathfinder R52 (2013-2021)",
+ "modelName": "Altima 2013-",
  "modelVehicleId": null,
  "vinPattern": null,
  "yearMin": 2013,
- "yearMax": 2021,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

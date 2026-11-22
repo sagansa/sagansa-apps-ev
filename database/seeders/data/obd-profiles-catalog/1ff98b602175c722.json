@@ -1,11 +1,11 @@
 {
  "platform": "CS-1ff98b60",
- "brand": null,
- "modelName": "Katalog CS 1ff98b60",
+ "brand": "Dodge",
+ "modelName": "RAM 6.7 2007-2010",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2010,
  "grade": "community",
  "version": 1,
  "metrics": [

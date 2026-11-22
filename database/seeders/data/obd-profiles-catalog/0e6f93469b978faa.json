@@ -1,11 +1,11 @@
 {
  "platform": "CS-0e6f9346",
- "brand": null,
- "modelName": "Katalog CS 0e6f9346",
+ "brand": "BYD",
+ "modelName": "OBD-II / EOBD ~2006-2009 CAN + extra sensors",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2006,
+ "yearMax": 2009,
  "grade": "community",
  "version": 1,
  "metrics": [

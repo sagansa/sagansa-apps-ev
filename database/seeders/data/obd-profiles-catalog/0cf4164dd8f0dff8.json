@@ -1,11 +1,11 @@
 {
  "platform": "CS-0cf4164d",
  "brand": "Nissan",
- "modelName": "Master 3 (2010-), NV400 (2010-2021), Interstar (2022-), Movano (2010-2021) M9T 8xx, ECU Bosch EDC17C42",
+ "modelName": "Interstar (2022-) 2.3L M9T 8xx, ECU Bosch EDC17C42",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2010,
- "yearMax": 2021,
+ "yearMin": 2022,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

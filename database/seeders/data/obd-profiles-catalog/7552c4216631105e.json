@@ -1,11 +1,11 @@
 {
  "platform": "CS-7552c421",
- "brand": "Citroen",
- "modelName": "Outlander II, XL, III, ASX, RVR (2.0, 2.4), Lancer X (1.8, 2.0), ASX (1.8, 2.0), Citroen C-Crosser, Peugeot 3008 (2008-2016), 4007 (2007-2012) + CVT",
+ "brand": "Mitsubishi",
+ "modelName": "Outlander II 3.0+AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2008,
- "yearMax": 2016,
+ "yearMin": null,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

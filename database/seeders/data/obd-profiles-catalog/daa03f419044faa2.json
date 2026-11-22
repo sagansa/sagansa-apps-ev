@@ -1,11 +1,11 @@
 {
  "platform": "CS-daa03f41",
- "brand": null,
- "modelName": "Katalog CS daa03f41",
+ "brand": "Dodge",
+ "modelName": "RAM 5.9 2006-2007",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2006,
+ "yearMax": 2007,
  "grade": "community",
  "version": 1,
  "metrics": [

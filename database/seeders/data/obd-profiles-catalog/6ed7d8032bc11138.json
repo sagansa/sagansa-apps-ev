@@ -1,10 +1,10 @@
 {
  "platform": "CS-6ed7d803",
- "brand": null,
- "modelName": "Katalog CS 6ed7d803",
+ "brand": "Kia",
+ "modelName": "Ceed CD 1.6 T-GDI (2018-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2018,
  "yearMax": null,
  "grade": "community",
  "version": 1,

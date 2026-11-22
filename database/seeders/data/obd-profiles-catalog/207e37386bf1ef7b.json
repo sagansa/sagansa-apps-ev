@@ -1,11 +1,11 @@
 {
  "platform": "CS-207e3738",
  "brand": "Honda",
- "modelName": "Accord, Civic, CRV, CX-7 etc. 2008-2012 (var.2)",
+ "modelName": "Accord (~2008-~2012) var.2",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2008,
- "yearMax": 2012,
+ "yearMin": null,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

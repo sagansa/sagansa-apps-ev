@@ -1,11 +1,11 @@
 {
  "platform": "CS-05a4de72",
- "brand": null,
- "modelName": "Katalog CS 05a4de72",
+ "brand": "Hyundai",
+ "modelName": "Tucson JM 2.0 (KWP/K-Line) (2004-2008)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2004,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

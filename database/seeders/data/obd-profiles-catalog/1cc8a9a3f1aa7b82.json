@@ -1,11 +1,11 @@
 {
  "platform": "CS-1cc8a9a3",
- "brand": null,
- "modelName": "Katalog CS 1cc8a9a3",
+ "brand": "Kia",
+ "modelName": "Sportage 4 (QL) CRDI Diesel 2.0 (2015-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

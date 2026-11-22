@@ -1,11 +1,11 @@
 {
  "platform": "CS-4a2818ad",
- "brand": "Hyundai",
- "modelName": "Elantra/i30 FD 2.0 MPI (2006-2010)",
+ "brand": "Kia",
+ "modelName": "Cerato I (LD) (2006-2008)",
  "modelVehicleId": null,
  "vinPattern": null,
  "yearMin": 2006,
- "yearMax": 2010,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

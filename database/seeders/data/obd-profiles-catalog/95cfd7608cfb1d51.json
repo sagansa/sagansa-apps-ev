@@ -1,11 +1,11 @@
 {
  "platform": "CS-95cfd760",
- "brand": "Hyundai",
- "modelName": "Santa Fe TM PE PHEV (2021-2023)",
+ "brand": "Kia",
+ "modelName": "Sorento 4 MQ4 PHEV (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2021,
- "yearMax": 2023,
+ "yearMin": 2020,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

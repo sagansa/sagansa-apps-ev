@@ -1,11 +1,11 @@
 {
  "platform": "CS-6d12165b",
  "brand": "Volvo",
- "modelName": "D2 (1.6)",
+ "modelName": "C30 D2 (1.6) 2011-2012",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

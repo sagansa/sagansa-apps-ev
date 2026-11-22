@@ -1,10 +1,10 @@
 {
  "platform": "CS-1ca4d98c",
- "brand": null,
- "modelName": "Katalog CS 1ca4d98c",
+ "brand": "Nissan",
+ "modelName": "Murano Z52 2015-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2015,
  "yearMax": null,
  "grade": "community",
  "version": 1,

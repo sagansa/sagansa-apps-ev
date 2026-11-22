@@ -1,11 +1,11 @@
 {
  "platform": "CS-80faba20",
- "brand": "Kia",
- "modelName": "Sportage III SL 1.7 CRDI Diesel [UDS] (2014-2016)",
+ "brand": "Hyundai",
+ "modelName": "Grand Starex (TQ FL) 2.5L D4CB Diesel Euro6 (2016-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2014,
- "yearMax": 2016,
+ "yearMin": 2016,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-6508da18",
  "brand": "Hyundai",
- "modelName": "i30/Elantra FD 1.6 MPI (2006-2011)",
+ "modelName": "i20 PB 1.4 MPI (2013-2016)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2006,
- "yearMax": 2011,
+ "yearMin": 2013,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

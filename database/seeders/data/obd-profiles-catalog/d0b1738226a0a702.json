@@ -1,11 +1,11 @@
 {
  "platform": "CS-d0b17382",
- "brand": null,
- "modelName": "Katalog CS d0b17382",
+ "brand": "Kia",
+ "modelName": "Ceed JD 1.6 CRDI Diesel (2013-2015)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2015,
  "grade": "community",
  "version": 1,
  "metrics": [

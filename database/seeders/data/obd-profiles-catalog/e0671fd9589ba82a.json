@@ -1,10 +1,10 @@
 {
  "platform": "CS-e0671fd9",
- "brand": "Audi",
- "modelName": "WWH-OBD (CAN 11 bit) (2026-n.d.)",
+ "brand": "Subaru",
+ "modelName": "Ascent (~2022-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2026,
+ "yearMin": null,
  "yearMax": null,
  "grade": "community",
  "version": 1,

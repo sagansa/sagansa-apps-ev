@@ -1,11 +1,11 @@
 {
  "platform": "CS-d19e34da",
- "brand": null,
- "modelName": "Katalog CS d19e34da",
+ "brand": "Kia",
+ "modelName": "Sportage 4 (QL-B) 2.0/2.4 T-GDI 4WD (2016-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

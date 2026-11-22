@@ -1,11 +1,11 @@
 {
  "platform": "CS-12a8fae8",
- "brand": null,
- "modelName": "Katalog CS 12a8fae8",
+ "brand": "Audi",
+ "modelName": "MLB: A5/S5 B8/8T (2007-2013) + AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2013,
  "grade": "community",
  "version": 1,
  "metrics": [

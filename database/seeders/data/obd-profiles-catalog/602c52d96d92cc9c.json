@@ -1,11 +1,11 @@
 {
  "platform": "CS-602c52d9",
- "brand": null,
- "modelName": "Katalog CS 602c52d9",
+ "brand": "Hyundai",
+ "modelName": "ix35 LM 1.7 CRDI Diesel 2WD (2009-2016)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2009,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-5b6c0712",
- "brand": null,
- "modelName": "Katalog CS 5b6c0712",
+ "brand": "Land Rover",
+ "modelName": "Discovery Sport 2015-2016 2.2D",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-5d9d8b0d",
  "brand": "Hyundai",
- "modelName": "Veracruz / ix55 (B) 3.0 CRDI Diesel",
+ "modelName": "Santa Fe CM-A 2.0/2.2 CRDI Diesel (2005-2011)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2005,
+ "yearMax": 2011,
  "grade": "community",
  "version": 1,
  "metrics": [

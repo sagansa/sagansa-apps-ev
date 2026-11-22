@@ -1,11 +1,11 @@
 {
  "platform": "CS-38e50b38",
- "brand": null,
- "modelName": "Katalog CS 38e50b38",
+ "brand": "ISUZU",
+ "modelName": "D-Max gen. II (2012-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2012,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

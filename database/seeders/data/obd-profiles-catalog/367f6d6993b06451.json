@@ -1,10 +1,10 @@
 {
  "platform": "CS-367f6d69",
- "brand": null,
- "modelName": "Katalog CS 367f6d69",
+ "brand": "GMC",
+ "modelName": "Avalon Hybrid 2019-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

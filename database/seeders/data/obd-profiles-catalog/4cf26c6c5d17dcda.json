@@ -1,10 +1,10 @@
 {
  "platform": "CS-4cf26c6c",
- "brand": null,
- "modelName": "Katalog CS 4cf26c6c",
+ "brand": "Toyota",
+ "modelName": "Prius Gen.3 2010-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2010,
  "yearMax": null,
  "grade": "community",
  "version": 1,

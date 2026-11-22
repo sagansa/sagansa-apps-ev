@@ -1,11 +1,11 @@
 {
  "platform": "CS-04af6d5f",
- "brand": null,
- "modelName": "Katalog CS 04af6d5f",
+ "brand": "Hyundai",
+ "modelName": "Avante MD/UD (J5) 1.6/1.8 (2010-2016)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

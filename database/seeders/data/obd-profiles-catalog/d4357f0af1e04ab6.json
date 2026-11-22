@@ -1,10 +1,10 @@
 {
  "platform": "CS-d4357f0a",
- "brand": null,
- "modelName": "Katalog CS d4357f0a",
+ "brand": "Great Wall",
+ "modelName": "M6 (2021-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

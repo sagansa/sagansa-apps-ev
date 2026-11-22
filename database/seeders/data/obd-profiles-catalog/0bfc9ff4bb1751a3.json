@@ -1,10 +1,10 @@
 {
  "platform": "CS-0bfc9ff4",
- "brand": null,
- "modelName": "Katalog CS 0bfc9ff4",
+ "brand": "Nissan",
+ "modelName": "Juke 2014-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2014,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,11 +1,11 @@
 {
  "platform": "CS-12fffbb7",
- "brand": null,
- "modelName": "Katalog CS 12fffbb7",
+ "brand": "Hyundai",
+ "modelName": "i20 PB 1.2 MPI (2008-2013)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2013,
  "grade": "community",
  "version": 1,
  "metrics": [

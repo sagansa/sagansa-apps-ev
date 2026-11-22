@@ -1,11 +1,11 @@
 {
  "platform": "CS-1f03c8ec",
- "brand": null,
- "modelName": "Katalog CS 1f03c8ec",
+ "brand": "Hyundai",
+ "modelName": "Santa Fe CM-B 3.3 V6 MPI (2005-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2005,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

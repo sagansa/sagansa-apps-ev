@@ -1,10 +1,10 @@
 {
  "platform": "CS-cf30aa7b",
  "brand": "Changan",
- "modelName": "CS75 FL (1.8+AT)",
+ "modelName": "CS55 Plus (2017-) 1.5 + AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2017,
  "yearMax": null,
  "grade": "community",
  "version": 1,

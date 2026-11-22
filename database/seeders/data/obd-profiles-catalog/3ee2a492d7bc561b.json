@@ -1,10 +1,10 @@
 {
  "platform": "CS-3ee2a492",
- "brand": null,
- "modelName": "Katalog CS 3ee2a492",
+ "brand": "Hyundai",
+ "modelName": "Avante CN7 (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

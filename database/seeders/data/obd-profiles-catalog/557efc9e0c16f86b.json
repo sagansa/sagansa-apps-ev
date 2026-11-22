@@ -1,11 +1,11 @@
 {
  "platform": "CS-557efc9e",
- "brand": null,
- "modelName": "Katalog CS 557efc9e",
+ "brand": "Nissan",
+ "modelName": "Pathfinder R51 AT K-Line (2004-2008)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2004,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

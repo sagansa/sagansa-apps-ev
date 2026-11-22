@@ -1,10 +1,10 @@
 {
  "platform": "CS-13a04a09",
- "brand": null,
- "modelName": "Katalog CS 13a04a09",
+ "brand": "Dacia",
+ "modelName": "Spring FL 2024-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2024,
  "yearMax": null,
  "grade": "community",
  "version": 1,

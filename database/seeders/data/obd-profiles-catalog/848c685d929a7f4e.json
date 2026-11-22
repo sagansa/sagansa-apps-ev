@@ -1,11 +1,11 @@
 {
  "platform": "CS-848c685d",
  "brand": "Volvo",
- "modelName": "2014-2018 VEA engine (not SPA)",
+ "modelName": "S60 2014-18",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2014,
- "yearMax": 2018,
+ "yearMin": null,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

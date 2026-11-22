@@ -1,11 +1,11 @@
 {
  "platform": "CS-4b3778ce",
- "brand": null,
- "modelName": "Katalog CS 4b3778ce",
+ "brand": "Hyundai",
+ "modelName": "Grand Santa Fe NC 3.3 MPI (2013-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

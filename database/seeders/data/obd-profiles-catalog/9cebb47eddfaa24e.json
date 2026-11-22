@@ -1,10 +1,10 @@
 {
  "platform": "CS-9cebb47e",
  "brand": "Citroen",
- "modelName": "Fiat: Ducato; Peugeot: Boxer/Manager; Citroen: Relay/Jumper; RAM: ProMaster; Opel/Vauxhall: Movano 3.0 HDI",
+ "modelName": "Jumper 2.2 Blue HDI (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

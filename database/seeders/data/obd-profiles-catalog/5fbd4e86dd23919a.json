@@ -1,11 +1,11 @@
 {
  "platform": "CS-5fbd4e86",
- "brand": null,
- "modelName": "Katalog CS 5fbd4e86",
+ "brand": "KTM",
+ "modelName": "790 Adventure (2019-2020) / 790 Duke (2018-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2019,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

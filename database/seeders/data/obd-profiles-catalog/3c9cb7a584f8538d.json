@@ -1,11 +1,11 @@
 {
  "platform": "CS-3c9cb7a5",
- "brand": null,
- "modelName": "Katalog CS 3c9cb7a5",
+ "brand": "Hyundai",
+ "modelName": "Veloster FS 1.6 MPFI/GDI (2011-2018)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

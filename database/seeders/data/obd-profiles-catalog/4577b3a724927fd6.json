@@ -1,10 +1,10 @@
 {
  "platform": "CS-4577b3a7",
- "brand": "Hyundai",
- "modelName": "Veloster FS 1.6 MPFI/GDI (2011-2018)",
+ "brand": "Kia",
+ "modelName": "Cerato (2012-2018) NU 2.0 GDI engine",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2011,
+ "yearMin": 2012,
  "yearMax": 2018,
  "grade": "community",
  "version": 1,

@@ -1,11 +1,11 @@
 {
  "platform": "CS-9137630e",
- "brand": "Kia",
- "modelName": "Cerato / K3 / Forte BD 1.6 T-GDI + DCT (2018-2022)",
+ "brand": "Hyundai",
+ "modelName": "Elantra AD 1.6 T-GDI + DCT (2017-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2018,
- "yearMax": 2022,
+ "yearMin": 2017,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-0421a0f9",
- "brand": null,
- "modelName": "Katalog CS 0421a0f9",
+ "brand": "Hyundai",
+ "modelName": "Tucson NX4 (2021-) 2.0D CRDI Diesel + 8AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

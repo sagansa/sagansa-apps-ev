@@ -1,11 +1,11 @@
 {
  "platform": "CS-27edf196",
  "brand": "Hyundai",
- "modelName": "Grandeur V (HG) / Azera Gasoline/Petrol (2011-2017)",
+ "modelName": "i45 YF 2.0/2.4 MPI/GDI (2009-2014)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2011,
- "yearMax": 2017,
+ "yearMin": 2009,
+ "yearMax": 2014,
  "grade": "community",
  "version": 1,
  "metrics": [

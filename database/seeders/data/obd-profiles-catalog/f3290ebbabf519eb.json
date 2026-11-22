@@ -1,11 +1,11 @@
 {
  "platform": "CS-f3290ebb",
- "brand": "Ford",
- "modelName": "Everest / Ranger / BT-50 Gen.2",
+ "brand": "Mazda",
+ "modelName": "BT50 UP, UR 2011-2020 (CAN)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-223c319a",
- "brand": null,
- "modelName": "Katalog CS 223c319a",
+ "brand": "Kia",
+ "modelName": "Cerato TD-A (2008-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

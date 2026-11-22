@@ -1,10 +1,10 @@
 {
  "platform": "CS-46fc0d50",
- "brand": "Subaru",
- "modelName": "2022 - n.d. (CVT/AT + CAN)",
+ "brand": "Audi",
+ "modelName": "WWH-OBD (CAN 11 bit) (2026-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2026,
  "yearMax": null,
  "grade": "community",
  "version": 1,

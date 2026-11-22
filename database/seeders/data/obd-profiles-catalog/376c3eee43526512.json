@@ -1,11 +1,11 @@
 {
  "platform": "CS-376c3eee",
  "brand": "MG",
- "modelName": "MG4 EV (2021-2024) / MGS 5 / IM5 / IM6",
+ "modelName": "MG4 EV (2021-2025) / MGS 5 / IM5 / IM6 / MG4 Urban",
  "modelVehicleId": null,
  "vinPattern": null,
  "yearMin": 2021,
- "yearMax": 2024,
+ "yearMax": 2025,
  "grade": "community",
  "version": 1,
  "metrics": [

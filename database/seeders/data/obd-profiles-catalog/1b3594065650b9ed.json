@@ -1,11 +1,11 @@
 {
  "platform": "CS-1b359406",
- "brand": null,
- "modelName": "Katalog CS 1b359406",
+ "brand": "Citroen",
+ "modelName": "C-Crosser 2.0, 2.4 (2007-2012) + CVT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

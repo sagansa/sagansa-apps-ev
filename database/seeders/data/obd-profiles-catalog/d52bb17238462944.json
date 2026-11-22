@@ -1,11 +1,11 @@
 {
  "platform": "CS-d52bb172",
- "brand": "Hyundai",
- "modelName": "Elantra AD 1.6 T-GDI + DCT (2017-2020)",
+ "brand": "Kia",
+ "modelName": "Cerato BD 1.6 T-GDI + DCT (2018-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2017,
- "yearMax": 2020,
+ "yearMin": 2018,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

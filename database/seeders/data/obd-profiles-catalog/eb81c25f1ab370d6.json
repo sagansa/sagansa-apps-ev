@@ -1,11 +1,11 @@
 {
  "platform": "CS-eb81c25f",
  "brand": "Volvo",
- "modelName": "Platform 3 MY2008-",
+ "modelName": "S60 2011-2017 P-3",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

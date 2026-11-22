@@ -1,11 +1,11 @@
 {
  "platform": "CS-112e4a26",
- "brand": null,
- "modelName": "Katalog CS 112e4a26",
+ "brand": "Land Rover",
+ "modelName": "Defender 2007-2010 2.4L",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2010,
  "grade": "community",
  "version": 1,
  "metrics": [

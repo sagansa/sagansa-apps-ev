@@ -1,11 +1,11 @@
 {
  "platform": "CS-4ae192bb",
- "brand": null,
- "modelName": "Katalog CS 4ae192bb",
+ "brand": "Hyundai",
+ "modelName": "Elantra FD 1.6 CRDI Diesel (2006-2011)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2006,
+ "yearMax": 2011,
  "grade": "community",
  "version": 1,
  "metrics": [

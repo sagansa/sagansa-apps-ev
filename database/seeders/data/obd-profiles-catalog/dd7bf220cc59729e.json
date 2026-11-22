@@ -1,11 +1,11 @@
 {
  "platform": "CS-dd7bf220",
- "brand": null,
- "modelName": "Katalog CS dd7bf220",
+ "brand": "Kia",
+ "modelName": "Niro EV gen.1 (2018-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

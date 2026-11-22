@@ -1,10 +1,10 @@
 {
  "platform": "CS-e07921e2",
- "brand": null,
- "modelName": "Katalog CS e07921e2",
+ "brand": "Kia",
+ "modelName": "Cerato (2012-) NU 2.0 MPI engine",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2012,
  "yearMax": null,
  "grade": "community",
  "version": 1,

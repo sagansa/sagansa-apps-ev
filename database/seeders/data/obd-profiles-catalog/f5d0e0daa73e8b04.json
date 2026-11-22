@@ -1,11 +1,11 @@
 {
  "platform": "CS-f5d0e0da",
- "brand": null,
- "modelName": "Katalog CS f5d0e0da",
+ "brand": "Kia",
+ "modelName": "Sportage III SL 1.7 CRDI Diesel [UDS] (2014-2016)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

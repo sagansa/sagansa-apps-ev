@@ -1,11 +1,11 @@
 {
  "platform": "CS-09cc33c2",
  "brand": "Hyundai",
- "modelName": "Santa Fe CM-A 2.7 V6 MPI (2005-2012)",
+ "modelName": "Genesis Coupe BK-A 3.8 V6",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2005,
- "yearMax": 2012,
+ "yearMin": null,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [
