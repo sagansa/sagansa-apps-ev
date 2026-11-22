@@ -94,10 +94,18 @@ class SeedObdVehicleProfiles extends Command
             'platform' => (string) $json['platform'],
         ];
 
-        // Upsert key: platform + model (atau vin_pattern bila tanpa model).
+        // Kunci upsert: profil katalog (platform CS-<hash8>) unik per profil —
+        // hash adalah ID internal Car Scanner yang stabil antar versi, jadi
+        // kunci = platform saja agar assignment admin (model_vehicle_id) tidak
+        // memecah baris saat re-seed. Profil manual (platform generik mis.
+        // E-GMP) tetap komposit platform+model/vin karena platform bisa
+        // dipakai beberapa model.
+        $isCatalogPlatform = str_starts_with((string) $json['platform'], 'CS-');
         $query = ObdVehicleProfile::query()
-            ->where('platform', $attributes['platform'])
-            ->where(function ($q) use ($modelVehicleId, $json) {
+            ->where('platform', $attributes['platform']);
+
+        if (! $isCatalogPlatform) {
+            $query->where(function ($q) use ($modelVehicleId, $json) {
                 if ($modelVehicleId !== null) {
                     $q->where('model_vehicle_id', $modelVehicleId);
                 } else {
@@ -105,11 +113,17 @@ class SeedObdVehicleProfiles extends Command
                         ->where('vin_pattern', $json['vinPattern'] ?? null);
                 }
             });
+        }
 
         $existing = $query->first();
 
+        // Lindungi assignment admin via Filament: resolve null tidak menimpa
+        // model_vehicle_id existing — hanya resolve eksplisit (--model / JSON
+        // / name-match) yang menimpa.
+        $effectiveModelVehicleId = $modelVehicleId ?? $existing?->model_vehicle_id;
+
         $values = [
-            'model_vehicle_id' => $modelVehicleId,
+            'model_vehicle_id' => $effectiveModelVehicleId,
             'platform' => (string) $json['platform'],
             'vin_pattern' => $json['vinPattern'] ?? null,
             'year_min' => $json['yearMin'] ?? null,
