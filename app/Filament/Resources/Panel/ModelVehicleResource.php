@@ -322,23 +322,41 @@ class ModelVehicleResource extends Resource
                     ->searchable()
                     ->helperText('Ketik nama model/brand/hash. Format: [grade • metrik] Catalog Name → mapping saat ini. Aturan: pilih profil dengan metrik > 13 untuk EV; satu model cukup satu profil utama.')
                     ->columnSpanFull()
-                    ->getSearchResultsUsing(fn (string $search) => ObdVehicleProfile::query()
-                        ->with('modelVehicle.brandVehicle')
-                        // Cari di pid_list (JSON profil UTUH — berisi modelName
-                        // & brand) + platform. WAJIB LOWER() di kedua sisi:
-                        // kolom json di MySQL 8 memakai collation utf8mb4_bin
-                        // (case-sensitive) — LIKE '%seagull%' tidak pernah cocok
-                        // dengan "Seagull" tanpa LOWER (insiden pencarian Atto 1).
-                        ->where(function ($q) use ($search) {
-                            $term = '%' . mb_strtolower($search) . '%';
-                            $q->whereRaw('LOWER(platform) LIKE ?', [$term])
-                                ->orWhereRaw('LOWER(CAST(pid_list AS CHAR)) LIKE ?', [$term]);
-                        })
-                        ->orderBy('platform')
-                        ->limit(50)
-                        ->get()
-                        ->mapWithKeys(fn (ObdVehicleProfile $p) => [$p->id => self::profileOptionLabel($p)])
-                        ->all())
+                    ->getSearchResultsUsing(function (string $search) {
+                        // Token-based AND: setiap kata harus ada (urutan bebas)
+                        // — "mini dolphin" menemukan "Dolphin Mini", "cs 3172"
+                        // menemukan platform CS-3172d0cd. Token 1 huruf
+                        // diabaikan (LIKE '%1%' mencocokkan hampir semua baris).
+                        // WAJIB LOWER() di kedua sisi: kolom json di MySQL 8
+                        // memakai collation utf8mb4_bin (case-sensitive) —
+                        // LIKE '%seagull%' tidak pernah cocok dgn "Seagull".
+                        $tokens = array_values(array_filter(
+                            preg_split('/\s+/', mb_strtolower(trim($search)), -1, PREG_SPLIT_NO_EMPTY) ?: [],
+                            fn (string $t) => mb_strlen($t) >= 2,
+                        ));
+                        if ($tokens === []) {
+                            return [];
+                        }
+
+                        return ObdVehicleProfile::query()
+                            ->with('modelVehicle.brandVehicle')
+                            ->where(function ($q) use ($tokens) {
+                                $q->where(function ($q1) use ($tokens) {
+                                    foreach ($tokens as $t) {
+                                        $q1->whereRaw('LOWER(platform) LIKE ?', ["%{$t}%"]);
+                                    }
+                                })->orWhere(function ($q2) use ($tokens) {
+                                    foreach ($tokens as $t) {
+                                        $q2->whereRaw('LOWER(CAST(pid_list AS CHAR)) LIKE ?', ["%{$t}%"]);
+                                    }
+                                });
+                            })
+                            ->orderBy('platform')
+                            ->limit(50)
+                            ->get()
+                            ->mapWithKeys(fn (ObdVehicleProfile $p) => [$p->id => self::profileOptionLabel($p)])
+                            ->all();
+                    })
                     ->getOptionLabelUsing(fn ($value): ?string => self::profileOptionLabel(
                         ObdVehicleProfile::query()->with('modelVehicle.brandVehicle')->find($value),
                     ))
