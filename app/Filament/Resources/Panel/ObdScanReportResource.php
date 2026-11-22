@@ -152,7 +152,11 @@ class ObdScanReportResource extends Resource
                     ->label('Model')
                     ->placeholder('-'),
                 TextColumn::make('adapter_type')
-                    ->badge(),
+                    ->badge(fn (string $state) => match ($state) {
+                        // DEMO-SEND (temporary): laporan sesi demo diabukan saat kurasi.
+                        'DEMO' => 'gray',
+                        default => 'info',
+                    }),
                 TextColumn::make('profile_match')
                     ->badge(fn (string $state) => match ($state) {
                         'seed', 'backend' => 'success',
@@ -179,6 +183,13 @@ class ObdScanReportResource extends Resource
                 Actions\ViewAction::make(),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('adapter_type')
+                    ->options([
+                        'WIFI' => 'WIFI',
+                        'BLE' => 'BLE',
+                        'SPP' => 'SPP',
+                        'DEMO' => 'DEMO (dev)',
+                    ]),
                 Tables\Filters\SelectFilter::make('profile_match')
                     ->options([
                         'unknown' => 'Unknown',
