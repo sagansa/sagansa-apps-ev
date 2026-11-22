@@ -150,4 +150,94 @@ class SeedObdProfileMappingTest extends TestCase
                 ->where('metadata->model_name', 'EV6 Profile')->sole()->model_vehicle_id,
         );
     }
+
+    // --- Regresi insiden 2026-11-22: 392 profil → Seres 3 via substring ---
+
+    private function createSeres3(): ModelVehicle
+    {
+        $brand = BrandVehicle::create(['name' => 'Seres']);
+        // Nama model pendek "3" — pencocokan substring lama mencocokkan SEMUA
+        // nama profil yang mengandung karakter "3".
+        return ModelVehicle::create(['name' => '3', 'brand_vehicle_id' => $brand->id]);
+    }
+
+    public function test_catalog_profile_never_auto_resolves_from_name(): void
+    {
+        $seres3 = $this->createSeres3();
+
+        // Nama profil mengandung "3" (2013) DAN nama profil exact sama dengan
+        // katalog — keduanya TIDAK boleh menghasilkan auto-resolve: mapping
+        // profil CS-* adalah tugas admin.
+        $this->writeProfile('aaaabbbbccccdddd', [
+            'brand' => 'Kia',
+            'modelName' => 'Soul PS 1.6 MPI (2013-2018)',
+        ]);
+        $this->writeProfile('1111222233334444', [
+            'brand' => 'Seres',
+            'modelName' => '3',
+        ]);
+        $this->seedProfiles(['--no-resolve' => false]);
+
+        $this->assertNull(
+            ObdVehicleProfile::where('platform', 'CS-aaaabbbb')->sole()->model_vehicle_id,
+        );
+        $this->assertNull(
+            ObdVehicleProfile::where('platform', 'CS-11112222')->sole()->model_vehicle_id,
+        );
+        $this->assertSame(0, ObdVehicleProfile::where('model_vehicle_id', $seres3->id)->count());
+    }
+
+    public function test_official_profile_exact_name_resolves(): void
+    {
+        $brand = BrandVehicle::create(['name' => 'Wuling']);
+        $model = ModelVehicle::create(['name' => 'Air EV', 'brand_vehicle_id' => $brand->id]);
+
+        // Profil resmi (non-CS): nama exact "Wuling Air EV" dicocokkan otomatis.
+        $this->writeProfile('xxxxyyyyzzzz1111', [
+            'platform' => 'BEV',
+            'brand' => 'Wuling',
+            'modelName' => 'Air EV',
+        ]);
+        $this->seedProfiles(['--no-resolve' => false]);
+
+        $this->assertSame(
+            $model->id,
+            ObdVehicleProfile::where('platform', 'BEV')->sole()->model_vehicle_id,
+        );
+    }
+
+    public function test_official_profile_substring_name_does_not_resolve(): void
+    {
+        $seres3 = $this->createSeres3();
+
+        // Profil resmi dengan nama panjang yang mengandung "3" — strict exact
+        // match tidak boleh meng-cocokkan model "3".
+        $this->writeProfile('xxxxyyyyzzzz1111', [
+            'platform' => 'BEV',
+            'brand' => 'Kia',
+            'modelName' => 'Soul PS 1.6 MPI (2013-2018)',
+        ]);
+        $this->seedProfiles(['--no-resolve' => false]);
+
+        $this->assertNull(
+            ObdVehicleProfile::where('platform', 'BEV')->sole()->model_vehicle_id,
+        );
+        $this->assertSame(0, ObdVehicleProfile::where('model_vehicle_id', $seres3->id)->count());
+    }
+
+    public function test_explicit_model_ambiguous_fails_loudly_and_skips(): void
+    {
+        $brandA = BrandVehicle::create(['name' => 'Seres']);
+        $seres3 = ModelVehicle::create(['name' => '3', 'brand_vehicle_id' => $brandA->id]);
+        $brandB = BrandVehicle::create(['name' => 'Zeekr']);
+        ModelVehicle::create(['name' => '3', 'brand_vehicle_id' => $brandB->id]);
+
+        $this->writeProfile('aaaabbbbccccdddd');
+        // --model "3" cocok dua model katalog → gagal jelas (RuntimeException
+        // ditangkap seeder → file di-skip TANPA membuat baris), bukan pick acak.
+        $this->seedProfiles(['--no-resolve' => false, '--model' => '3']);
+
+        $this->assertSame(0, ObdVehicleProfile::where('platform', 'CS-aaaabbbb')->count());
+        $this->assertSame(0, ObdVehicleProfile::where('model_vehicle_id', $seres3->id)->count());
+    }
 }

@@ -21,6 +21,7 @@ use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ModelVehicleResource extends Resource
 {
@@ -145,6 +146,11 @@ class ModelVehicleResource extends Resource
     {
         return $table
             ->poll('60s')
+            ->modifyQueryUsing(fn (Builder $query) => $query
+                // Cakupan profil OBD per model: total baris ter-mapping +
+                // berapa di antaranya seed resmi (grade official).
+                ->withCount('obdVehicleProfiles')
+                ->withCount(['obdVehicleProfiles as obd_official_count' => fn ($q) => $q->where('grade', 'official')]))
             ->columns([
                 ImageColumn::make('image')
                     ->label('Foto')
@@ -194,6 +200,25 @@ class ModelVehicleResource extends Resource
                     ->badge()
                     ->color('primary')
                     ->sortable(),
+
+                TextColumn::make('obd_vehicle_profiles_count')
+                    ->label('Profil OBD')
+                    // ★ = ada seed resmi (manual, cth. Wuling Air EV); angka =
+                    // jumlah profil ter-mapping (katalog CS-* + resmi);
+                    // "belum ada" = kandidat dibuat manual / dicarikan profil
+                    // katalog — layar kerja cakupan OBD.
+                    ->badge()
+                    ->color(fn ($state, $record) => match (true) {
+                        ($record->obd_official_count ?? 0) > 0 => 'success',
+                        $state > 0 => 'info',
+                        default => 'warning',
+                    })
+                    ->formatStateUsing(fn ($state, $record) => match (true) {
+                        ($record->obd_official_count ?? 0) > 0 => '★ ' . $state,
+                        $state > 0 => (string) $state,
+                        default => 'belum ada',
+                    })
+                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('brand_vehicle_id')
@@ -215,6 +240,16 @@ class ModelVehicleResource extends Resource
                     ->queries(
                         true: fn ($query) => $query->whereNotNull('category'),
                         false: fn ($query) => $query->whereNull('category'),
+                    ),
+
+                TernaryFilter::make('has_obd_profile')
+                    ->label('Status Profil OBD')
+                    ->placeholder('Semua Status')
+                    ->trueLabel('Sudah Ada Profil')
+                    ->falseLabel('Belum Ada Profil (Perlu Dikerjakan)')
+                    ->queries(
+                        true: fn (Builder $query) => $query->has('obdVehicleProfiles'),
+                        false: fn (Builder $query) => $query->doesntHave('obdVehicleProfiles'),
                     ),
             ], layout: FiltersLayout::AboveContent)
             ->recordActions([

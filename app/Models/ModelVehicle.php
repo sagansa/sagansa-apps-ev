@@ -44,4 +44,9 @@ class ModelVehicle extends Model
     {
         return $this->hasMany(Vehicle::class);
     }
+
+    public function obdVehicleProfiles()
+    {
+        return $this->hasMany(ObdVehicleProfile::class);
+    }
 }
