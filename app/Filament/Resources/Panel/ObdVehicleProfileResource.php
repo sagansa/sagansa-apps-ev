@@ -7,6 +7,7 @@ use App\Models\ObdVehicleProfile;
 use Filament\Actions;
 use Filament\Forms;
 use Filament\Schemas\Components\Grid;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\Select;
@@ -64,14 +65,38 @@ class ObdVehicleProfileResource extends Resource
 
                     Select::make('platform')
                         ->label('Platform')
-                        ->options([
-                            'E-GMP' => 'E-GMP',
-                            'BEV' => 'BEV',
-                            'PHEV' => 'PHEV',
-                            'HEV' => 'HEV',
-                            'ICE' => 'ICE',
-                            'universal' => 'Universal',
-                        ])
+                        // Platform adalah kunci upsert seeder: profil CS-* hasil
+                        // seed katalog Car Scanner tidak boleh berubah dari form
+                        // edit. Karena Select men-generate rule validasi `in`
+                        // dari opsi, nilai CS-* yang tidak ada di daftar statis
+                        // akan ditolak ("The selected Platform is invalid") dan
+                        // baris katalog tak bisa di-save. Untuk itu opsi ditutup
+                        // dengan platform record saat ini, field dinonaktifkan,
+                        // dan tidak didehydrasi untuk profil CS-*
+                        // (model_vehicle_id / years tetap bisa diedit — itu
+                        // tugas admin pemetaan).
+                        ->options(function (?ObdVehicleProfile $record): array {
+                            $options = [
+                                'E-GMP' => 'E-GMP',
+                                'BEV' => 'BEV',
+                                'PHEV' => 'PHEV',
+                                'HEV' => 'HEV',
+                                'ICE' => 'ICE',
+                                'universal' => 'Universal',
+                            ];
+
+                            if ($record !== null && str_starts_with((string) $record->platform, 'CS-')) {
+                                $options[$record->platform] = $record->platform;
+                            }
+
+                            return $options;
+                        })
+                        ->disabled(fn (?ObdVehicleProfile $record) => $record !== null && str_starts_with((string) $record->platform, 'CS-'))
+                        // Jaminan ganda: meski state platform dimanipulasi dari
+                        // client, nilai CS-* tidak pernah ditulis balik ke DB —
+                        // baris katalog bisa hilang dari seeder bila platform
+                        // berubah.
+                        ->dehydrated(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-'))
                         ->required(),
 
                     TextInput::make('vin_pattern')
@@ -121,32 +146,59 @@ class ObdVehicleProfileResource extends Resource
             ]),
 
             Section::make('PID Definitions')->schema([
+                // Informasi read-only pengganti repeater untuk profil CS-*:
+                // admin tetap melihat jumlah metrik tanpa bisa merusak kontrak
+                // JSON pid_list.
+                Placeholder::make('catalog_pid_info')
+                    ->label('PID Katalog Car Scanner')
+                    ->content(function (?ObdVehicleProfile $record): string {
+                        $metricCount = count($record->pid_list['metrics'] ?? []);
+
+                        return "{$metricCount} metrik dari katalog Car Scanner (read-only — diubah via generator)";
+                    })
+                    ->visible(fn (?ObdVehicleProfile $record) => $record !== null && str_starts_with((string) $record->platform, 'CS-')),
+
+                // pid_list untuk profil CS-* adalah kontrak JSON utuh mobile
+                // (metrics/platform/modelName/...), bukan array item repeater —
+                // dan seeder meng-upsert berdasarkan platform CS-*. Repeater
+                // akan meng-hydrate JSON tersebut sebagai item sampah; bila
+                // admin menghapusnya lalu save, pid_list tertimpa dan metrik
+                // hilang, dan re-seed berikutnya membuat baris CS-* duplikat.
+                // Untuk profil CS-* repeater dinonaktifkan dan tidak
+                // didehydrasi (read-only); editing PID hanya untuk profil manual.
                 Repeater::make('pid_list')
                     ->label('Supported PIDs')
+                    ->disabled(fn (?ObdVehicleProfile $record) => $record !== null && str_starts_with((string) $record->platform, 'CS-'))
+                    ->dehydrated(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-'))
                     ->schema([
                         Grid::make(['default' => 4])->schema([
+                            // Child field wajib isi hanya untuk profil manual —
+                            // hydrate JSON katalog CS-* menghasilkan item yang
+                            // tidak punya kolom-kolom ini; required statis akan
+                            // menggagalkan save profil CS-*
+                            // (required di-nonaktifkan, repeater read-only).
                             TextInput::make('mode')
                                 ->label('Mode')
                                 ->numeric()
-                                ->required()
+                                ->required(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-'))
                                 ->columnSpan(1),
 
                             TextInput::make('pid')
                                 ->label('PID')
                                 ->numeric()
-                                ->required()
+                                ->required(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-'))
                                 ->columnSpan(1),
 
                             TextInput::make('description')
                                 ->label('Description')
-                                ->required()
+                                ->required(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-'))
                                 ->columnSpan(2),
                         ]),
                         Grid::make(['default' => 3])->schema([
                             TextInput::make('formula')
                                 ->label('Formula')
                                 ->default('A')
-                                ->required(),
+                                ->required(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-')),
 
                             TextInput::make('unit')
                                 ->label('Unit')
@@ -241,6 +293,13 @@ class ObdVehicleProfileResource extends Resource
                         ->label('Assign to Model Vehicle')
                         ->icon('heroicon-o-link')
                         ->color('success')
+                        // Assign massal menyentuh banyak baris sekaligus —
+                        // bungkus dalam transaksi agar kegagalan di tengah
+                        // jalan tidak meninggalkan mapping setengah jadi.
+                        ->databaseTransaction()
+                        // Spesifikasi: form bulk menampilkan jumlah record
+                        // terpilih sebelum admin mengonfirmasi.
+                        ->modalDescription(fn (Collection $records) => "Assign {$records->count()} profil ke satu model katalog.")
                         ->form([
                             Select::make('brand_vehicle_id')
                                 ->label('Brand Vehicle')

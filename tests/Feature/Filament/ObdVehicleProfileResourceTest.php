@@ -145,4 +145,45 @@ class ObdVehicleProfileResourceTest extends TestCase
 
         $this->assertSame($ev6->id, $profile->refresh()->model_vehicle_id);
     }
+
+    public function test_edit_page_save_preserves_cs_platform_and_pid_list(): void
+    {
+        $brand = BrandVehicle::create(['name' => 'Hyundai']);
+        $model = ModelVehicle::create(['name' => 'IONIQ 5', 'brand_vehicle_id' => $brand->id]);
+
+        $profile = $this->makeProfile(['platform' => 'CS-eee5555', 'model_vehicle_id' => null]);
+
+        Livewire::actingAs($this->admin)
+            ->test(EditObdProfile::class, ['record' => $profile->getRouteKey()])
+            ->assertSuccessful()
+            // Admin mencoba "memperbaiki" platform & menyalin pid_list —
+            // keduanya tidak boleh tertulis ke DB untuk profil CS-*.
+            ->fillForm(['platform' => 'E-GMP'])
+            ->fillForm(['year_min' => 2021, 'year_max' => 2026])
+            ->call('save')
+            ->assertHasNoActionErrors();
+
+        $profile->refresh();
+        $this->assertSame('CS-eee5555', $profile->platform);
+        $this->assertSame(2, count($profile->pid_list['metrics'] ?? []));
+        $this->assertSame(2021, $profile->year_min);
+    }
+
+    public function test_edit_page_can_assign_model_on_cs_row(): void
+    {
+        $brand = BrandVehicle::create(['name' => 'Hyundai']);
+        $model = ModelVehicle::create(['name' => 'IONIQ 5', 'brand_vehicle_id' => $brand->id]);
+
+        $profile = $this->makeProfile(['platform' => 'CS-fff6666']);
+
+        Livewire::actingAs($this->admin)
+            ->test(EditObdProfile::class, ['record' => $profile->getRouteKey()])
+            ->assertSuccessful()
+            ->fillForm(['brand_vehicle_id' => $brand->id])
+            ->fillForm(['model_vehicle_id' => $model->id])
+            ->call('save')
+            ->assertHasNoActionErrors();
+
+        $this->assertSame($model->id, $profile->refresh()->model_vehicle_id);
+    }
 }
