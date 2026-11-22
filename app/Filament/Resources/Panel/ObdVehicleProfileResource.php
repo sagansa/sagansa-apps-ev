@@ -38,13 +38,27 @@ class ObdVehicleProfileResource extends Resource
         return $schema->schema([
             Section::make('Vehicle Info')->schema([
                 Grid::make(['default' => 2])->schema([
+                    Select::make('brand_vehicle_id')
+                        ->label('Brand Vehicle')
+                        // Field pembantu (form-only) — hanya model_vehicle_id
+                        // yang tersimpan di tabel.
+                        ->dehydrated(false)
+                        ->options(fn () => BrandVehicle::orderBy('name')->pluck('name', 'id'))
+                        ->searchable()
+                        ->live()
+                        ->afterStateUpdated(fn ($set) => $set('model_vehicle_id', null))
+                        ->afterStateHydrated(function (Select $component, ?ObdVehicleProfile $record) {
+                            if ($record?->modelVehicle?->brand_vehicle_id) {
+                                $component->state($record->modelVehicle->brand_vehicle_id);
+                            }
+                        }),
+
                     Select::make('model_vehicle_id')
                         ->label('Model Vehicle')
-                        ->options(fn () => ModelVehicle::with('brandVehicle')
-                            ->get()
-                            ->mapWithKeys(fn ($m) => [
-                                $m->id => ($m->brandVehicle?->name . ' ' . $m->name),
-                            ]))
+                        ->options(fn ($get) => ModelVehicle::query()
+                            ->when($get('brand_vehicle_id'), fn ($q, $brandId) => $q->where('brand_vehicle_id', $brandId))
+                            ->orderBy('name')
+                            ->pluck('name', 'id'))
                         ->searchable()
                         ->nullable(),
 

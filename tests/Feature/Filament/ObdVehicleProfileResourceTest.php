@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Filament;
 
+use App\Filament\Resources\Panel\ObdVehicleProfileResource\Pages\EditObdProfile;
 use App\Filament\Resources\Panel\ObdVehicleProfileResource\Pages\ListObdProfiles;
 use App\Models\BrandVehicle;
 use App\Models\ModelVehicle;
@@ -111,5 +112,37 @@ class ObdVehicleProfileResourceTest extends TestCase
             ->assertHasActionErrors();
 
         $this->assertNull($a->refresh()->model_vehicle_id);
+    }
+
+    public function test_edit_page_assigns_model_via_two_tier_select(): void
+    {
+        $hyundai = BrandVehicle::create(['name' => 'Hyundai']);
+        $ioniq = ModelVehicle::create(['name' => 'IONIQ 5', 'brand_vehicle_id' => $hyundai->id]);
+        $kia = BrandVehicle::create(['name' => 'Kia']);
+        $ev6 = ModelVehicle::create(['name' => 'EV6', 'brand_vehicle_id' => $kia->id]);
+
+        // Catatan: platform & pid_list dibentuk valid untuk form edit —
+        // platform CS-* tidak ada di opsi select dan pid_list katalog berbentuk
+        // JSON utuh (bukan array item repeater). Itu masalah pre-existing form,
+        // di luar cakupan test ini yang menguji select dua tingkat.
+        $profile = $this->makeProfile([
+            'platform' => 'BEV',
+            'model_vehicle_id' => $ioniq->id,
+            'pid_list' => [
+                ['mode' => 34, 'pid' => '0101', 'description' => 'Battery SoC BMS',
+                    'formula' => 'A*0.5', 'unit' => '%', 'category' => 'general'],
+            ],
+        ]);
+
+        Livewire::actingAs($this->admin)
+            ->test(EditObdProfile::class, ['record' => $profile->getRouteKey()])
+            ->assertSuccessful()
+            // Ganti brand → model lama di-reset oleh afterStateUpdated
+            ->fillForm(['brand_vehicle_id' => $kia->id])
+            ->fillForm(['model_vehicle_id' => $ev6->id])
+            ->call('save')
+            ->assertHasNoActionErrors();
+
+        $this->assertSame($ev6->id, $profile->refresh()->model_vehicle_id);
     }
 }
