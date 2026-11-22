@@ -6,11 +6,13 @@ use App\Filament\Forms\ImageFileUpload;
 use App\Filament\Resources\Panel\ModelVehicleResource\Pages;
 use App\Filament\Resources\Panel\ModelVehicleResource\RelationManagers;
 use App\Models\ModelVehicle;
+use App\Models\ObdVehicleProfile;
 use App\Support\VehicleCategories;
 use Filament\Actions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
@@ -22,6 +24,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class ModelVehicleResource extends Resource
 {
@@ -255,6 +258,51 @@ class ModelVehicleResource extends Resource
             ->recordActions([
                 Actions\EditAction::make(),
                 Actions\ViewAction::make(),
+
+                // Arah mapping sebaliknya: dari model katalog memilih profil
+                // OBD (katalog CS-* maupun resmi) langsung dari daftar model —
+                // melengkapi kolom Profil OBD + filter "Belum Ada Profil".
+                // Assign menimpa mapping lama profil terpilih (label opsi
+                // menampilkan mapping saat ini agar admin sadar memindahkan).
+                Actions\Action::make('pilihProfilObd')
+                    ->label('Pilih Profil OBD')
+                    ->icon('heroicon-o-cpu-chip')
+                    ->color('info')
+                    ->form([
+                        Select::make('profile_ids')
+                            ->label('Profil OBD untuk model ini')
+                            ->multiple()
+                            ->required()
+                            ->searchable()
+                            ->helperText('Ketik nama model/brand/hash. Format: [grade • metrik] Catalog Name → mapping saat ini. Aturan: pilih profil dengan metrik > 13 untuk EV; satu model cukup satu profil utama.')
+                            ->columnSpanFull()
+                            ->getSearchResultsUsing(fn (string $search) => ObdVehicleProfile::query()
+                                ->with('modelVehicle.brandVehicle')
+                                ->where(function ($q) use ($search) {
+                                    $q->where('platform', 'like', "%{$search}%")
+                                        ->orWhere('metadata->model_name', 'like', "%{$search}%")
+                                        ->orWhere('metadata->brand', 'like', "%{$search}%");
+                                })
+                                ->orderBy('metadata->model_name')
+                                ->limit(50)
+                                ->get()
+                                ->mapWithKeys(fn (ObdVehicleProfile $p) => [$p->id => self::profileOptionLabel($p)])
+                                ->all())
+                            ->getOptionLabelUsing(fn ($value): ?string => self::profileOptionLabel(
+                                ObdVehicleProfile::query()->with('modelVehicle.brandVehicle')->find($value),
+                            )),
+                    ])
+                    ->databaseTransaction()
+                    ->action(function (array $data, ModelVehicle $record) {
+                        $count = ObdVehicleProfile::query()
+                            ->whereIn('id', $data['profile_ids'] ?? [])
+                            ->update(['model_vehicle_id' => $record->id]);
+
+                        Notification::make()
+                            ->title("{$count} profil OBD di-assign ke {$record->brandVehicle?->name} {$record->name}")
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
@@ -275,6 +323,27 @@ class ModelVehicleResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    /** Label opsi pemilih profil: [grade • metrik] Catalog Name → mapping saat ini. */
+    public static function profileOptionLabel(?ObdVehicleProfile $p): ?string
+    {
+        if ($p === null) {
+            return null;
+        }
+
+        $metrics = count($p->pid_list['metrics'] ?? []);
+        $mapped = $p->modelVehicle !== null
+            ? trim(($p->modelVehicle->brandVehicle?->name ?? '') . ' ' . $p->modelVehicle->name)
+            : 'belum ter-map';
+
+        return sprintf(
+            '[%s • %d metrik] %s → %s',
+            $p->grade,
+            $metrics,
+            $p->metadata['model_name'] ?? $p->platform,
+            $mapped,
+        );
     }
 
     public static function getPages(): array
