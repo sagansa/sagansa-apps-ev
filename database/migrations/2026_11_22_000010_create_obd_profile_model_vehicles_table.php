@@ -18,8 +18,10 @@ return new class extends Migration {
             $table->foreignId('model_vehicle_id')->constrained('model_vehicles')->cascadeOnDelete();
             $table->timestamps();
 
-            $table->unique(['obd_vehicle_profile_id', 'model_vehicle_id']);
-            $table->index('model_vehicle_id');
+            // Nama index eksplisit pendek — nama otomatis Laravel melebihi
+            // batas identifier 64 karakter MySQL (id-dci-web1031).
+            $table->unique(['obd_vehicle_profile_id', 'model_vehicle_id'], 'obd_profile_model_unique');
+            $table->index('model_vehicle_id', 'obd_profile_model_model_idx');
         });
 
         // Backfill: mapping lama (model_vehicle_id tunggal) menjadi baris pivot.
