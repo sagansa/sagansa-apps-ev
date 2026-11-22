@@ -152,20 +152,23 @@ class ObdScanReportResource extends Resource
                     ->label('Model')
                     ->placeholder('-'),
                 TextColumn::make('adapter_type')
-                    ->badge(fn (string $state) => match ($state) {
-                        // DEMO-SEND (temporary): laporan sesi demo diabukan saat kurasi.
+                    // DEMO-SEND (temporary): laporan sesi demo ditandai abu saat kurasi.
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
                         'DEMO' => 'gray',
                         default => 'info',
                     }),
                 TextColumn::make('profile_match')
-                    ->badge(fn (string $state) => match ($state) {
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
                         'seed', 'backend' => 'success',
                         'universal' => 'warning',
                         default => 'danger',
                     }),
                 TextColumn::make('review_status')
                     ->label('Review')
-                    ->badge(fn (string $state) => match ($state) {
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
                         'reviewed' => 'info',
                         'promoted' => 'success',
                         'discarded' => 'gray',
@@ -183,6 +186,7 @@ class ObdScanReportResource extends Resource
                 Actions\ViewAction::make(),
             ])
             ->filters([
+                // DEMO-SEND (temporary): filter laporan demo utk kurasi.
                 Tables\Filters\SelectFilter::make('adapter_type')
                     ->options([
                         'WIFI' => 'WIFI',
