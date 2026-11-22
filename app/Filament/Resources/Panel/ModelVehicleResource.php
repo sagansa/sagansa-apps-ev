@@ -325,13 +325,14 @@ class ModelVehicleResource extends Resource
                     ->getSearchResultsUsing(fn (string $search) => ObdVehicleProfile::query()
                         ->with('modelVehicle.brandVehicle')
                         // Cari di pid_list (JSON profil UTUH — berisi modelName
-                        // & brand) + platform: LIKE raw tanpa fungsi JSON, aman
-                        // di semua versi MySQL/MariaDB. Path JSON
-                        // (metadata->model_name) ternyata tak reliable di
-                        // beberapa versi hosting → 0 hasil diam-diam.
+                        // & brand) + platform. WAJIB LOWER() di kedua sisi:
+                        // kolom json di MySQL 8 memakai collation utf8mb4_bin
+                        // (case-sensitive) — LIKE '%seagull%' tidak pernah cocok
+                        // dengan "Seagull" tanpa LOWER (insiden pencarian Atto 1).
                         ->where(function ($q) use ($search) {
-                            $q->where('platform', 'like', "%{$search}%")
-                                ->orWhere('pid_list', 'like', "%{$search}%");
+                            $term = '%' . mb_strtolower($search) . '%';
+                            $q->whereRaw('LOWER(platform) LIKE ?', [$term])
+                                ->orWhereRaw('LOWER(CAST(pid_list AS CHAR)) LIKE ?', [$term]);
                         })
                         ->orderBy('platform')
                         ->limit(50)
@@ -340,7 +341,17 @@ class ModelVehicleResource extends Resource
                         ->all())
                     ->getOptionLabelUsing(fn ($value): ?string => self::profileOptionLabel(
                         ObdVehicleProfile::query()->with('modelVehicle.brandVehicle')->find($value),
-                    )),
+                    ))
+                    // WAJIB (bentuk jamak) untuk Select multiple lazy-search:
+                    // validasi opsi terpilih saat submit — tanpa ini Filament
+                    // melempar LogicException "did not have an [options()] or
+                    // [getOptionLabelsUsing()] configuration".
+                    ->getOptionLabelsUsing(fn (array $values): array => ObdVehicleProfile::query()
+                        ->with('modelVehicle.brandVehicle')
+                        ->whereIn('id', $values)
+                        ->get()
+                        ->mapWithKeys(fn (ObdVehicleProfile $p) => [$p->id => self::profileOptionLabel($p)])
+                        ->all()),
             ])
             ->databaseTransaction()
             ->action(function (array $data, ModelVehicle $record) {
