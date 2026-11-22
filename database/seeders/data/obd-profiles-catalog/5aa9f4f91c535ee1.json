@@ -1,11 +1,11 @@
 {
  "platform": "CS-5aa9f4f9",
- "brand": null,
- "modelName": "Katalog CS 5aa9f4f9",
+ "brand": "Kia",
+ "modelName": "Optima JF PHEV (2016-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

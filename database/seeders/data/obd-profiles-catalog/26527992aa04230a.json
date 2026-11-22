@@ -1,11 +1,11 @@
 {
  "platform": "CS-26527992",
- "brand": null,
- "modelName": "Katalog CS 26527992",
+ "brand": "Kia",
+ "modelName": "Niro PHEV gen.1 (2016-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

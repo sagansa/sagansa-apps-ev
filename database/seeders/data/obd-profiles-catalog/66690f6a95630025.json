@@ -1,10 +1,10 @@
 {
  "platform": "CS-66690f6a",
- "brand": null,
- "modelName": "Katalog CS 66690f6a",
+ "brand": "Toyota",
+ "modelName": "WWH-OBD ICE (CAN 29 bit) (2026-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2026,
  "yearMax": null,
  "grade": "community",
  "version": 1,

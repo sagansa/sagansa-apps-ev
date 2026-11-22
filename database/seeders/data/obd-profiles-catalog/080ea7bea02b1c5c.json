@@ -1,10 +1,10 @@
 {
  "platform": "CS-080ea7be",
- "brand": null,
- "modelName": "Katalog CS 080ea7be",
+ "brand": "Hyundai",
+ "modelName": "i30 PD (2019-n.d.) CRDI Diesel TCI-NEW U",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,10 +1,10 @@
 {
  "platform": "CS-8ecf1248",
- "brand": null,
- "modelName": "Katalog CS 8ecf1248",
+ "brand": "Chevrolet",
+ "modelName": "WWH-OBD + CAN and extra PIDs (2025-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2025,
  "yearMax": null,
  "grade": "community",
  "version": 1,

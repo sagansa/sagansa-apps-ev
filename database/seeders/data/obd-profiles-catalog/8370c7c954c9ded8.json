@@ -1,10 +1,10 @@
 {
  "platform": "CS-8370c7c9",
- "brand": null,
- "modelName": "Katalog CS 8370c7c9",
+ "brand": "Great Wall",
+ "modelName": "H5 Gen.2 (2023-) 4D20M",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2023,
  "yearMax": null,
  "grade": "community",
  "version": 1,

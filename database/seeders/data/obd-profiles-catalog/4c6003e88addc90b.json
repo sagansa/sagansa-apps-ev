@@ -1,11 +1,11 @@
 {
  "platform": "CS-4c6003e8",
- "brand": null,
- "modelName": "Katalog CS 4c6003e8",
+ "brand": "Kia",
+ "modelName": "Soul AM 1.6 CRDI Diesel (2008-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-f6b2ec1e",
- "brand": null,
- "modelName": "Fiat: Ducato; Peugeot: Boxer/Manager; Citroen: Relay/Jumper; RAM: ProMaster; Opel/Vauxhall: Movano 2.0 HDI / 2.2 HDI (2021-)",
+ "brand": "Volvo",
+ "modelName": "EX90 (2024 - n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2021,
+ "yearMin": 2024,
  "yearMax": null,
  "grade": "community",
  "version": 1,

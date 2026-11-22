@@ -1,10 +1,10 @@
 {
  "platform": "CS-daaa0fb1",
- "brand": null,
- "modelName": "Katalog CS daaa0fb1",
+ "brand": "GAC",
+ "modelName": "GS8 Gen.2 (2021-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

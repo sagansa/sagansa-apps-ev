@@ -1,10 +1,10 @@
 {
  "platform": "CS-5e2a04b8",
- "brand": null,
- "modelName": "Katalog CS 5e2a04b8",
+ "brand": "Kia",
+ "modelName": "Ceed CD, Pro Ceed, XCeed 1.6 CRDI Diesel (2018-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2018,
  "yearMax": null,
  "grade": "community",
  "version": 1,

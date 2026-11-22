@@ -1,11 +1,11 @@
 {
  "platform": "CS-6d06b836",
- "brand": null,
- "modelName": "Katalog CS 6d06b836",
+ "brand": "Hyundai",
+ "modelName": "Sonata YF 2.0 LPI (2009-2014)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2009,
+ "yearMax": 2014,
  "grade": "community",
  "version": 1,
  "metrics": [

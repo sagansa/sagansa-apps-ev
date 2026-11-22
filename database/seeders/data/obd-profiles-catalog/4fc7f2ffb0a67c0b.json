@@ -1,10 +1,10 @@
 {
  "platform": "CS-4fc7f2ff",
- "brand": null,
- "modelName": "Katalog CS 4fc7f2ff",
+ "brand": "Mitsubishi",
+ "modelName": "Outlander IV 1.5T 4B40 (2022-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2022,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,10 +1,10 @@
 {
  "platform": "CS-74b87f1f",
- "brand": null,
- "modelName": "Katalog CS 74b87f1f",
+ "brand": "Kia",
+ "modelName": "Sonet 1.5 U2 CRDI Diesel (2020-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

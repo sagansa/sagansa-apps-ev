@@ -1,11 +1,11 @@
 {
  "platform": "CS-cbfbd7ae",
- "brand": null,
- "modelName": "Katalog CS cbfbd7ae",
+ "brand": "Kia",
+ "modelName": "Cerato / K3 / Forte BD (2018-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

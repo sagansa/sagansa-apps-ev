@@ -1,11 +1,11 @@
 {
  "platform": "CS-25a29d17",
- "brand": null,
- "modelName": "Katalog CS 25a29d17",
+ "brand": "Hyundai",
+ "modelName": "Sonata LF 2.0 LPI (2014-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

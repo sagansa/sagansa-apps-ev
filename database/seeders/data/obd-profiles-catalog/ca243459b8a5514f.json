@@ -1,11 +1,11 @@
 {
  "platform": "CS-ca243459",
- "brand": null,
- "modelName": "Katalog CS ca243459",
+ "brand": "Hyundai",
+ "modelName": "i20 PB 1.2 MPI (2008-2013)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2013,
  "grade": "community",
  "version": 1,
  "metrics": [

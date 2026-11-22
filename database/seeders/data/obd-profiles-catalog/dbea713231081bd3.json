@@ -1,10 +1,10 @@
 {
  "platform": "CS-dbea7132",
- "brand": null,
- "modelName": "Katalog CS dbea7132",
+ "brand": "Dodge",
+ "modelName": "Mirage (2012-), Space Star, Dodge Attitude 1.2",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2012,
  "yearMax": null,
  "grade": "community",
  "version": 1,

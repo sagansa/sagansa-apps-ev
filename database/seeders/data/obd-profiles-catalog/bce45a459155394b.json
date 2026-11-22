@@ -1,11 +1,11 @@
 {
  "platform": "CS-bce45a45",
- "brand": null,
- "modelName": "Katalog CS bce45a45",
+ "brand": "Kia",
+ "modelName": "Sportage III SL 1.6 GDI (2010-2016)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

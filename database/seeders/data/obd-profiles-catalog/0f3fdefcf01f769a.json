@@ -1,10 +1,10 @@
 {
  "platform": "CS-0f3fdefc",
- "brand": null,
- "modelName": "Katalog CS 0f3fdefc",
+ "brand": "Kia",
+ "modelName": "K5 (DL3) 2.5 (2019-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

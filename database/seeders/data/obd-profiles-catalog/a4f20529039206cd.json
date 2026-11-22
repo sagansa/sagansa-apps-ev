@@ -1,11 +1,11 @@
 {
  "platform": "CS-a4f20529",
- "brand": null,
- "modelName": "Katalog CS a4f20529",
+ "brand": "Hyundai",
+ "modelName": "Sonata YF/i45 2.0/2.4 MPI/GDI (2009-2014)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2009,
+ "yearMax": 2014,
  "grade": "community",
  "version": 1,
  "metrics": [

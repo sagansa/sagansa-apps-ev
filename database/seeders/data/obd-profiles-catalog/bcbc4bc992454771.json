@@ -1,11 +1,11 @@
 {
  "platform": "CS-bcbc4bc9",
- "brand": null,
- "modelName": "Katalog CS bcbc4bc9",
+ "brand": "Hyundai",
+ "modelName": "Sonata LF 2.0 MPI (2014-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

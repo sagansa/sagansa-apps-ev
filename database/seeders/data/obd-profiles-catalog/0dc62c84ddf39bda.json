@@ -1,10 +1,10 @@
 {
  "platform": "CS-0dc62c84",
- "brand": null,
- "modelName": "Katalog CS 0dc62c84",
+ "brand": "Ford",
+ "modelName": "Explorer Gen.6 3.0L (2020-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,10 +1,10 @@
 {
  "platform": "CS-5b0255bf",
- "brand": null,
- "modelName": "Katalog CS 5b0255bf",
+ "brand": "Mercedes-Benz",
+ "modelName": "Sprinter II (2006-), NCV3",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2006,
  "yearMax": null,
  "grade": "community",
  "version": 1,

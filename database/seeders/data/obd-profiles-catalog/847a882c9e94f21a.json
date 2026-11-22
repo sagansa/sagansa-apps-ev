@@ -1,11 +1,11 @@
 {
  "platform": "CS-847a882c",
- "brand": null,
- "modelName": "Katalog CS 847a882c",
+ "brand": "Kia",
+ "modelName": "Rio II (JB) 1.4/1.6 MPI (2005-2011)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2005,
+ "yearMax": 2011,
  "grade": "community",
  "version": 1,
  "metrics": [

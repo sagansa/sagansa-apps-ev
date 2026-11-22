@@ -1,11 +1,11 @@
 {
  "platform": "CS-dec9c088",
- "brand": null,
- "modelName": "Katalog CS dec9c088",
+ "brand": "Hyundai",
+ "modelName": "Santa Fe TM PE 2.5 T-GDI + DCT (2020-2023)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2020,
+ "yearMax": 2023,
  "grade": "community",
  "version": 1,
  "metrics": [

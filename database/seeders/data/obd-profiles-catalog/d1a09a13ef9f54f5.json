@@ -1,11 +1,11 @@
 {
  "platform": "CS-d1a09a13",
- "brand": null,
- "modelName": "Katalog CS d1a09a13",
+ "brand": "Hyundai",
+ "modelName": "Ioniq EV (2016-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

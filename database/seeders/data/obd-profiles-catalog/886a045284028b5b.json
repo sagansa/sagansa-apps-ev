@@ -1,11 +1,11 @@
 {
  "platform": "CS-886a0452",
- "brand": null,
- "modelName": "Katalog CS 886a0452",
+ "brand": "MAN",
+ "modelName": "Crafter NF 2016-2019, TGE 1 2.0 TDI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

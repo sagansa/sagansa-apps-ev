@@ -1,10 +1,10 @@
 {
  "platform": "CS-e6146b7a",
- "brand": null,
- "modelName": "Katalog CS e6146b7a",
+ "brand": "Jaguar",
+ "modelName": "F-Type 3.0 Superchared PS306 (2018-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2018,
  "yearMax": null,
  "grade": "community",
  "version": 1,

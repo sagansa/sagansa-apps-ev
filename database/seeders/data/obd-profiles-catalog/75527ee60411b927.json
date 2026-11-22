@@ -1,11 +1,11 @@
 {
  "platform": "CS-75527ee6",
- "brand": null,
- "modelName": "Katalog CS 75527ee6",
+ "brand": "Kia",
+ "modelName": "Sportage II KM 2.0 MPI CAN (2008-2010)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2010,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-70b7538a",
- "brand": null,
- "modelName": "Katalog CS 70b7538a",
+ "brand": "Hyundai",
+ "modelName": "Sonata NF-B 2.0/2.4 MPI (2004-2010)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2004,
+ "yearMax": 2010,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-848c685d",
- "brand": null,
- "modelName": "Katalog CS 848c685d",
+ "brand": "Volvo",
+ "modelName": "2014-2018 VEA engine (not SPA)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-e7088ee5",
- "brand": null,
- "modelName": "Katalog CS e7088ee5",
+ "brand": "Hyundai",
+ "modelName": "Tucson LM, ix35 EL 2.0 CRDI Diesel 2WD (2009-2015)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2009,
+ "yearMax": 2015,
  "grade": "community",
  "version": 1,
  "metrics": [

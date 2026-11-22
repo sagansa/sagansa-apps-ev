@@ -1,11 +1,11 @@
 {
  "platform": "CS-b463237b",
- "brand": null,
- "modelName": "Katalog CS b463237b",
+ "brand": "Kia",
+ "modelName": "Sportage II KM 2.0 MPI K-Line/KWP (2004-2008)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2004,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

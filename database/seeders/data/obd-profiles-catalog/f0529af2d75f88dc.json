@@ -1,10 +1,10 @@
 {
  "platform": "CS-f0529af2",
- "brand": null,
- "modelName": "Katalog CS f0529af2",
+ "brand": "Kia",
+ "modelName": "Sportage ACE (China) 2.0 MPi (2021-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

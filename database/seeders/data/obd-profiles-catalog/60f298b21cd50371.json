@@ -1,10 +1,10 @@
 {
  "platform": "CS-60f298b2",
- "brand": null,
- "modelName": "Katalog CS 60f298b2",
+ "brand": "GMC",
+ "modelName": "Corolla Hybrid 2020-, RAV4 Hybrid 2019-, Camry Hybrid 2018-, Avalon Hybrid 2019-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

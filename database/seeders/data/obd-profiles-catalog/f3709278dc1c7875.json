@@ -1,11 +1,11 @@
 {
  "platform": "CS-f3709278",
- "brand": null,
- "modelName": "Katalog CS f3709278",
+ "brand": "Kia",
+ "modelName": "Sorento BL CRDI Diesel K-LINE (2002-2008)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2002,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

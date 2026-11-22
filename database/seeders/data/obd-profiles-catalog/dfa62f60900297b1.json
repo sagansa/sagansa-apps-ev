@@ -1,10 +1,10 @@
 {
  "platform": "CS-dfa62f60",
- "brand": null,
- "modelName": "Katalog CS dfa62f60",
+ "brand": "GAC",
+ "modelName": "Aion Y Plus; Aion V Gen.2 (2024-) (BMS: G-Pulse)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2024,
  "yearMax": null,
  "grade": "community",
  "version": 1,

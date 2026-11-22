@@ -1,10 +1,10 @@
 {
  "platform": "CS-77004078",
- "brand": null,
- "modelName": "Katalog CS 77004078",
+ "brand": "Haval",
+ "modelName": "Tank 300 2.0T 4C20B/E20CB + 8AT (2025-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2025,
  "yearMax": null,
  "grade": "community",
  "version": 1,

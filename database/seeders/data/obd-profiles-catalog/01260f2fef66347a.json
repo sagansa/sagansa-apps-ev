@@ -1,11 +1,11 @@
 {
  "platform": "CS-01260f2f",
- "brand": null,
- "modelName": "Katalog CS 01260f2f",
+ "brand": "Hyundai",
+ "modelName": "Ioniq HEV (2020-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2020,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

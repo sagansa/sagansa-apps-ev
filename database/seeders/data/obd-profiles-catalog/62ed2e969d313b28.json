@@ -1,11 +1,11 @@
 {
  "platform": "CS-62ed2e96",
- "brand": null,
- "modelName": "Katalog CS 62ed2e96",
+ "brand": "Land Rover",
+ "modelName": "Discovery 4 3.0L OBD-II + Extra / RangeRover 2009-2012 5.0L",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2009,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

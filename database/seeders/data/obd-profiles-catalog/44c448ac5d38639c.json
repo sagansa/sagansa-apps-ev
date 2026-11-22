@@ -1,11 +1,11 @@
 {
  "platform": "CS-44c448ac",
- "brand": null,
- "modelName": "Katalog CS 44c448ac",
+ "brand": "Hyundai",
+ "modelName": "Grandeur VI (IG) 3.0 V6 GDI (2016-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

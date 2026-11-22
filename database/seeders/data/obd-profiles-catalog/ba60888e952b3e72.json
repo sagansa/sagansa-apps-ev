@@ -1,10 +1,10 @@
 {
  "platform": "CS-ba60888e",
- "brand": null,
- "modelName": "Katalog CS ba60888e",
+ "brand": "Kia",
+ "modelName": "Niro SG2 PHEV (2022-n.d.) Gen.2",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2022,
  "yearMax": null,
  "grade": "community",
  "version": 1,

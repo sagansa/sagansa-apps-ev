@@ -1,10 +1,10 @@
 {
  "platform": "CS-77821232",
- "brand": null,
- "modelName": "Katalog CS 77821232",
+ "brand": "Hyundai",
+ "modelName": "Sonata (DN8) 2.0 LPI 2019-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

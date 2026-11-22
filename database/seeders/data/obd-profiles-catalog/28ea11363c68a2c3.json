@@ -1,11 +1,11 @@
 {
  "platform": "CS-28ea1136",
- "brand": null,
- "modelName": "Katalog CS 28ea1136",
+ "brand": "Hyundai",
+ "modelName": "Grand Starex / H-1 (TQ) 2.5L 4D56 Diesel (2013-2017)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

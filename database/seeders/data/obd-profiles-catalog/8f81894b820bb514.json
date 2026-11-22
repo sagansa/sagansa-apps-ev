@@ -1,10 +1,10 @@
 {
  "platform": "CS-8f81894b",
- "brand": null,
- "modelName": "Katalog CS 8f81894b",
+ "brand": "Kia",
+ "modelName": "Sorento XM 2.0/2.2 CRDI Diesel (2013-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2013,
  "yearMax": null,
  "grade": "community",
  "version": 1,

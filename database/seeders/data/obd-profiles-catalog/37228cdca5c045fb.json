@@ -1,10 +1,10 @@
 {
  "platform": "CS-37228cdc",
- "brand": null,
- "modelName": "Katalog CS 37228cdc",
+ "brand": "Kia",
+ "modelName": "Ceed CD, ProCeed, XCeed 1.5T (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

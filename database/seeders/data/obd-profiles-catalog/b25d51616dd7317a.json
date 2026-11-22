@@ -1,10 +1,10 @@
 {
  "platform": "CS-b25d5161",
- "brand": null,
- "modelName": "Katalog CS b25d5161",
+ "brand": "Kia",
+ "modelName": "Sorento 4 MQ4 HEV (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

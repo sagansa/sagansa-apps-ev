@@ -1,11 +1,11 @@
 {
  "platform": "CS-a1937b45",
- "brand": null,
- "modelName": "Katalog CS a1937b45",
+ "brand": "Kia",
+ "modelName": "Optima/K5 TF 2.0 GDI (2010-2015)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2015,
  "grade": "community",
  "version": 1,
  "metrics": [

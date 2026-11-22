@@ -1,11 +1,11 @@
 {
  "platform": "CS-197d3f3a",
- "brand": null,
- "modelName": "Katalog CS 197d3f3a",
+ "brand": "Kia",
+ "modelName": "Sportage 4 (QL) 2.4 GDI 4WD (2016-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

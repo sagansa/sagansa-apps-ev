@@ -1,11 +1,11 @@
 {
  "platform": "CS-8a5add1c",
- "brand": null,
- "modelName": "Katalog CS 8a5add1c",
+ "brand": "Jaguar",
+ "modelName": "XJ 2010-2012",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

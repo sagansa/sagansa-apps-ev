@@ -1,10 +1,10 @@
 {
  "platform": "CS-be7f34f0",
- "brand": null,
- "modelName": "Katalog CS be7f34f0",
+ "brand": "Haval",
+ "modelName": "H6 gen.3 (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

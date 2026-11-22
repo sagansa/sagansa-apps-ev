@@ -1,11 +1,11 @@
 {
  "platform": "CS-c8140e78",
- "brand": null,
- "modelName": "Katalog CS c8140e78",
+ "brand": "Jeep",
+ "modelName": "Grand Cherokee CRD 2007-2008",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-09e57e97",
- "brand": null,
- "modelName": "Katalog CS 09e57e97",
+ "brand": "Toyota",
+ "modelName": "WWH-OBD EV (CAN 29 bit) (2026-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2026,
  "yearMax": null,
  "grade": "community",
  "version": 1,

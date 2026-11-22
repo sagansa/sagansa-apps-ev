@@ -1,11 +1,11 @@
 {
  "platform": "CS-6ea31bf5",
- "brand": null,
- "modelName": "Katalog CS 6ea31bf5",
+ "brand": "Dodge",
+ "modelName": "RAM 6.7 2013-2019",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

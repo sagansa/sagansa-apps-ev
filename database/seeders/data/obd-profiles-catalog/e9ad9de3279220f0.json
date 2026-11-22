@@ -1,11 +1,11 @@
 {
  "platform": "CS-e9ad9de3",
- "brand": null,
- "modelName": "Katalog CS e9ad9de3",
+ "brand": "Hyundai",
+ "modelName": "Sonata LF 2.0 T-GDI (2017-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

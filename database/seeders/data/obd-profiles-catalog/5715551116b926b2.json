@@ -1,11 +1,11 @@
 {
  "platform": "CS-57155511",
- "brand": null,
- "modelName": "Katalog CS 57155511",
+ "brand": "Hyundai",
+ "modelName": "Grandeur 4 (TG) (2005-2010)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2005,
+ "yearMax": 2010,
  "grade": "community",
  "version": 1,
  "metrics": [

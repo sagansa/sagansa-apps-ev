@@ -1,11 +1,11 @@
 {
  "platform": "CS-ac12068b",
- "brand": null,
- "modelName": "Katalog CS ac12068b",
+ "brand": "MG",
+ "modelName": "MG5 2021-2022",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2021,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

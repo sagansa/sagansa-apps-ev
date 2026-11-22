@@ -1,11 +1,11 @@
 {
  "platform": "CS-0a628476",
- "brand": null,
- "modelName": "Katalog CS 0a628476",
+ "brand": "Kia",
+ "modelName": "Cerato / K3 / Forte BD 1.6 MPI (2018-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

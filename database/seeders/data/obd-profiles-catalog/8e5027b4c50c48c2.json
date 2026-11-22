@@ -1,11 +1,11 @@
 {
  "platform": "CS-8e5027b4",
- "brand": null,
- "modelName": "Katalog CS 8e5027b4",
+ "brand": "Hyundai",
+ "modelName": "Tucson JM-A 2.0 CRDI (K-Line/KWP) (2004-2008)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2004,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

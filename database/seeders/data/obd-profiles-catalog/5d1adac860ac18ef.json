@@ -1,11 +1,11 @@
 {
  "platform": "CS-5d1adac8",
- "brand": null,
- "modelName": "Katalog CS 5d1adac8",
+ "brand": "Land Rover",
+ "modelName": "Range Rover 2014-2015 L405 3.0 SC Gasoline",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2015,
  "grade": "community",
  "version": 1,
  "metrics": [

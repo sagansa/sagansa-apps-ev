@@ -1,11 +1,11 @@
 {
  "platform": "CS-b654bce7",
- "brand": null,
- "modelName": "Katalog CS b654bce7",
+ "brand": "Kia",
+ "modelName": "Carens/Rondo 3 RP (2012-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2012,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

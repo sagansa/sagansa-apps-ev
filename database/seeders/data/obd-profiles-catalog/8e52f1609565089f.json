@@ -1,10 +1,10 @@
 {
  "platform": "CS-8e52f160",
- "brand": null,
- "modelName": "Katalog CS 8e52f160",
+ "brand": "Citroen",
+ "modelName": "Citroen e-C3 CC21 (2024-) / Fiat Grande Panda EV (2025-) / Opel Frontera EV (2024-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2024,
  "yearMax": null,
  "grade": "community",
  "version": 1,

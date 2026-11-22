@@ -1,11 +1,11 @@
 {
  "platform": "CS-8e6fde44",
- "brand": null,
- "modelName": "Katalog CS 8e6fde44",
+ "brand": "BYD",
+ "modelName": "OBD-II / EOBD ~1999-2008 K-Line/KWP + extra sensors",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 1999,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

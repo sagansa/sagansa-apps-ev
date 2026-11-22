@@ -1,11 +1,11 @@
 {
  "platform": "CS-14ef71a3",
- "brand": null,
- "modelName": "Katalog CS 14ef71a3",
+ "brand": "Hyundai",
+ "modelName": "Elantra/Avante AD 1.6 LPI (2015-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-9a73d71c",
- "brand": null,
- "modelName": "Katalog CS 9a73d71c",
+ "brand": "Nissan",
+ "modelName": "Rogue / X-Trail T33 (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

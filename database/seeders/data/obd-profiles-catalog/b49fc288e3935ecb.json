@@ -1,10 +1,10 @@
 {
  "platform": "CS-b49fc288",
- "brand": null,
- "modelName": "Katalog CS b49fc288",
+ "brand": "Hyundai",
+ "modelName": "Tucson NX4 HEV (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

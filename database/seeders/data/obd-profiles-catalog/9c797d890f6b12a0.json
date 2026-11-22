@@ -1,11 +1,11 @@
 {
  "platform": "CS-9c797d89",
- "brand": null,
- "modelName": "Katalog CS 9c797d89",
+ "brand": "Hyundai",
+ "modelName": "Tucson TL 1.7 CRDI Diesel (2015-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

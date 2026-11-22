@@ -1,11 +1,11 @@
 {
  "platform": "CS-30411814",
- "brand": null,
- "modelName": "Katalog CS 30411814",
+ "brand": "Honda",
+ "modelName": "Insight II (2010-2014)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2014,
  "grade": "community",
  "version": 1,
  "metrics": [

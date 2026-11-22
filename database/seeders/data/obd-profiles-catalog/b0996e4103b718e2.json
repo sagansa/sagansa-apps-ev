@@ -1,11 +1,11 @@
 {
  "platform": "CS-b0996e41",
- "brand": null,
- "modelName": "Katalog CS b0996e41",
+ "brand": "Jaguar",
+ "modelName": "XF 2008-2009 (Gasoline V8, V6)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2009,
  "grade": "community",
  "version": 1,
  "metrics": [

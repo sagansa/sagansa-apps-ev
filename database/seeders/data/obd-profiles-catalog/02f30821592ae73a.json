@@ -1,10 +1,10 @@
 {
  "platform": "CS-02f30821",
- "brand": null,
- "modelName": "Katalog CS 02f30821",
+ "brand": "Mercedes-Benz",
+ "modelName": "OM654 2.2 Diesel (2018-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2018,
  "yearMax": null,
  "grade": "community",
  "version": 1,

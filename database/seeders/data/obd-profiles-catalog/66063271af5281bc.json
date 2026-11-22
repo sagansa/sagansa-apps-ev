@@ -1,10 +1,10 @@
 {
  "platform": "CS-66063271",
- "brand": null,
- "modelName": "Katalog CS 66063271",
+ "brand": "Hyundai",
+ "modelName": "Tucson NX4 (2021-) 2.5 GDI + AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

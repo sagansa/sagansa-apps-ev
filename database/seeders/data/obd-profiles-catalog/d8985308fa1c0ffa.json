@@ -1,11 +1,11 @@
 {
  "platform": "CS-d8985308",
- "brand": null,
- "modelName": "Katalog CS d8985308",
+ "brand": "Kia",
+ "modelName": "Cadenza VG / K7 (2010-2016) 2.4 GDI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

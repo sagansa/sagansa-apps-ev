@@ -1,10 +1,10 @@
 {
  "platform": "CS-747707c2",
- "brand": null,
- "modelName": "Katalog CS 747707c2",
+ "brand": "Hyundai",
+ "modelName": "Staria US4 3.5 MPI (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

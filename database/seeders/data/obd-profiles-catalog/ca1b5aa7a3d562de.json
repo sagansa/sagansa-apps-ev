@@ -1,10 +1,10 @@
 {
  "platform": "CS-ca1b5aa7",
- "brand": null,
- "modelName": "Katalog CS ca1b5aa7",
+ "brand": "Leapmotor",
+ "modelName": "C11 (2023-present)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2023,
  "yearMax": null,
  "grade": "community",
  "version": 1,

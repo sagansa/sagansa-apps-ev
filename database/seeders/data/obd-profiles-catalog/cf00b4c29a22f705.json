@@ -1,11 +1,11 @@
 {
  "platform": "CS-cf00b4c2",
- "brand": null,
- "modelName": "Katalog CS cf00b4c2",
+ "brand": "Jeep",
+ "modelName": "Wrangler JK 2007-2011",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2011,
  "grade": "community",
  "version": 1,
  "metrics": [

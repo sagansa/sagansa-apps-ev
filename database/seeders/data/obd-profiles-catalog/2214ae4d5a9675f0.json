@@ -1,11 +1,11 @@
 {
  "platform": "CS-2214ae4d",
- "brand": null,
- "modelName": "Katalog CS 2214ae4d",
+ "brand": "Hyundai",
+ "modelName": "HB20 BR (2012-2018) 1.6 MPI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2012,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

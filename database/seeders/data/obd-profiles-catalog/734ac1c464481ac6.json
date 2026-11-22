@@ -1,10 +1,10 @@
 {
  "platform": "CS-734ac1c4",
- "brand": null,
- "modelName": "Katalog CS 734ac1c4",
+ "brand": "Hyundai",
+ "modelName": "Santa Fe MX5 2.5 GDI (2024-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2024,
  "yearMax": null,
  "grade": "community",
  "version": 1,

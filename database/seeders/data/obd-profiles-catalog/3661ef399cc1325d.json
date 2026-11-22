@@ -1,11 +1,11 @@
 {
  "platform": "CS-3661ef39",
- "brand": null,
- "modelName": "Katalog CS 3661ef39",
+ "brand": "Subaru",
+ "modelName": "BRZ (gen.1 2012-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2012,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

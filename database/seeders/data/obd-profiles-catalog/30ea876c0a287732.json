@@ -1,11 +1,11 @@
 {
  "platform": "CS-30ea876c",
- "brand": null,
- "modelName": "Katalog CS 30ea876c",
+ "brand": "GMC",
+ "modelName": "Sonata LF Hybrid (2014-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

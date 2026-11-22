@@ -1,11 +1,11 @@
 {
  "platform": "CS-a075b3c2",
- "brand": null,
- "modelName": "Katalog CS a075b3c2",
+ "brand": "Kia",
+ "modelName": "Cee'd ED 2.0 MPI (2009-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2009,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

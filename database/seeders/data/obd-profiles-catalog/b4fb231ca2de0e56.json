@@ -1,10 +1,10 @@
 {
  "platform": "CS-b4fb231c",
- "brand": null,
- "modelName": "Katalog CS b4fb231c",
+ "brand": "GAC",
+ "modelName": "GS5 (2019-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,11 +1,11 @@
 {
  "platform": "CS-bd888312",
- "brand": null,
- "modelName": "Katalog CS bd888312",
+ "brand": "Hyundai",
+ "modelName": "Accent V / Verna HC 1.6 CRDI Diesel (2018-2022)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

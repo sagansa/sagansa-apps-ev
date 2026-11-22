@@ -1,10 +1,10 @@
 {
  "platform": "CS-11fc81b6",
- "brand": null,
- "modelName": "Katalog CS 11fc81b6",
+ "brand": "Hyundai",
+ "modelName": "Elantra CN7 HEV (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

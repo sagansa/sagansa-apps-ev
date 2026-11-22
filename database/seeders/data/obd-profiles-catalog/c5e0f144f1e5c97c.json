@@ -1,11 +1,11 @@
 {
  "platform": "CS-c5e0f144",
- "brand": null,
- "modelName": "Carens/Rondo 2 UN (2006-2012) 2.0/2.4 MPI CAN",
+ "brand": "FAW",
+ "modelName": "Hongqi e-QM5",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": 2006,
- "yearMax": 2012,
+ "yearMin": null,
+ "yearMax": null,
  "grade": "community",
  "version": 1,
  "metrics": [

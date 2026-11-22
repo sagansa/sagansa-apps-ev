@@ -1,11 +1,11 @@
 {
  "platform": "CS-d6bf8230",
- "brand": null,
- "modelName": "Katalog CS d6bf8230",
+ "brand": "GMC",
+ "modelName": "Optima TF Hybrid (2010-2015)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2015,
  "grade": "community",
  "version": 1,
  "metrics": [

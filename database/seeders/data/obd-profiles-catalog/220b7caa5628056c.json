@@ -1,10 +1,10 @@
 {
  "platform": "CS-220b7caa",
- "brand": null,
- "modelName": "Katalog CS 220b7caa",
+ "brand": "Kia",
+ "modelName": "Sorento XM 2.4 GDI/MPI (2013-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2013,
  "yearMax": null,
  "grade": "community",
  "version": 1,

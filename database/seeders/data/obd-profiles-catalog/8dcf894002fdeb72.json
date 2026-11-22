@@ -1,10 +1,10 @@
 {
  "platform": "CS-8dcf8940",
- "brand": null,
- "modelName": "Katalog CS 8dcf8940",
+ "brand": "Nissan",
+ "modelName": "Qashqai HJ12 e-power (2022-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2022,
  "yearMax": null,
  "grade": "community",
  "version": 1,

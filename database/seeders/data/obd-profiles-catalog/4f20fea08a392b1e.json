@@ -1,11 +1,11 @@
 {
  "platform": "CS-4f20fea0",
- "brand": null,
- "modelName": "Katalog CS 4f20fea0",
+ "brand": "Subaru",
+ "modelName": "SSM2 over CAN (2008-2010)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2010,
  "grade": "community",
  "version": 1,
  "metrics": [

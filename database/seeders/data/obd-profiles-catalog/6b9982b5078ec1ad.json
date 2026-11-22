@@ -1,11 +1,11 @@
 {
  "platform": "CS-6b9982b5",
- "brand": null,
- "modelName": "Katalog CS 6b9982b5",
+ "brand": "Kia",
+ "modelName": "K5 TF LPI 2.0 (2010-2014)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2014,
  "grade": "community",
  "version": 1,
  "metrics": [

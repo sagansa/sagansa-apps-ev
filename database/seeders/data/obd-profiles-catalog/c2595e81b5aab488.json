@@ -1,10 +1,10 @@
 {
  "platform": "CS-c2595e81",
- "brand": null,
- "modelName": "Katalog CS c2595e81",
+ "brand": "Changan",
+ "modelName": "CS55 Plus (2017-) 1.5 + AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2017,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,11 +1,11 @@
 {
  "platform": "CS-b281fa14",
- "brand": null,
- "modelName": "Katalog CS b281fa14",
+ "brand": "Lada",
+ "modelName": "Vesta (M86, все блоки) 2015-2022",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

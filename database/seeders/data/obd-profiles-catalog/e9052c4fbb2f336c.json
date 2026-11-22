@@ -1,11 +1,11 @@
 {
  "platform": "CS-e9052c4f",
- "brand": null,
- "modelName": "Katalog CS e9052c4f",
+ "brand": "Jeep",
+ "modelName": "Grand Cherokee (WK) 2005-2006",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2005,
+ "yearMax": 2006,
  "grade": "community",
  "version": 1,
  "metrics": [

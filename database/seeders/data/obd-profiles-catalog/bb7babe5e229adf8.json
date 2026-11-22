@@ -1,11 +1,11 @@
 {
  "platform": "CS-bb7babe5",
- "brand": null,
- "modelName": "Katalog CS bb7babe5",
+ "brand": "Kia",
+ "modelName": "Picanto TA 1.0/1.2, Rio UB 1.2 (2011-2017)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

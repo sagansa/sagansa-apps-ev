@@ -1,10 +1,10 @@
 {
  "platform": "CS-7ed92a65",
- "brand": null,
- "modelName": "Katalog CS 7ed92a65",
+ "brand": "Great Wall",
+ "modelName": "Cannon/Poer/Sahar (2023-) 2.4 Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2023,
  "yearMax": null,
  "grade": "community",
  "version": 1,

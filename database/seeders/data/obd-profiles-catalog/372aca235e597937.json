@@ -1,11 +1,11 @@
 {
  "platform": "CS-372aca23",
- "brand": null,
- "modelName": "Katalog CS 372aca23",
+ "brand": "Hyundai",
+ "modelName": "Elantra AD (J6) 1.6 (2015-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

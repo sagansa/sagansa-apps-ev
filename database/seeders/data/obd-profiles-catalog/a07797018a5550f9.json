@@ -1,11 +1,11 @@
 {
  "platform": "CS-a0779701",
- "brand": null,
- "modelName": "Katalog CS a0779701",
+ "brand": "GMC",
+ "modelName": "OBDII / EOBD GM based Ultium EV vehicles (2021-2025)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2021,
+ "yearMax": 2025,
  "grade": "community",
  "version": 1,
  "metrics": [

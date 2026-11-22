@@ -1,11 +1,11 @@
 {
  "platform": "CS-090ff241",
- "brand": null,
- "modelName": "Katalog CS 090ff241",
+ "brand": "Kia",
+ "modelName": "Cerato/Forte TD-A (2008-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

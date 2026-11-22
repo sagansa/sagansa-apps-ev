@@ -1,11 +1,11 @@
 {
  "platform": "CS-5743106c",
- "brand": null,
- "modelName": "Katalog CS 5743106c",
+ "brand": "Haval",
+ "modelName": "H9 2020-2024 (4D20M)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2020,
+ "yearMax": 2024,
  "grade": "community",
  "version": 1,
  "metrics": [

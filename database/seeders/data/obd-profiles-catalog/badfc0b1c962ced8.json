@@ -1,10 +1,10 @@
 {
  "platform": "CS-badfc0b1",
- "brand": null,
- "modelName": "Katalog CS badfc0b1",
+ "brand": "Hyundai",
+ "modelName": "Sonata (DN8) 1.6 T-GDI 2019-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

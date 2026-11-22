@@ -1,10 +1,10 @@
 {
  "platform": "CS-9785d06a",
- "brand": null,
- "modelName": "Katalog CS 9785d06a",
+ "brand": "Kia",
+ "modelName": "Seltos / KX3 1.6, 2.0 MPI/GDI (2019-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

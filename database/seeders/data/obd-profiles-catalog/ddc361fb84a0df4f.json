@@ -1,10 +1,10 @@
 {
  "platform": "CS-ddc361fb",
- "brand": null,
- "modelName": "Katalog CS ddc361fb",
+ "brand": "Haval",
+ "modelName": "F7 (2020-), F7x (4C20NT)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

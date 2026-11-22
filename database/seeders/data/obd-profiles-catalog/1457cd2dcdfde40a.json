@@ -1,10 +1,10 @@
 {
  "platform": "CS-1457cd2d",
- "brand": null,
- "modelName": "Katalog CS 1457cd2d",
+ "brand": "Dacia",
+ "modelName": "Logan III / Sandero III / Clio V / Captur II  / Duster III / Bigster (2019-) H5F",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

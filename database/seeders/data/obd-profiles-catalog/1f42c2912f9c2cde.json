@@ -1,11 +1,11 @@
 {
  "platform": "CS-1f42c291",
- "brand": null,
- "modelName": "Katalog CS 1f42c291",
+ "brand": "Hyundai",
+ "modelName": "Tucson TL 2.0 MPI 2WD (2015-2018)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

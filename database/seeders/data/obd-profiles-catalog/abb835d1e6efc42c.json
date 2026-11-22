@@ -1,11 +1,11 @@
 {
  "platform": "CS-abb835d1",
- "brand": null,
- "modelName": "Katalog CS abb835d1",
+ "brand": "Opel",
+ "modelName": "Vectra B, Astra G, etc. with X16XEL, X18XE (1998-2002)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 1998,
+ "yearMax": 2002,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-efa3ae02",
- "brand": null,
- "modelName": "Katalog CS efa3ae02",
+ "brand": "Nissan",
+ "modelName": "Master 3 (2010-), NV400 (2010-2021), Interstar (2022-), Movano (2010-2021) M9T ECU: Continental SID309",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

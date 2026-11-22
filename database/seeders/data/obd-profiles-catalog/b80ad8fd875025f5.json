@@ -1,10 +1,10 @@
 {
  "platform": "CS-b80ad8fd",
- "brand": null,
- "modelName": "Katalog CS b80ad8fd",
+ "brand": "Kia",
+ "modelName": "Carnival KA4 2.2 CRDI Diesel (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

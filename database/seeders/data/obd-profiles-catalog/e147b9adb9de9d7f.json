@@ -1,11 +1,11 @@
 {
  "platform": "CS-e147b9ad",
- "brand": null,
- "modelName": "Katalog CS e147b9ad",
+ "brand": "Dodge",
+ "modelName": "RAM 5.9 2006-2007",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2006,
+ "yearMax": 2007,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-140c0b65",
- "brand": null,
- "modelName": "Katalog CS 140c0b65",
+ "brand": "Land Rover",
+ "modelName": "Discovery Sport 2017-2020",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

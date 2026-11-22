@@ -1,10 +1,10 @@
 {
  "platform": "CS-ca5c6d4b",
- "brand": null,
- "modelName": "Katalog CS ca5c6d4b",
+ "brand": "Kia",
+ "modelName": "Soul SK3 (2019-) 1.6 T-GDI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

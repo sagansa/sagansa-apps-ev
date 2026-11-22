@@ -1,10 +1,10 @@
 {
  "platform": "CS-60616416",
- "brand": null,
- "modelName": "Katalog CS 60616416",
+ "brand": "Chery",
+ "modelName": "Exeed New TX/TXL 1.6T (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

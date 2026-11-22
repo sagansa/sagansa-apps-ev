@@ -1,11 +1,11 @@
 {
  "platform": "CS-86b543f8",
- "brand": null,
- "modelName": "Katalog CS 86b543f8",
+ "brand": "Land Rover",
+ "modelName": "Range Rover Sport 2017-2022 L494 3.0 Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

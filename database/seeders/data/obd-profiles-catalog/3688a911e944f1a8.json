@@ -1,10 +1,10 @@
 {
  "platform": "CS-3688a911",
- "brand": null,
- "modelName": "Katalog CS 3688a911",
+ "brand": "Kia",
+ "modelName": "Rio IV (FB), Rio X-Line, Rio-X 1.4, 1.6 (2017-) ONLY ABS-TPMS ODOMETER READINGS",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2017,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,11 +1,11 @@
 {
  "platform": "CS-a55da081",
- "brand": null,
- "modelName": "Katalog CS a55da081",
+ "brand": "Hyundai",
+ "modelName": "Santa Fe TM PE 3.5 + AT (2020-2023)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2020,
+ "yearMax": 2023,
  "grade": "community",
  "version": 1,
  "metrics": [

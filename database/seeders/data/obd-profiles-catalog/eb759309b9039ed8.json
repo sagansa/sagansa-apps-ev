@@ -1,10 +1,10 @@
 {
  "platform": "CS-eb759309",
- "brand": null,
- "modelName": "Katalog CS eb759309",
+ "brand": "Great Wall",
+ "modelName": "M6 (2021-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

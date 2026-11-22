@@ -1,11 +1,11 @@
 {
  "platform": "CS-0f98d9ad",
- "brand": null,
- "modelName": "Katalog CS 0f98d9ad",
+ "brand": "Kia",
+ "modelName": "Ceed CD, ProCeed, XCeed 1.0T KAPPA II (2018-2023)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2023,
  "grade": "community",
  "version": 1,
  "metrics": [

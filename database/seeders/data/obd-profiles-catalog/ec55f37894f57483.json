@@ -1,11 +1,11 @@
 {
  "platform": "CS-ec55f378",
- "brand": null,
- "modelName": "Katalog CS ec55f378",
+ "brand": "Kia",
+ "modelName": "K5 / Optima JF LPI 2.0 (2015-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

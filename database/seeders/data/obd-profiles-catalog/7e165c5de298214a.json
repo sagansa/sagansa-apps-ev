@@ -1,11 +1,11 @@
 {
  "platform": "CS-7e165c5d",
- "brand": null,
- "modelName": "Katalog CS 7e165c5d",
+ "brand": "Kia",
+ "modelName": "Ceed JD 1.4 CRDI Diesel (2013-2015)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2015,
  "grade": "community",
  "version": 1,
  "metrics": [

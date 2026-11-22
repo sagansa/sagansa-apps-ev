@@ -1,10 +1,10 @@
 {
  "platform": "CS-f779a514",
- "brand": null,
- "modelName": "Katalog CS f779a514",
+ "brand": "Kia",
+ "modelName": "Ceed CD, Pro Ceed, XCeed 1.6 T-GDI (2018-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2018,
  "yearMax": null,
  "grade": "community",
  "version": 1,

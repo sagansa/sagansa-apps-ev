@@ -1,10 +1,10 @@
 {
  "platform": "CS-30727d35",
- "brand": null,
- "modelName": "Katalog CS 30727d35",
+ "brand": "Kia",
+ "modelName": "Soul SK3 (2019-) 1.6 MPI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

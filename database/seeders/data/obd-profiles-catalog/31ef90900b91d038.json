@@ -1,11 +1,11 @@
 {
  "platform": "CS-31ef9090",
- "brand": null,
- "modelName": "Katalog CS 31ef9090",
+ "brand": "Jeep",
+ "modelName": "Grand Cherokee (WK2) 2011-2013",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2013,
  "grade": "community",
  "version": 1,
  "metrics": [

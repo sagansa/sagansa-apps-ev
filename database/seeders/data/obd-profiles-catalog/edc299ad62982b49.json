@@ -1,11 +1,11 @@
 {
  "platform": "CS-edc299ad",
- "brand": null,
- "modelName": "Katalog CS edc299ad",
+ "brand": "Kia",
+ "modelName": "Cerato/Forte YD 2.0 MPI NU (2013-2017)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

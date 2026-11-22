@@ -1,11 +1,11 @@
 {
  "platform": "CS-b5355036",
- "brand": null,
- "modelName": "Katalog CS b5355036",
+ "brand": "Hyundai",
+ "modelName": "Tucson TL FL MPI/GDI 2.0/2.4 (2018-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

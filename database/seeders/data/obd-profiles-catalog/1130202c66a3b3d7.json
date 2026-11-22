@@ -1,11 +1,11 @@
 {
  "platform": "CS-1130202c",
- "brand": null,
- "modelName": "Katalog CS 1130202c",
+ "brand": "Haval",
+ "modelName": "H6 gen.2  (2017-2020) / H6 Coupe (2017-2021) / H6 Sport 1.5T + 6AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

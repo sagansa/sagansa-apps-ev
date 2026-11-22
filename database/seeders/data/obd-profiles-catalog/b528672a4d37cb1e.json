@@ -1,11 +1,11 @@
 {
  "platform": "CS-b528672a",
- "brand": null,
- "modelName": "Katalog CS b528672a",
+ "brand": "Land Rover",
+ "modelName": "Range Rover 2010-2012 V8 4.4 Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

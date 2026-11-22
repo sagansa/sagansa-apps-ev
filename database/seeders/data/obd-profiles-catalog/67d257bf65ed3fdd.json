@@ -1,11 +1,11 @@
 {
  "platform": "CS-67d257bf",
- "brand": null,
- "modelName": "Katalog CS 67d257bf",
+ "brand": "Kia",
+ "modelName": "Carens/Rondo 3 RP (2015-2021) 1.7 CRDI Diesel TCI-U2",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

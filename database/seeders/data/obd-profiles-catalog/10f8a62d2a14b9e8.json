@@ -1,10 +1,10 @@
 {
  "platform": "CS-10f8a62d",
- "brand": null,
- "modelName": "Katalog CS 10f8a62d",
+ "brand": "Kia",
+ "modelName": "Sportage 5 NQ5 (2021-) 2.0D CRDI Diesel + 8AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

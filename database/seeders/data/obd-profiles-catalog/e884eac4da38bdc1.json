@@ -1,10 +1,10 @@
 {
  "platform": "CS-e884eac4",
- "brand": null,
- "modelName": "Katalog CS e884eac4",
+ "brand": "Ford",
+ "modelName": "EcoSport 1.6 Ztec 2009-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2009,
  "yearMax": null,
  "grade": "community",
  "version": 1,

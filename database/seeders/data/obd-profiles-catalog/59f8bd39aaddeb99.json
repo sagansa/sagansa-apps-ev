@@ -1,11 +1,11 @@
 {
  "platform": "CS-59f8bd39",
- "brand": null,
- "modelName": "Katalog CS 59f8bd39",
+ "brand": "Kia",
+ "modelName": "Sportage II KM 2.7 V6 (2004-2009)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2004,
+ "yearMax": 2009,
  "grade": "community",
  "version": 1,
  "metrics": [

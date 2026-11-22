@@ -1,10 +1,10 @@
 {
  "platform": "CS-66bd27d0",
- "brand": null,
- "modelName": "Katalog CS 66bd27d0",
+ "brand": "Great Wall",
+ "modelName": "H7 (2025-) / F7 (2025-) / Shenshou (2025-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2025,
  "yearMax": null,
  "grade": "community",
  "version": 1,

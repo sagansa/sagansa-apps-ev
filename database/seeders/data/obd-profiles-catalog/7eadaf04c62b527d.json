@@ -1,11 +1,11 @@
 {
  "platform": "CS-7eadaf04",
- "brand": null,
- "modelName": "Katalog CS 7eadaf04",
+ "brand": "Hyundai",
+ "modelName": "Sonata LF 2.4 GDI (2014-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-3aa56531",
- "brand": null,
- "modelName": "Katalog CS 3aa56531",
+ "brand": "Nissan",
+ "modelName": "Frontier D41 Gen.3 (2022-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2022,
  "yearMax": null,
  "grade": "community",
  "version": 1,

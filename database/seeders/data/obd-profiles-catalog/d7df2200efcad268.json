@@ -1,11 +1,11 @@
 {
  "platform": "CS-d7df2200",
- "brand": null,
- "modelName": "Katalog CS d7df2200",
+ "brand": "Hyundai",
+ "modelName": "Grandeur V (HG) / Azera 2.0/2.2 CRDI Diesel (2011-2017)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

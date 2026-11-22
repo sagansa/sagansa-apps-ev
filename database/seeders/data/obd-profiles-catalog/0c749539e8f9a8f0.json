@@ -1,11 +1,11 @@
 {
  "platform": "CS-0c749539",
- "brand": null,
- "modelName": "Katalog CS 0c749539",
+ "brand": "Kia",
+ "modelName": "Sorento UM, Sorento Prime FL (2018-2020) 2.0/2.2 CRDI Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

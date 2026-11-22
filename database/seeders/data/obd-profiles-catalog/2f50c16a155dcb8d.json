@@ -1,11 +1,11 @@
 {
  "platform": "CS-2f50c16a",
- "brand": null,
- "modelName": "Katalog CS 2f50c16a",
+ "brand": "Haval",
+ "modelName": "H9 2.0 2014-2019",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-e8bfd0e7",
- "brand": null,
- "modelName": "Katalog CS e8bfd0e7",
+ "brand": "Geely",
+ "modelName": "Emgrand Gen.4 (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

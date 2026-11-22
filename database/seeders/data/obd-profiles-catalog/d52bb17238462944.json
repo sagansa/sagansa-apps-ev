@@ -1,11 +1,11 @@
 {
  "platform": "CS-d52bb172",
- "brand": null,
- "modelName": "Katalog CS d52bb172",
+ "brand": "Hyundai",
+ "modelName": "Elantra AD 1.6 T-GDI + DCT (2017-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

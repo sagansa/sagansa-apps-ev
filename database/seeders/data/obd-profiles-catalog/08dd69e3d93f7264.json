@@ -1,11 +1,11 @@
 {
  "platform": "CS-08dd69e3",
- "brand": null,
- "modelName": "Katalog CS 08dd69e3",
+ "brand": "Hyundai",
+ "modelName": "i20 GB 1.2 MPI (2014-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2014,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

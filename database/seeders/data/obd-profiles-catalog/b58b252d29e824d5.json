@@ -1,10 +1,10 @@
 {
  "platform": "CS-b58b252d",
- "brand": null,
- "modelName": "Katalog CS b58b252d",
+ "brand": "Kia",
+ "modelName": "Rio (YB) 1.0 T-GDI (2016-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2016,
  "yearMax": null,
  "grade": "community",
  "version": 1,

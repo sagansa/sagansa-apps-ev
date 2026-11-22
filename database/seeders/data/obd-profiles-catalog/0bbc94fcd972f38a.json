@@ -1,11 +1,11 @@
 {
  "platform": "CS-0bbc94fc",
- "brand": null,
- "modelName": "Katalog CS 0bbc94fc",
+ "brand": "Kia",
+ "modelName": "Cerato Classic YD FL 1.6 MPI (2017-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-17652da9",
- "brand": null,
- "modelName": "Katalog CS 17652da9",
+ "brand": "Hyundai",
+ "modelName": "i30 GD 1.6 CRDI Diesel (2016-2018)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

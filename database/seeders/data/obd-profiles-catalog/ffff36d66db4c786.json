@@ -1,11 +1,11 @@
 {
  "platform": "CS-ffff36d6",
- "brand": null,
- "modelName": "Katalog CS ffff36d6",
+ "brand": "Haval",
+ "modelName": "H2 (2019-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2019,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

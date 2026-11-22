@@ -1,10 +1,10 @@
 {
  "platform": "CS-18637fc0",
- "brand": null,
- "modelName": "Katalog CS 18637fc0",
+ "brand": "Kia",
+ "modelName": "Sportage 5 NQ5 (2021-) 2.0 MPI + AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,11 +1,11 @@
 {
  "platform": "CS-2db14538",
- "brand": null,
- "modelName": "Katalog CS 2db14538",
+ "brand": "Hyundai",
+ "modelName": "Elantra, Avante AD (J6) 2.0L (2015-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

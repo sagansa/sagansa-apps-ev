@@ -1,11 +1,11 @@
 {
  "platform": "CS-b12ad954",
- "brand": null,
- "modelName": "Katalog CS b12ad954",
+ "brand": "Kia",
+ "modelName": "Sorento UM, Sorento Prime (2015-2018) 2.0/2.2 CRDI Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

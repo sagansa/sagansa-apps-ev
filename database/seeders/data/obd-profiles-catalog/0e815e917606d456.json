@@ -1,10 +1,10 @@
 {
  "platform": "CS-0e815e91",
- "brand": null,
- "modelName": "Katalog CS 0e815e91",
+ "brand": "Toyota",
+ "modelName": "WWH-OBD HEV/PHEV (CAN 29 bit) (2026-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2026,
  "yearMax": null,
  "grade": "community",
  "version": 1,

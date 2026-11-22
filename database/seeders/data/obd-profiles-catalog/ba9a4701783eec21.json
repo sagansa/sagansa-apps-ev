@@ -1,10 +1,10 @@
 {
  "platform": "CS-ba9a4701",
- "brand": null,
- "modelName": "Katalog CS ba9a4701",
+ "brand": "Geely",
+ "modelName": "Yuanjing V3/GX3/GX3 Pro/X3Pro (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

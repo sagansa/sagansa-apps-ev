@@ -1,10 +1,10 @@
 {
  "platform": "CS-7ab7d1d6",
- "brand": null,
- "modelName": "Katalog CS 7ab7d1d6",
+ "brand": "Haval",
+ "modelName": "F7 (2020-), F7x (4B15A, 4C20B, 4G15K)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

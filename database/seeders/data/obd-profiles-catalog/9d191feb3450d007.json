@@ -1,11 +1,11 @@
 {
  "platform": "CS-9d191feb",
- "brand": null,
- "modelName": "Katalog CS 9d191feb",
+ "brand": "Kia",
+ "modelName": "Cerato/Forte YD 2.0 MPI NU PE (2016-2019)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2019,
  "grade": "community",
  "version": 1,
  "metrics": [

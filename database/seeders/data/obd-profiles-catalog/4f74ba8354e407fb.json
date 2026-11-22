@@ -1,11 +1,11 @@
 {
  "platform": "CS-4f74ba83",
- "brand": null,
- "modelName": "Katalog CS 4f74ba83",
+ "brand": "Kia",
+ "modelName": "Mohave/Borrego HM-B 3.0 CRDI Diesel (2008-2017)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

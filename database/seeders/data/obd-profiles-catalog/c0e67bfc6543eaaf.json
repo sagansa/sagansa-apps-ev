@@ -1,10 +1,10 @@
 {
  "platform": "CS-c0e67bfc",
- "brand": null,
- "modelName": "Katalog CS c0e67bfc",
+ "brand": "Nissan",
+ "modelName": "Versa N18 (2019-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

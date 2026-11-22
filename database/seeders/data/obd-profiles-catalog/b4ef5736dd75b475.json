@@ -1,11 +1,11 @@
 {
  "platform": "CS-b4ef5736",
- "brand": null,
- "modelName": "Katalog CS b4ef5736",
+ "brand": "Hyundai",
+ "modelName": "ix35 NU 2.0 Gasoline AT (2017-2023)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2023,
  "grade": "community",
  "version": 1,
  "metrics": [

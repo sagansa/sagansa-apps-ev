@@ -1,10 +1,10 @@
 {
  "platform": "CS-ce4021f3",
- "brand": null,
- "modelName": "Katalog CS ce4021f3",
+ "brand": "Kia",
+ "modelName": "Seltos / KX3 1.6 T-GDI (2019-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

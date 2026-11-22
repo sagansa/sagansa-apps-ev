@@ -1,11 +1,11 @@
 {
  "platform": "CS-b29ae537",
- "brand": null,
- "modelName": "Katalog CS b29ae537",
+ "brand": "Kia",
+ "modelName": "Sorento BL 3.3 V6 (2002-2008)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2002,
+ "yearMax": 2008,
  "grade": "community",
  "version": 1,
  "metrics": [

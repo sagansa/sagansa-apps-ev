@@ -1,10 +1,10 @@
 {
  "platform": "CS-8d1a0fa6",
- "brand": null,
- "modelName": "Katalog CS 8d1a0fa6",
+ "brand": "Hyundai",
+ "modelName": "Tucson NX4 (2021-) 2.0 MPI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

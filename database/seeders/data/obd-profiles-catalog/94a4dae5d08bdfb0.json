@@ -1,10 +1,10 @@
 {
  "platform": "CS-94a4dae5",
- "brand": null,
- "modelName": "Katalog CS 94a4dae5",
+ "brand": "Kia",
+ "modelName": "Sportage 5 NQ5C (2021-) 2.0 T-GDI + AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

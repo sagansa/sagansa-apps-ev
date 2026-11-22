@@ -1,10 +1,10 @@
 {
  "platform": "CS-bfb655a5",
- "brand": null,
- "modelName": "Katalog CS bfb655a5",
+ "brand": "Hyundai",
+ "modelName": "Sonata (DN8) 2.0 MPI 2019-",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

@@ -1,11 +1,11 @@
 {
  "platform": "CS-b731f7d8",
- "brand": null,
- "modelName": "Katalog CS b731f7d8",
+ "brand": "Ford",
+ "modelName": "Mustang 2011-2017 3.7 V6",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-01676b37",
- "brand": null,
- "modelName": "Katalog CS 01676b37",
+ "brand": "Hyundai",
+ "modelName": "Grand Starex / H-1 (TQ FL) 2.5L 4D56 Diesel Euro5 (2018-2021)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

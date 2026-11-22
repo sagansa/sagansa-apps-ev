@@ -1,11 +1,11 @@
 {
  "platform": "CS-fb174bfa",
- "brand": null,
- "modelName": "Katalog CS fb174bfa",
+ "brand": "Honda",
+ "modelName": "Accord, Civic, CRV, CX-7 etc. 2008-2012 (var.1)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

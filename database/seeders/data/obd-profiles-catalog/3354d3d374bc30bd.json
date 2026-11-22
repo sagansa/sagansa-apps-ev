@@ -1,11 +1,11 @@
 {
  "platform": "CS-3354d3d3",
- "brand": null,
- "modelName": "Katalog CS 3354d3d3",
+ "brand": "Volkswagen",
+ "modelName": "Amarok gen.1 (2010-2022) 3.0 TDI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

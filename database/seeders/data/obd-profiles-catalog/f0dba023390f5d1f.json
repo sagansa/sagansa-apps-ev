@@ -1,11 +1,11 @@
 {
  "platform": "CS-f0dba023",
- "brand": null,
- "modelName": "Katalog CS f0dba023",
+ "brand": "Nissan",
+ "modelName": "Leaf ZE0/AZE0 (2010-2017)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

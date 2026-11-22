@@ -1,10 +1,10 @@
 {
  "platform": "CS-9aa7540e",
- "brand": null,
- "modelName": "Katalog CS 9aa7540e",
+ "brand": "Mitsubishi",
+ "modelName": "Eclipse Cross 2.2 Diesel / Delica D5 (2019-) + 8AT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

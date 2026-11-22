@@ -1,10 +1,10 @@
 {
  "platform": "CS-577a922a",
- "brand": null,
- "modelName": "Katalog CS 577a922a",
+ "brand": "Kia",
+ "modelName": "Carnival KA4 1.6 T-GDI HEV (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

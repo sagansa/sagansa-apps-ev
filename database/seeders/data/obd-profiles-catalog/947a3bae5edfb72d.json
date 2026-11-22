@@ -1,10 +1,10 @@
 {
  "platform": "CS-947a3bae",
- "brand": null,
- "modelName": "Katalog CS 947a3bae",
+ "brand": "Mitsubishi",
+ "modelName": "L200 / Triton Gen.6 (LC/MV) (2023-n.d.) 4N16",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2023,
  "yearMax": null,
  "grade": "community",
  "version": 1,

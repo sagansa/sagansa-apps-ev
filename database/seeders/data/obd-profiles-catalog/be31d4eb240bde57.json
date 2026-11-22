@@ -1,11 +1,11 @@
 {
  "platform": "CS-be31d4eb",
- "brand": null,
- "modelName": "Katalog CS be31d4eb",
+ "brand": "Kia",
+ "modelName": "Soul (2013-2018), Forte EX/Cerato/K5 (2012-2018), Optima/K5",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

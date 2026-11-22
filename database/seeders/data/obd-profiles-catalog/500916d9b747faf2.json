@@ -1,11 +1,11 @@
 {
  "platform": "CS-500916d9",
- "brand": null,
- "modelName": "Katalog CS 500916d9",
+ "brand": "Mazda",
+ "modelName": "3 / 6 (GH1, GH2) / Miata (NC 2006-2015) / CX-7",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2006,
+ "yearMax": 2015,
  "grade": "community",
  "version": 1,
  "metrics": [

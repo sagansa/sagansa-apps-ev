@@ -1,11 +1,11 @@
 {
  "platform": "CS-caf3ce2b",
- "brand": null,
- "modelName": "Katalog CS caf3ce2b",
+ "brand": "Jeep",
+ "modelName": "Grand Cherokee (WK) 2007-2010",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2010,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-2b977b15",
- "brand": null,
- "modelName": "Katalog CS 2b977b15",
+ "brand": "Haval",
+ "modelName": "H6 Gen.3 HEV/PHEV (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

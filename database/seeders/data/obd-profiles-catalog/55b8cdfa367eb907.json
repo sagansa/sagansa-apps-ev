@@ -1,11 +1,11 @@
 {
  "platform": "CS-55b8cdfa",
- "brand": null,
- "modelName": "Katalog CS 55b8cdfa",
+ "brand": "Nissan",
+ "modelName": "Pathfinder R51 4.0 V6 (FL 2008-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

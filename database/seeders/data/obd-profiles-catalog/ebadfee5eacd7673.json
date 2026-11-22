@@ -1,11 +1,11 @@
 {
  "platform": "CS-ebadfee5",
- "brand": null,
- "modelName": "Katalog CS ebadfee5",
+ "brand": "Kia",
+ "modelName": "Sportage III SL 2.0 T-GDI (2010-2016)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [

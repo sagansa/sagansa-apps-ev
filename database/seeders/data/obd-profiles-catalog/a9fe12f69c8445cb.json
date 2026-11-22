@@ -1,10 +1,10 @@
 {
  "platform": "CS-a9fe12f6",
- "brand": null,
- "modelName": "Katalog CS a9fe12f6",
+ "brand": "MG",
+ "modelName": "MG4 EV (2024-) / Cyberster EV",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2024,
  "yearMax": null,
  "grade": "community",
  "version": 1,

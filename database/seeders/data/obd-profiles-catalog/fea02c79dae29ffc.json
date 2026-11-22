@@ -1,11 +1,11 @@
 {
  "platform": "CS-fea02c79",
- "brand": null,
- "modelName": "Katalog CS fea02c79",
+ "brand": "Lada",
+ "modelName": "Vesta (H4M+CVT, все блоки) 2019-2022",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2019,
+ "yearMax": 2022,
  "grade": "community",
  "version": 1,
  "metrics": [

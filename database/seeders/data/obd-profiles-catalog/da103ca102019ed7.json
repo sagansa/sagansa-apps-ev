@@ -1,11 +1,11 @@
 {
  "platform": "CS-da103ca1",
- "brand": null,
- "modelName": "Katalog CS da103ca1",
+ "brand": "Toyota",
+ "modelName": "Corolla Verso / Avensis gen.2 (2004-2007) Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2004,
+ "yearMax": 2007,
  "grade": "community",
  "version": 1,
  "metrics": [

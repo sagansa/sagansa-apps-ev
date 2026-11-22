@@ -1,10 +1,10 @@
 {
  "platform": "CS-ff080ba0",
- "brand": null,
- "modelName": "Katalog CS ff080ba0",
+ "brand": "Kia",
+ "modelName": "Sorento 4 MQ4 2.5 MPI/GDI (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

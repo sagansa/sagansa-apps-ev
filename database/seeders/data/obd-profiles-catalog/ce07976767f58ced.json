@@ -1,11 +1,11 @@
 {
  "platform": "CS-ce079767",
- "brand": null,
- "modelName": "Katalog CS ce079767",
+ "brand": "Kia",
+ "modelName": "Sorento XM 2.4 GDI/MPI (2009-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2009,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

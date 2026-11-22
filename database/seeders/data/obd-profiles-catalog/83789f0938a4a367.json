@@ -1,11 +1,11 @@
 {
  "platform": "CS-83789f09",
- "brand": null,
- "modelName": "Katalog CS 83789f09",
+ "brand": "Hyundai",
+ "modelName": "Sata Fe CM K-Line/KWP (2005-2012)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2005,
+ "yearMax": 2012,
  "grade": "community",
  "version": 1,
  "metrics": [

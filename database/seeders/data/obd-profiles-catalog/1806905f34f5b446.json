@@ -1,11 +1,11 @@
 {
  "platform": "CS-1806905f",
- "brand": null,
- "modelName": "Katalog CS 1806905f",
+ "brand": "Kia",
+ "modelName": "Cadenza VG / K7 (2011-2018) 3.0 LPI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,10 +1,10 @@
 {
  "platform": "CS-60d5eec0",
- "brand": null,
- "modelName": "Katalog CS 60d5eec0",
+ "brand": "FAW",
+ "modelName": "Hongqi HS5 (2023-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2023,
  "yearMax": null,
  "grade": "community",
  "version": 1,

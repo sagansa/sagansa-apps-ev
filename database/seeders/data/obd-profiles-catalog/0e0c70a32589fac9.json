@@ -1,10 +1,10 @@
 {
  "platform": "CS-0e0c70a3",
- "brand": null,
- "modelName": "Katalog CS 0e0c70a3",
+ "brand": "Hyundai",
+ "modelName": "i10 / Grand i10 NIOS (AI3) (2019-) 1.2 MPI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2019,
  "yearMax": null,
  "grade": "community",
  "version": 1,

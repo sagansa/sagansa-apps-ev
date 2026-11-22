@@ -1,11 +1,11 @@
 {
  "platform": "CS-5f3ac88b",
- "brand": null,
- "modelName": "Katalog CS 5f3ac88b",
+ "brand": "Dacia",
+ "modelName": "Clio V 2019- / Captur II 2019- / Megane IV 2019-2024 / Kadjar 2019-2022 / Kangoo II 2019-2021 / Logan II 2019-2022 / Sandero II 2019-2022 / Sandero III 2020- / Duster II 2019- / Lodgy 2019- / Dokker 2019- 1.5 dCi K9K 872",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2019,
+ "yearMax": 2024,
  "grade": "community",
  "version": 1,
  "metrics": [

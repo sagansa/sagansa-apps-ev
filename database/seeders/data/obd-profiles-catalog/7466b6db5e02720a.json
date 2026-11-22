@@ -1,10 +1,10 @@
 {
  "platform": "CS-7466b6db",
- "brand": null,
- "modelName": "Katalog CS 7466b6db",
+ "brand": "Hyundai",
+ "modelName": "Tucson NX4 (2021-) GDI/MPI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

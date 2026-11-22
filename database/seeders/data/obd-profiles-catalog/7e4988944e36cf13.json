@@ -1,11 +1,11 @@
 {
  "platform": "CS-7e498894",
- "brand": null,
- "modelName": "Katalog CS 7e498894",
+ "brand": "Hyundai",
+ "modelName": "Grand Starex / H-1 CRDI Diesel (TQ) 2007-2013",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2007,
+ "yearMax": 2013,
  "grade": "community",
  "version": 1,
  "metrics": [

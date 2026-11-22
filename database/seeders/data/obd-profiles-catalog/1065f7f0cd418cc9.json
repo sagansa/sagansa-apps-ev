@@ -1,10 +1,10 @@
 {
  "platform": "CS-1065f7f0",
- "brand": null,
- "modelName": "Katalog CS 1065f7f0",
+ "brand": "Citroen",
+ "modelName": "Fiat: Ducato; Peugeot: Boxer/Manager; Citroen: Relay/Jumper; RAM: ProMaster; Opel/Vauxhall: Movano 2.2 Blue HDI (2021-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

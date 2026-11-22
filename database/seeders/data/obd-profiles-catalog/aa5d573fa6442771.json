@@ -1,10 +1,10 @@
 {
  "platform": "CS-aa5d573f",
- "brand": null,
- "modelName": "Katalog CS aa5d573f",
+ "brand": "Kia",
+ "modelName": "Niro SG2 HEV (2022-n.d.) Gen.2",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2022,
  "yearMax": null,
  "grade": "community",
  "version": 1,

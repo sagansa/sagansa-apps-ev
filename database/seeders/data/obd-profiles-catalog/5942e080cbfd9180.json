@@ -1,10 +1,10 @@
 {
  "platform": "CS-5942e080",
- "brand": null,
- "modelName": "Katalog CS 5942e080",
+ "brand": "Hyundai",
+ "modelName": "Elantra, Avante CN7 (2020-)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2020,
  "yearMax": null,
  "grade": "community",
  "version": 1,

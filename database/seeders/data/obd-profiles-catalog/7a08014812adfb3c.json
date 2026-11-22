@@ -1,11 +1,11 @@
 {
  "platform": "CS-7a080148",
- "brand": null,
- "modelName": "Katalog CS 7a080148",
+ "brand": "Hyundai",
+ "modelName": "i10 IA 1.2 MPI (2013-2018)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2013,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

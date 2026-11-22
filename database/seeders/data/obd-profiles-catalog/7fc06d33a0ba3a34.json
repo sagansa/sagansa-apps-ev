@@ -1,11 +1,11 @@
 {
  "platform": "CS-7fc06d33",
- "brand": null,
- "modelName": "Katalog CS 7fc06d33",
+ "brand": "Hyundai",
+ "modelName": "Tucson TL FL CRDI Diesel 2.0 8AT 4WD (2018-2020)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

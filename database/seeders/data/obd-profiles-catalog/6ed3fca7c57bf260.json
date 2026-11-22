@@ -1,11 +1,11 @@
 {
  "platform": "CS-6ed3fca7",
- "brand": null,
- "modelName": "Katalog CS 6ed3fca7",
+ "brand": "Land Rover",
+ "modelName": "Range Rover Sport 2012-2013 3.0 D",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2012,
+ "yearMax": 2013,
  "grade": "community",
  "version": 1,
  "metrics": [

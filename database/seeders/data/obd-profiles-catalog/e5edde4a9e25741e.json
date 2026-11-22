@@ -1,11 +1,11 @@
 {
  "platform": "CS-e5edde4a",
- "brand": null,
- "modelName": "Katalog CS e5edde4a",
+ "brand": "Kia",
+ "modelName": "Carnival/Sedona YP (2018-2020) 2.2 CRDI Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2018,
+ "yearMax": 2020,
  "grade": "community",
  "version": 1,
  "metrics": [

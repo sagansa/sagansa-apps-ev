@@ -1,11 +1,11 @@
 {
  "platform": "CS-6b37fee6",
- "brand": null,
- "modelName": "Katalog CS 6b37fee6",
+ "brand": "Hyundai",
+ "modelName": "Santa Fe 3 (DM FL, 2016-2018) CRDI Diesel",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2016,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

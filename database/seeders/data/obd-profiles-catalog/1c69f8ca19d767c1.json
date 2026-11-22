@@ -1,11 +1,11 @@
 {
  "platform": "CS-1c69f8ca",
- "brand": null,
- "modelName": "Katalog CS 1c69f8ca",
+ "brand": "Land Rover",
+ "modelName": "Evoque Gen.1 2012-2017 Diesel 2.0/2.2",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2012,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-4e8698ad",
- "brand": null,
- "modelName": "Katalog CS 4e8698ad",
+ "brand": "Kia",
+ "modelName": "Mohave/Borrego HM-A 3.0 CRDI Diesel (2008-2017)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2008,
+ "yearMax": 2017,
  "grade": "community",
  "version": 1,
  "metrics": [

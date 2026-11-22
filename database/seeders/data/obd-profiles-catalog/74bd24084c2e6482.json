@@ -1,10 +1,10 @@
 {
  "platform": "CS-74bd2408",
- "brand": null,
- "modelName": "Katalog CS 74bd2408",
+ "brand": "GMC",
+ "modelName": "HEV/PHEV Hybrids (Stellantis/PSA based) 2021-n.d.",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2021,
  "yearMax": null,
  "grade": "community",
  "version": 1,

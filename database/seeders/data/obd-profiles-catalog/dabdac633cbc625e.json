@@ -1,11 +1,11 @@
 {
  "platform": "CS-dabdac63",
- "brand": null,
- "modelName": "Katalog CS dabdac63",
+ "brand": "Kia",
+ "modelName": "Carens/Rondo 3 RP (2012-2021) 1.6 GDI",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2012,
+ "yearMax": 2021,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-7f0ab6be",
- "brand": null,
- "modelName": "Katalog CS 7f0ab6be",
+ "brand": "Opel",
+ "modelName": "Astra G Y17DT (1998-2004)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 1998,
+ "yearMax": 2004,
  "grade": "community",
  "version": 1,
  "metrics": [

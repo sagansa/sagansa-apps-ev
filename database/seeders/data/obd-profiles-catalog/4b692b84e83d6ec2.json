@@ -1,11 +1,11 @@
 {
  "platform": "CS-4b692b84",
- "brand": null,
- "modelName": "Katalog CS 4b692b84",
+ "brand": "Nissan",
+ "modelName": "Juke F15 (2010-2018) 1.6 TURBO + CVT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2010,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

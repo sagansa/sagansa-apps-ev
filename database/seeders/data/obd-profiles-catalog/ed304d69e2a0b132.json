@@ -1,11 +1,11 @@
 {
  "platform": "CS-ed304d69",
- "brand": null,
- "modelName": "Katalog CS ed304d69",
+ "brand": "Kia",
+ "modelName": "Carnival/Sedona VQ-A 3.8 V6 (2006-2014)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2006,
+ "yearMax": 2014,
  "grade": "community",
  "version": 1,
  "metrics": [

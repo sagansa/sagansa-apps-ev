@@ -1,11 +1,11 @@
 {
  "platform": "CS-f0adab33",
- "brand": null,
- "modelName": "Katalog CS f0adab33",
+ "brand": "Nissan",
+ "modelName": "Leaf ZE1 (2017-2025)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2017,
+ "yearMax": 2025,
  "grade": "community",
  "version": 1,
  "metrics": [

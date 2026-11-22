@@ -1,10 +1,10 @@
 {
  "platform": "CS-4139eae4",
- "brand": null,
- "modelName": "Katalog CS 4139eae4",
+ "brand": "Toyota",
+ "modelName": "Tacoma gen.3 (2016-n.d.)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2016,
  "yearMax": null,
  "grade": "community",
  "version": 1,

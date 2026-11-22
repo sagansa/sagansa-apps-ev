@@ -1,11 +1,11 @@
 {
  "platform": "CS-95cfd760",
- "brand": null,
- "modelName": "Katalog CS 95cfd760",
+ "brand": "Hyundai",
+ "modelName": "Santa Fe TM PE PHEV (2021-2023)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2021,
+ "yearMax": 2023,
  "grade": "community",
  "version": 1,
  "metrics": [

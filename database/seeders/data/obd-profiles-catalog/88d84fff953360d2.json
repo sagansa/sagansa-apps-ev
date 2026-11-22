@@ -1,10 +1,10 @@
 {
  "platform": "CS-88d84fff",
- "brand": null,
- "modelName": "Katalog CS 88d84fff",
+ "brand": "Changan",
+ "modelName": "CS55 Plus (2017-) 1.5 + DCT",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
+ "yearMin": 2017,
  "yearMax": null,
  "grade": "community",
  "version": 1,

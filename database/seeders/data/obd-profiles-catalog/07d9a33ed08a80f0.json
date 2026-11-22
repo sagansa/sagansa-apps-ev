@@ -1,11 +1,11 @@
 {
  "platform": "CS-07d9a33e",
- "brand": null,
- "modelName": "Katalog CS 07d9a33e",
+ "brand": "Kia",
+ "modelName": "Ray EV (OBDII + EV) (2011-2018)",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2011,
+ "yearMax": 2018,
  "grade": "community",
  "version": 1,
  "metrics": [

@@ -1,11 +1,11 @@
 {
  "platform": "CS-8f168278",
- "brand": null,
- "modelName": "Katalog CS 8f168278",
+ "brand": "Jeep",
+ "modelName": "Grand Cherokee (WK2) 2015-2016",
  "modelVehicleId": null,
  "vinPattern": null,
- "yearMin": null,
- "yearMax": null,
+ "yearMin": 2015,
+ "yearMax": 2016,
  "grade": "community",
  "version": 1,
  "metrics": [
