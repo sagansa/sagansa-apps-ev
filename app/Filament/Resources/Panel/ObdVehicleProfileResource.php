@@ -164,10 +164,13 @@ class ObdVehicleProfileResource extends Resource
                 // akan meng-hydrate JSON tersebut sebagai item sampah; bila
                 // admin menghapusnya lalu save, pid_list tertimpa dan metrik
                 // hilang, dan re-seed berikutnya membuat baris CS-* duplikat.
-                // Untuk profil CS-* repeater dinonaktifkan dan tidak
-                // didehydrasi (read-only); editing PID hanya untuk profil manual.
+                // Untuk profil CS-* repeater disembunyikan total (bukan sekadar
+                // disabled): hydrate kontrak menghasilkan item kosong yang
+                // memenuhi form dan mengesankan data hilang (laporan admin
+                // 2026-11-22); editing PID hanya untuk profil manual.
                 Repeater::make('pid_list')
                     ->label('Supported PIDs')
+                    ->visible(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-'))
                     ->disabled(fn (?ObdVehicleProfile $record) => $record !== null && str_starts_with((string) $record->platform, 'CS-'))
                     ->dehydrated(fn (?ObdVehicleProfile $record) => $record === null || ! str_starts_with((string) $record->platform, 'CS-'))
                     ->schema([
@@ -221,10 +224,26 @@ class ObdVehicleProfileResource extends Resource
             ]),
 
             Section::make('Metadata')->schema([
+                // Kolom di-cast array di model; tanpa transform ini textarea
+                // menampilkan "[object Object]" dan bisa menghapus isi saat save
+                // (laporan admin 2026-11-22). Form bekerja dengan string JSON:
+                // hydrate → pretty-print, dehydrate → decode balik ke array.
                 Forms\Components\Textarea::make('metadata')
                     ->label('Metadata (JSON)')
                     ->rows(4)
-                    ->placeholder('{"notes": "..."}'),
+                    ->placeholder('{"notes": "..."}')
+                    ->rules(['json'])
+                    ->afterStateHydrated(function (Forms\Components\Textarea $component, $state) {
+                        if (is_array($state)) {
+                            $component->state(json_encode(
+                                $state,
+                                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+                            ));
+                        }
+                    })
+                    ->dehydrateStateUsing(fn ($state) => is_array($state)
+                        ? $state
+                        : (trim((string) $state) === '' ? null : json_decode($state, true))),
             ]),
         ]);
     }
