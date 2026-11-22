@@ -19,9 +19,12 @@ use RuntimeException;
  *
  * Match model_vehicle_id: opsional via --model="Brand Model" (dicari di
  * katalog model_vehicles — STRICT exact match, ambigu = gagal jelas) atau
- * kolom "modelVehicleId" di JSON. Profil resmi (non-CS) dicocokkan otomatis
- * via nama exact; profil katalog CS-* TIDAK pernah di-resolve otomatis —
- * mapping-nya tugas admin via Filament (insiden 2026-11-22).
+ * kolom "modelVehicleId" di JSON. Semua grade (official & community) dicocokkan
+ * otomatis via nama exact — brand wajib cocok, nama model dibersihkan dari
+ * ornamen katalog (tahun/[RU]/[EN]/var.N), nama multi-model ("A / B / C")
+ * di-skip, ambigu = gagal jelas. Substring TIDAK pernah dipakai (insiden
+ * 2026-11-22: 392 profil → Seres 3). Nama yang tidak cocok katalog → mapping
+ * via admin Filament.
  *
  * Contoh:
  *   php artisan obd:seed-profiles database/seeders/data/obd-profiles
@@ -62,10 +65,13 @@ class SeedObdVehicleProfiles extends Command
 
         foreach ($files as $file) {
             try {
-                [$profile, $action] = $this->seedFile($file);
+                [$profile, $action, $resolveNote] = $this->seedFile($file);
                 $label = trim(($profile->metadata['brand'] ?? '') . ' ' . ($profile->metadata['model_name'] ?? ''));
                 $action === 'created' ? $created++ : $updated++;
                 $this->line("  <info>$action</info> {$profile->platform} — {$label} (v{$profile->version}, id={$profile->id})");
+                if ($resolveNote !== null) {
+                    $this->warn("      ↳ $resolveNote");
+                }
             } catch (RuntimeException $e) {
                 $this->warn("  <comment>lewati</comment> " . basename($file) . ": {$e->getMessage()}");
             }
@@ -76,7 +82,7 @@ class SeedObdVehicleProfiles extends Command
         return self::SUCCESS;
     }
 
-    /** @return array{0: ObdVehicleProfile, 1: string} */
+    /** @return array{0: ObdVehicleProfile, 1: string, 2: ?string} */
     private function seedFile(string $file): array
     {
         $raw = file_get_contents($file);
@@ -89,30 +95,29 @@ class SeedObdVehicleProfiles extends Command
             throw new RuntimeException('JSON tidak valid / tanpa "platform"');
         }
 
-        $modelVehicleId = $this->resolveModelVehicleId(
-            $json,
-            str_starts_with((string) $json['platform'], 'CS-'),
-        );
+        [$modelVehicleIds, $resolveNote] = $this->resolveModelVehicleIds($json);
+
+        $primaryModelVehicleId = $modelVehicleIds[0] ?? null;
 
         $attributes = [
-            'model_vehicle_id' => $modelVehicleId,
+            'model_vehicle_id' => $primaryModelVehicleId,
             'platform' => (string) $json['platform'],
         ];
 
         // Kunci upsert: profil katalog (platform CS-<hash8>) unik per profil —
         // hash adalah ID internal Car Scanner yang stabil antar versi, jadi
-        // kunci = platform saja agar assignment admin (model_vehicle_id) tidak
-        // memecah baris saat re-seed. Profil manual (platform generik mis.
-        // E-GMP) tetap komposit platform+model/vin karena platform bisa
+        // kunci = platform saja agar mapping (pivot obd_profile_model_vehicles)
+        // tidak memecah baris saat re-seed. Profil manual (platform generik
+        // mis. E-GMP) tetap komposit platform+model/vin karena platform bisa
         // dipakai beberapa model.
         $isCatalogPlatform = str_starts_with((string) $json['platform'], 'CS-');
         $query = ObdVehicleProfile::query()
             ->where('platform', $attributes['platform']);
 
         if (! $isCatalogPlatform) {
-            $query->where(function ($q) use ($modelVehicleId, $json) {
-                if ($modelVehicleId !== null) {
-                    $q->where('model_vehicle_id', $modelVehicleId);
+            $query->where(function ($q) use ($primaryModelVehicleId, $json) {
+                if ($primaryModelVehicleId !== null) {
+                    $q->where('model_vehicle_id', $primaryModelVehicleId);
                 } else {
                     $q->whereNull('model_vehicle_id')
                         ->where('vin_pattern', $json['vinPattern'] ?? null);
@@ -122,13 +127,13 @@ class SeedObdVehicleProfiles extends Command
 
         $existing = $query->first();
 
-        // Lindungi assignment admin via Filament: resolve null tidak menimpa
-        // model_vehicle_id existing — hanya resolve eksplisit (--model / JSON
-        // / name-match) yang menimpa.
-        $effectiveModelVehicleId = $modelVehicleId ?? $existing?->model_vehicle_id;
+        // Lindungi mapping admin via Filament: resolve kosong tidak mengubah
+        // pivot/primary existing — hanya resolve hasil (exact-match / --model /
+        // JSON id) yang menimpa.
+        $effectivePrimary = $primaryModelVehicleId ?? $existing?->model_vehicle_id;
 
         $values = [
-            'model_vehicle_id' => $effectiveModelVehicleId,
+            'model_vehicle_id' => $effectivePrimary,
             'platform' => (string) $json['platform'],
             'vin_pattern' => $json['vinPattern'] ?? null,
             'year_min' => $json['yearMin'] ?? null,
@@ -146,63 +151,89 @@ class SeedObdVehicleProfiles extends Command
 
         if ($existing) {
             $existing->fill($values)->save();
+            if ($modelVehicleIds !== []) {
+                $existing->modelVehicles()->sync($modelVehicleIds);
+            }
 
-            return [$existing->refresh(), 'updated'];
+            return [$existing->refresh(), 'updated', $resolveNote];
         }
 
         $created = ObdVehicleProfile::create($values);
+        if ($modelVehicleIds !== []) {
+            $created->modelVehicles()->sync($modelVehicleIds);
+        }
 
-        return [$created->refresh(), 'created'];
+        return [$created->refresh(), 'created', $resolveNote];
     }
 
-    /** Cari model_vehicle_id dari --model atau isi JSON (id / nama brand+model). */
-    private function resolveModelVehicleId(array $json, bool $isCatalog): ?int
+    /**
+     * @return array{0: list<int>, 1: ?string} id model katalog — BISA lebih
+     * dari satu: nama multi-model ("Atto 2 / Atto 3 / Dolphin") menghubungkan
+     * SEMUA model katalog yang exact-match per bagian (many-to-many, keputusan
+     * owner 2026-11-22). Substring TIDAK pernah dipakai — insiden 2026-11-22
+     * (392 profil → Seres 3) berasal dari substring dgn nama model pendek.
+     */
+    private function resolveModelVehicleIds(array $json): array
     {
         if ($explicit = $this->option('model')) {
-            return $this->findModelByName((string) $explicit, true);
+            [$id] = $this->findModelByName((string) $explicit, true);
+
+            return [$id === null ? [] : [$id], null];
         }
 
         if ($this->option('no-resolve')) {
-            return null;
+            return [[], null];
         }
 
         if (! empty($json['modelVehicleId']) && is_numeric($json['modelVehicleId'])) {
-            return (int) $json['modelVehicleId'];
+            return [[(int) $json['modelVehicleId']], null];
         }
 
-        // Profil katalog (CS-*) TIDAK di-resolve otomatis dari nama. Nama katalog
-        // Car Scanner panjang dan sering multi-model ("Atto 2 / Atto 3 / Dolphin /
-        // Seal ..."), dan pencocokan nama substring pernah menimpa ratusan baris
-        // ke model salah (insiden 2026-11-22: 392 profil → Seres 3 karena nama
-        // model "3" cocok substring di mana-mana). Mapping katalog = tugas admin
-        // via Filament (design: sumber kebenaran mapping = database).
-        if ($isCatalog) {
-            return null;
+        $brand = trim((string) ($json['brand'] ?? ''));
+        $modelName = trim((string) ($json['modelName'] ?? ''));
+        if ($brand === '' || $modelName === '' || str_starts_with($modelName, 'Katalog CS ')) {
+            return [[], null]; // profil generik / tanpa identitas → mapping admin.
         }
 
-        $name = trim(($json['brand'] ?? '') . ' ' . ($json['modelName'] ?? ''));
-        if ($name === '') {
-            return null;
+        $parts = str_contains($modelName, ' / ') ? explode(' / ', $modelName) : [$modelName];
+
+        $ids = [];
+        $notes = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            [$id, $reason] = $this->findModelByName($brand . ' ' . $part, false);
+            if ($id !== null) {
+                $ids[] = $id;
+            } elseif ($reason !== null && count($notes) < 3) {
+                $notes[] = "\"{$part}\" tidak exact-match katalog";
+            }
         }
 
-        return $this->findModelByName($name, false); // boleh null — universal/unknown.
+        $ids = array_values(array_unique($ids));
+
+        return [$ids, $notes === [] ? null : 'sebagian tidak terhubung: ' . implode('; ', $notes)];
     }
 
     /**
      * Pencocokan STRICT: kesamaan penuh (case-insensitive, whitespace
-     * dinormalisasi) antara "Brand Model" katalog vs "Brand Model" profil.
-     * TANPA substring dua arah — nama model pendek ("3", "EV") pernah mencocokkan
-     * hampir semua nama profil via str_contains (insiden 2026-11-22).
-     * $throwOnAmbiguous=true untuk --model eksplisit: lebih baik gagal jelas
-     * daripada memilih salah satu secara acak.
+     * dinormalisasi, ornamen katalog dibuang) antara "Brand Model" katalog vs
+     * "Brand Model" profil. TANPA substring dua arah — nama model pendek
+     * ("3", "EV") pernah mencocokkan hampir semua nama profil via str_contains
+     * (insiden 2026-11-22). $throwOnAmbiguous=true untuk --model eksplisit:
+     * lebih baik gagal jelas daripada memilih salah satu secara acak.
+     *
+     * @return array{0: ?int, 1: ?string} id model + alasan bila gagal terhubung.
      */
-    private function findModelByName(string $name, bool $throwOnAmbiguous): ?int
+    private function findModelByName(string $name, bool $throwOnAmbiguous): array
     {
-        $needle = $this->normalizeName($name);
+        $needle = $this->normalizeModelName($name);
 
         $models = ModelVehicle::query()->with('brandVehicle')->get();
         $matches = $models->filter(
-            fn (ModelVehicle $m) => $this->normalizeName(
+            fn (ModelVehicle $m) => $this->normalizeModelName(
                 trim(($m->brandVehicle?->name ?? '') . ' ' . $m->name),
             ) === $needle,
         );
@@ -211,7 +242,7 @@ class SeedObdVehicleProfiles extends Command
         // nama model saja, tetap exact.
         if ($matches->isEmpty() && str_contains($needle, ' ') === false) {
             $matches = $models->filter(
-                fn (ModelVehicle $m) => $this->normalizeName((string) $m->name) === $needle,
+                fn (ModelVehicle $m) => $this->normalizeModelName((string) $m->name) === $needle,
             );
         }
 
@@ -220,25 +251,37 @@ class SeedObdVehicleProfiles extends Command
                 throw new RuntimeException("--model \"$name\" tidak ketemu di katalog");
             }
 
-            return null;
+            return [null, "tidak terhubung: \"$name\" tidak exact-match katalog (cek ejaan Brand/Model di Model Vehicles, atau pakai --model=)"];
         }
 
         if ($matches->count() > 1) {
+            $names = $matches->take(5)
+                ->map(fn (ModelVehicle $m) => trim(($m->brandVehicle?->name ?? '').' '.$m->name).'(id '.$m->id.')')
+                ->implode(', ');
             if ($throwOnAmbiguous) {
-                $names = $matches->take(5)
-                    ->map(fn (ModelVehicle $m) => trim(($m->brandVehicle?->name ?? '').' '.$m->name))
-                    ->implode(', ');
                 throw new RuntimeException("--model \"$name\" ambigu ({$matches->count()} cocok: $names)");
             }
 
-            return null;
+            return [null, "tidak terhubung: \"$name\" ambigu — {$matches->count()} model katalog cocok ($names). Rapikan duplikat katalog atau pakai --model= dengan nama unik"];
         }
 
-        return $matches->first()->id;
+        return [$matches->first()->id, null];
     }
 
-    private function normalizeName(string $value): string
+    /**
+     * Normalisasi nama model: case-insensitive, whitespace rapi, dan buang
+     * ornamen katalog Car Scanner — "(2022-2025)", "(2023-n.d.)", "[RU]",
+     * "[EN]", "var.1", rentang tahun di luar kurung — sehingga
+     * "Mustang Mach-E (2023-)" ≡ "Mustang Mach-E" dan "IONIQ 5 (2022-2025)"
+     * ≡ "IONIQ 5". Hanya pembanding EQUALITY — bukan substring.
+     */
+    private function normalizeModelName(string $value): string
     {
-        return trim(preg_replace('/\s+/', ' ', mb_strtolower(trim($value))) ?? '');
+        $v = preg_replace('/\([^)]*\)|\[[^\]]*\]/', ' ', $value) ?? $value;
+        $v = preg_replace('/\b(?:19|20)\d{2}\s*-\s*(?:(?:19|20)\d{2}|n\.d\.|present)?\b/i', ' ', $v) ?? $v;
+        $v = preg_replace('/\bvar\.\s*\d+/i', ' ', $v) ?? $v;
+        $v = preg_replace('/\s+/', ' ', $v) ?? $v;
+
+        return mb_strtolower(trim($v, " \t\r\n\0\x0B-,.:;"));
     }
 }

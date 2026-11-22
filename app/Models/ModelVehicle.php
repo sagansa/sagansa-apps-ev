@@ -47,6 +47,11 @@ class ModelVehicle extends Model
 
     public function obdVehicleProfiles()
     {
-        return $this->hasMany(ObdVehicleProfile::class);
+        return $this->belongsToMany(
+            ObdVehicleProfile::class,
+            'obd_profile_model_vehicles',
+            'model_vehicle_id',
+            'obd_vehicle_profile_id',
+        );
     }
 }

@@ -31,12 +31,12 @@ class ObdProfileController extends Controller
             $query->forGrade($request->input('grade'));
         }
 
-        // Filter by model_vehicle_id
+        // Filter by model_vehicle_id (primary — kompatibilitas lama)
         if ($request->filled('model_vehicle_id')) {
             $query->where('model_vehicle_id', $request->input('model_vehicle_id'));
         }
 
-        $profiles = $query->with('modelVehicle')->get();
+        $profiles = $query->with(['modelVehicle', 'modelVehicles'])->get();
 
         // ETag support for client-side caching
         $etag = md5($profiles->toJson());
@@ -50,6 +50,10 @@ class ObdProfileController extends Controller
                 'id' => $p->id,
                 'model_vehicle_id' => $p->model_vehicle_id,
                 'model_vehicle_name' => $p->modelVehicle?->name,
+                // Many-to-many (owner 2026-11-22): semua model yang ditautkan.
+                // Mobile lama mengabaikan field ini (ignoreUnknownKeys); mobile
+                // baru dapat memakainya untuk match multi-model.
+                'model_vehicle_ids' => $p->modelVehicles->pluck('id')->all(),
                 'platform' => $p->platform,
                 'vin_pattern' => $p->vin_pattern,
                 'year_min' => $p->year_min,

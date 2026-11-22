@@ -14,4 +14,11 @@ class EditObdProfile extends EditRecord
     {
         return [Actions\DeleteAction::make()];
     }
+
+    protected function afterSave(): void
+    {
+        // Kolom primary model_vehicle_id diselaraskan ke link pivot pertama
+        // (API/mobile lama masih membaca kolom ini).
+        $this->getRecord()->refreshPrimaryModel();
+    }
 }

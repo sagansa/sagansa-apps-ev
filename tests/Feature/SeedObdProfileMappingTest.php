@@ -93,16 +93,19 @@ class SeedObdProfileMappingTest extends TestCase
         $this->seedProfiles();
 
         $profile = ObdVehicleProfile::where('platform', 'CS-aaaabbbb')->sole();
-        $profile->update(['model_vehicle_id' => $model->id]); // simulasi assign admin
+        // Simulasi assign admin (pivot + primary).
+        $profile->modelVehicles()->sync([$model->id]);
+        $profile->update(['model_vehicle_id' => $model->id]);
 
-        // Re-seed katalog "versi baru" (version 2): assignment bertahan,
-        // kolom konten tetap ter-update, tidak ada baris duplikat.
+        // Re-seed katalog "versi baru" (version 2, tanpa resolve): mapping
+        // bertahan, kolom konten tetap ter-update, tidak ada baris duplikat.
         $this->writeProfile('aaaabbbbccccdddd', ['version' => 2]);
         $this->seedProfiles();
 
         $this->assertSame(1, ObdVehicleProfile::where('platform', 'CS-aaaabbbb')->count());
         $profile->refresh();
         $this->assertSame($model->id, $profile->model_vehicle_id);
+        $this->assertSame([$model->id], $profile->modelVehicles()->pluck('model_vehicles.id')->all());
         $this->assertSame('2', $profile->version);
     }
 
@@ -152,6 +155,7 @@ class SeedObdProfileMappingTest extends TestCase
     }
 
     // --- Regresi insiden 2026-11-22: 392 profil → Seres 3 via substring ---
+    // Aturan final: auto-resolve exact-match untuk SEMUA grade, TANPA substring.
 
     private function createSeres3(): ModelVehicle
     {
@@ -161,17 +165,17 @@ class SeedObdProfileMappingTest extends TestCase
         return ModelVehicle::create(['name' => '3', 'brand_vehicle_id' => $brand->id]);
     }
 
-    public function test_catalog_profile_never_auto_resolves_from_name(): void
+    public function test_catalog_profile_resolves_only_on_exact_name(): void
     {
         $seres3 = $this->createSeres3();
 
-        // Nama profil mengandung "3" (2013) DAN nama profil exact sama dengan
-        // katalog — keduanya TIDAK boleh menghasilkan auto-resolve: mapping
-        // profil CS-* adalah tugas admin.
+        // (a) Nama profil mengandung "3" di dalam teks panjang → TIDAK boleh
+        // cocok ke model "3" (substring dilarang).
         $this->writeProfile('aaaabbbbccccdddd', [
             'brand' => 'Kia',
             'modelName' => 'Soul PS 1.6 MPI (2013-2018)',
         ]);
+        // (b) Nama profil exact "Seres 3" → BOLEH terhubung (exact, brand cocok).
         $this->writeProfile('1111222233334444', [
             'brand' => 'Seres',
             'modelName' => '3',
@@ -181,10 +185,51 @@ class SeedObdProfileMappingTest extends TestCase
         $this->assertNull(
             ObdVehicleProfile::where('platform', 'CS-aaaabbbb')->sole()->model_vehicle_id,
         );
-        $this->assertNull(
+        $this->assertSame(
+            $seres3->id,
             ObdVehicleProfile::where('platform', 'CS-11112222')->sole()->model_vehicle_id,
         );
-        $this->assertSame(0, ObdVehicleProfile::where('model_vehicle_id', $seres3->id)->count());
+    }
+
+    public function test_catalog_profile_stripped_year_resolves(): void
+    {
+        $ford = BrandVehicle::create(['name' => 'Ford']);
+        $machE = ModelVehicle::create(['name' => 'Mustang Mach-E', 'brand_vehicle_id' => $ford->id]);
+
+        // Ornamen katalog "(2023-)" dibuang → "Ford Mustang Mach-E" exact cocok.
+        $this->writeProfile('aaaabbbbccccdddd', [
+            'brand' => 'Ford',
+            'modelName' => 'Mustang Mach-E (2023-)',
+        ]);
+        $this->seedProfiles(['--no-resolve' => false]);
+
+        $this->assertSame(
+            $machE->id,
+            ObdVehicleProfile::where('platform', 'CS-aaaabbbb')->sole()->model_vehicle_id,
+        );
+    }
+
+    public function test_catalog_profile_multi_model_links_all_matches(): void
+    {
+        // Many-to-many (owner 2026-11-22): entri katalog multi-model
+        // menghubungkan SEMUA model katalog yang exact-match per bagian.
+        $byd = BrandVehicle::create(['name' => 'BYD']);
+        $atto3 = ModelVehicle::create(['name' => 'Atto 3', 'brand_vehicle_id' => $byd->id]);
+        $dolphin = ModelVehicle::create(['name' => 'Dolphin', 'brand_vehicle_id' => $byd->id]);
+
+        $this->writeProfile('aaaabbbbccccdddd', [
+            'brand' => 'BYD',
+            'modelName' => 'Atto 2 / Atto 3 / Yuan Plus EV / Dolphin / Seal / Seal U',
+        ]);
+        $this->seedProfiles(['--no-resolve' => false]);
+
+        $profile = ObdVehicleProfile::where('platform', 'CS-aaaabbbb')->sole();
+        $this->assertSame(
+            [$atto3->id, $dolphin->id],
+            $profile->modelVehicles()->orderBy('model_vehicles.id')->pluck('model_vehicles.id')->all(),
+        );
+        // Primary = model pertama (kompatibilitas API/mobile lama).
+        $this->assertSame($atto3->id, $profile->model_vehicle_id);
     }
 
     public function test_official_profile_exact_name_resolves(): void

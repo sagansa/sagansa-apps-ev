@@ -40,29 +40,16 @@ class ObdVehicleProfileResource extends Resource
         return $schema->schema([
             Section::make('Vehicle Info')->schema([
                 Grid::make(['default' => 2])->schema([
-                    Select::make('brand_vehicle_id')
-                        ->label('Brand Vehicle')
-                        // Field pembantu (form-only) — hanya model_vehicle_id
-                        // yang tersimpan di tabel.
-                        ->dehydrated(false)
-                        ->options(fn () => BrandVehicle::orderBy('name')->pluck('name', 'id'))
-                        ->searchable()
-                        ->live()
-                        ->afterStateUpdated(fn ($set) => $set('model_vehicle_id', null))
-                        ->afterStateHydrated(function (Select $component, ?ObdVehicleProfile $record) {
-                            if ($record?->modelVehicle?->brand_vehicle_id) {
-                                $component->state($record->modelVehicle->brand_vehicle_id);
-                            }
-                        }),
-
-                    Select::make('model_vehicle_id')
+                    // Many-to-many (owner 2026-11-22): satu profil → banyak
+                    // model; satu model → beberapa profil (beda rentang tahun).
+                    // Sync pivot otomatis oleh Filament saat save.
+                    Select::make('modelVehicles')
                         ->label('Model Vehicle')
-                        ->options(fn ($get) => ModelVehicle::query()
-                            ->when($get('brand_vehicle_id'), fn ($q, $brandId) => $q->where('brand_vehicle_id', $brandId))
-                            ->orderBy('name')
-                            ->pluck('name', 'id'))
+                        ->multiple()
+                        ->relationship('modelVehicles', 'name')
                         ->searchable()
-                        ->nullable(),
+                        ->preload(50)
+                        ->helperText('Bisa pilih lebih dari satu — profil katalog boleh dipakai banyak model (mis. profil BYD utk Atto 3 + Dolphin). Satu model boleh punya beberapa profil yang dibedakan tahun.'),
 
                     Select::make('platform')
                         ->label('Platform')
@@ -252,28 +239,38 @@ class ObdVehicleProfileResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('modelVehicle.brandVehicle'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with('modelVehicles.brandVehicle'))
             ->columns([
                 TextColumn::make('id')->sortable(),
-                TextColumn::make('modelVehicle.brandVehicle.name')
+                TextColumn::make('brand')
                     ->label('Brand')
-                    // Kolom ini HANYA katalog kendaraan existing (FK
-                    // model_vehicle_id) — bukan string brand dari metadata
-                    // Car Scanner. Identitas katalog Car Scanner (brand +
-                    // nama) tampil di kolom Catalog Name. Mapping = keputusan
-                    // admin; mobile hanya menyambung via model_vehicle_id.
+                    // Kolom ini HANYA katalog kendaraan existing (pivot
+                    // obd_profile_model_vehicles) — bukan string brand dari
+                    // metadata Car Scanner. Identitas katalog Car Scanner
+                    // tampil di kolom Catalog Name. Mapping = keputusan admin;
+                    // mobile menyambung via link pivot ini.
+                    ->state(fn (ObdVehicleProfile $record) => $record->modelVehicles
+                        ->map(fn ($m) => $m->brandVehicle?->name)
+                        ->filter()->unique()->implode(', '))
                     ->badge()
                     ->color('success')
                     ->placeholder('—')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('modelVehicle.name')
+                    ->searchable(query: fn (Builder $query, string $search) => $query
+                        ->whereHas('modelVehicles.brandVehicle', fn ($q) => $q->where('name', 'like', "%{$search}%"))),
+                TextColumn::make('model')
                     ->label('Model')
+                    ->state(fn (ObdVehicleProfile $record) => $record->modelVehicles
+                        ->map(fn ($m) => $m->name)
+                        ->implode(', '))
                     ->badge()
                     ->color('success')
                     ->placeholder('—')
-                    ->searchable()
-                    ->sortable(),
+                    ->limit(50)
+                    ->tooltip(fn (ObdVehicleProfile $record) => $record->modelVehicles->count() > 2
+                        ? $record->modelVehicles->map(fn ($m) => $m->name)->implode(', ')
+                        : null)
+                    ->searchable(query: fn (Builder $query, string $search) => $query
+                        ->whereHas('modelVehicles', fn ($q) => $q->where('name', 'like', "%{$search}%"))),
                 TextColumn::make('catalog_name')
                     ->label('Catalog Name')
                     // Nama dari JSON katalog ("Katalog CS xxx" bila generik) —
@@ -312,8 +309,8 @@ class ObdVehicleProfileResource extends Resource
                 TernaryFilter::make('mapped')
                     ->label('Ter-Map')
                     ->queries(
-                        true: fn (Builder $query) => $query->whereNotNull('model_vehicle_id'),
-                        false: fn (Builder $query) => $query->whereNull('model_vehicle_id'),
+                        true: fn (Builder $query) => $query->has('modelVehicles'),
+                        false: fn (Builder $query) => $query->doesntHave('modelVehicles'),
                     ),
                 // Pemisah seed resmi (IONIQ 5, Wuling Air EV — grade official)
                 // dari ±1.600 profil katalog Car Scanner (grade community).
@@ -361,11 +358,14 @@ class ObdVehicleProfileResource extends Resource
                                 ->searchable()
                                 ->required(),
                         ])
-                        ->action(fn (Collection $records, array $data) => $records->each(
-                            fn (ObdVehicleProfile $record) => $record->update([
-                                'model_vehicle_id' => $data['model_vehicle_id'],
-                            ]),
-                        ))
+                        ->action(function (Collection $records, array $data) {
+                            // Many-to-many: satu profil → banyak model (link
+                            // pivot tanpa melepas model lain yang sudah ditaut).
+                            $records->each(function (ObdVehicleProfile $record) use ($data) {
+                                $record->modelVehicles()->syncWithoutDetaching([$data['model_vehicle_id']]);
+                                $record->refreshPrimaryModel();
+                            });
+                        })
                         ->deselectRecordsAfterCompletion(),
                     Actions\DeleteBulkAction::make(),
                 ]),

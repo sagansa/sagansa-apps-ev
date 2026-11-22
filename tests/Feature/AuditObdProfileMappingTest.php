@@ -30,8 +30,7 @@ class AuditObdProfileMappingTest extends TestCase
 
     private function makeProfile(string $hash, string $platform, string $brand, string $name, string $grade = 'community'): ObdVehicleProfile
     {
-        return ObdVehicleProfile::create([
-            'model_vehicle_id' => $this->seres3->id, // simulasi salah-map
+        $p = ObdVehicleProfile::create([
             'platform' => $platform,
             'grade' => $grade,
             'version' => '1',
@@ -39,6 +38,11 @@ class AuditObdProfileMappingTest extends TestCase
             'pid_list' => ['metrics' => []],
             'metadata' => ['source' => 'obd:seed-profiles', 'brand' => $brand, 'model_name' => $name],
         ]);
+        // Simulasi salah-map: link pivot ke Seres 3 + primary.
+        $p->modelVehicles()->sync([$this->seres3->id]);
+        $p->update(['model_vehicle_id' => $this->seres3->id]);
+
+        return $p;
     }
 
     public function test_fix_resets_wrong_brand_and_keeps_matching_and_official(): void
@@ -50,11 +54,12 @@ class AuditObdProfileMappingTest extends TestCase
 
         $this->artisan('obd:audit-profile-mapping', ['--fix' => true])->assertSuccessful();
 
-        $this->assertNull($wrongKia->refresh()->model_vehicle_id);
-        $this->assertNull($wrongByd->refresh()->model_vehicle_id);
+        $this->assertSame([], $wrongKia->refresh()->modelVehicles()->pluck('model_vehicles.id')->all());
+        $this->assertNull($wrongKia->model_vehicle_id);
+        $this->assertSame([], $wrongByd->refresh()->modelVehicles()->pluck('model_vehicles.id')->all());
         // Brand cocok + seed resmi: keduanya dipertahankan.
-        $this->assertSame($this->seres3->id, $genuineSeres->refresh()->model_vehicle_id);
-        $this->assertSame($this->seres3->id, $officialMapped->refresh()->model_vehicle_id);
+        $this->assertSame([$this->seres3->id], $genuineSeres->refresh()->modelVehicles()->pluck('model_vehicles.id')->all());
+        $this->assertSame([$this->seres3->id], $officialMapped->refresh()->modelVehicles()->pluck('model_vehicles.id')->all());
     }
 
     public function test_without_fix_only_reports(): void
@@ -63,7 +68,7 @@ class AuditObdProfileMappingTest extends TestCase
 
         $this->artisan('obd:audit-profile-mapping')->assertSuccessful();
 
-        $this->assertSame($this->seres3->id, $wrongKia->refresh()->model_vehicle_id);
+        $this->assertSame([$this->seres3->id], $wrongKia->refresh()->modelVehicles()->pluck('model_vehicles.id')->all());
     }
 
     public function test_case_insensitive_brand_match(): void
@@ -73,6 +78,6 @@ class AuditObdProfileMappingTest extends TestCase
 
         $this->artisan('obd:audit-profile-mapping', ['--fix' => true])->assertSuccessful();
 
-        $this->assertSame($this->seres3->id, $p->refresh()->model_vehicle_id);
+        $this->assertSame([$this->seres3->id], $p->refresh()->modelVehicles()->pluck('model_vehicles.id')->all());
     }
 }

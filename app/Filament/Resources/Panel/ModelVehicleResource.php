@@ -340,12 +340,18 @@ class ModelVehicleResource extends Resource
             ])
             ->databaseTransaction()
             ->action(function (array $data, ModelVehicle $record) {
-                $count = ObdVehicleProfile::query()
+                // Many-to-many: model ini ditautkan ke profil terpilih (link
+                // pivot; profil tetap menaut model lain yang sudah ada).
+                $profiles = ObdVehicleProfile::query()
                     ->whereIn('id', $data['profile_ids'] ?? [])
-                    ->update(['model_vehicle_id' => $record->id]);
+                    ->get();
+                $profiles->each(function (ObdVehicleProfile $profile) use ($record) {
+                    $profile->modelVehicles()->syncWithoutDetaching([$record->id]);
+                    $profile->refreshPrimaryModel();
+                });
 
                 Notification::make()
-                    ->title("{$count} profil OBD di-assign ke {$record->brandVehicle?->name} {$record->name}")
+                    ->title("{$profiles->count()} profil OBD di-assign ke {$record->brandVehicle?->name} {$record->name}")
                     ->success()
                     ->send();
             });
