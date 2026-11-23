@@ -7,6 +7,7 @@ use App\Models\ModelVehicle;
 use App\Models\TypeVehicle;
 use App\Models\VehicleConnecting;
 use App\Models\VehicleNameMapping;
+use App\Support\VehicleNameNormalizer;
 
 /**
  * Matcher raw_brand/raw_model dari file GAIKINDO ke katalog brand_vehicles /
@@ -452,14 +453,17 @@ class VehicleSalesMatcher
     {
         $this->modelCacheByBrand[$brandId] = [];
 
+        $brandNorm = $this->normalize((string) BrandVehicle::find($brandId)?->name);
+
         ModelVehicle::where('brand_vehicle_id', $brandId)
-            ->chunk(500, function ($models) use ($brandId) {
+            ->chunk(500, function ($models) use ($brandId, $brandNorm) {
                 foreach ($models as $model) {
                     $mNorm = $this->normalize($model->name);
                     $this->modelCacheByBrand[$brandId][] = [
                         'model' => $model,
                         'norm' => $mNorm,
                         'nospace' => preg_replace('/\s+/', '', $mNorm),
+                        'nobrand' => VehicleNameNormalizer::stripBrandTokens($mNorm, $brandNorm),
                     ];
                 }
             });
@@ -483,6 +487,10 @@ class VehicleSalesMatcher
             $score = 0;
             if ($entry['norm'] === $norm) {
                 $score = 100;
+            } elseif ($entry['nobrand'] !== '' && $entry['nobrand'] === $norm) {
+                // Katalog ber-prefix brand ("MG S5 EV") vs raw tanpa prefix
+                // ("S5 EV") — di bawah exact, di atas varian/prefix parsial.
+                $score = 95;
             } elseif ($entry['nospace'] === $nospace && $nospace !== '') {
                 $score = 90;
             } elseif (str_starts_with($norm, $entry['norm'] . ' ') || str_starts_with($entry['norm'], $norm . ' ')) {
