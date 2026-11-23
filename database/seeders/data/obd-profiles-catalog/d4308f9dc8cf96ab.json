@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "hv_voltage",
+   "mode": 34,
+   "pid": "1172",
+   "ecuHeader": "DA10F1",
+   "bytes": 1,
+   "formula": "A*0.0625",
+   "unit": "V",
+   "priority": 3,
+   "description": "Pack Voltage",
+   "minValue": 150.0,
+   "maxValue": 900.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 0,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",
@@ -270,7 +290,16 @@
    "cyclePhase": 0
   }
  ],
- "initCommands": [],
+ "initCommands": [
+  "ATZ",
+  "ATE0",
+  "ATH1",
+  "ATSP0",
+  "ATS0",
+  "ATM0",
+  "ATAT1",
+  "ATST64"
+ ],
  "usableKwh": null,
  "efficiencyKmPerKwh": null,
  "dtcEcuHeaders": []

@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "hv_current",
+   "mode": 34,
+   "pid": "0101",
+   "ecuHeader": "761",
+   "bytes": 2,
+   "formula": "((A*256+B))-350",
+   "unit": "A",
+   "priority": 3,
+   "description": "Battery Current (mentah: + = keluar/beban, − = masuk/cas)",
+   "minValue": -500.0,
+   "maxValue": 500.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 14,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",
@@ -270,7 +290,20 @@
    "cyclePhase": 0
   }
  ],
- "initCommands": [],
+ "initCommands": [
+  "ATZ",
+  "ATE0",
+  "ATH1",
+  "ATSP6",
+  "ATS0",
+  "ATM0",
+  "ATAT1",
+  "ATSH761",
+  "ATCRA762",
+  "ATFCSH761",
+  "ATFCSD300040",
+  "ATFCSM1"
+ ],
  "usableKwh": null,
  "efficiencyKmPerKwh": null,
  "dtcEcuHeaders": []

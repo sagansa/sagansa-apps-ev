@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "hv_voltage",
+   "mode": 33,
+   "pid": "01",
+   "ecuHeader": "7E0",
+   "bytes": 1,
+   "formula": "A*18.7/255",
+   "unit": "V",
+   "priority": 3,
+   "description": "Pack Voltage",
+   "minValue": 150.0,
+   "maxValue": 900.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 6,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",
@@ -270,7 +290,16 @@
    "cyclePhase": 0
   }
  ],
- "initCommands": [],
+ "initCommands": [
+  "ATZ",
+  "ATE0",
+  "ATH1",
+  "ATSPA6",
+  "ATS0",
+  "ATM0",
+  "ATAT1",
+  "ATSH7E0"
+ ],
  "usableKwh": null,
  "efficiencyKmPerKwh": null,
  "dtcEcuHeaders": []

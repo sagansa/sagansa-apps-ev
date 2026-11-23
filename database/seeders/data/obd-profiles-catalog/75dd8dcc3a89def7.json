@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "motor_temp",
+   "mode": 34,
+   "pid": "28CB",
+   "ecuHeader": "7E1",
+   "bytes": 1,
+   "formula": "(A)-40",
+   "unit": "°C",
+   "priority": 90,
+   "description": "Motor Temperature",
+   "minValue": -40.0,
+   "maxValue": 200.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 0,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",

@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "soc_bms",
+   "mode": 34,
+   "pid": "B046",
+   "ecuHeader": "781",
+   "bytes": 2,
+   "formula": "(A*256+B)*0.00784",
+   "unit": "%",
+   "priority": 2,
+   "description": "Battery SoC (BMS)",
+   "minValue": 0.0,
+   "maxValue": 100.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 0,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",
@@ -270,7 +290,16 @@
    "cyclePhase": 0
   }
  ],
- "initCommands": [],
+ "initCommands": [
+  "ATZ",
+  "ATE0",
+  "ATH1",
+  "ATSP6",
+  "ATS0",
+  "ATM0",
+  "ATAT1",
+  "ATSH7E3"
+ ],
  "usableKwh": null,
  "efficiencyKmPerKwh": null,
  "dtcEcuHeaders": []

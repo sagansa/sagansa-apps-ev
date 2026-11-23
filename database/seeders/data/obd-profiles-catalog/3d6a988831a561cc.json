@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "charger_dc_voltage",
+   "mode": 34,
+   "pid": "484A",
+   "ecuHeader": "7E4",
+   "bytes": 2,
+   "formula": "(A*256+B)*0.01",
+   "unit": "V",
+   "priority": 7,
+   "description": "Charger Output Voltage",
+   "minValue": 0.0,
+   "maxValue": 1000.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 0,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "soh",
    "mode": 34,
    "pid": "0105",

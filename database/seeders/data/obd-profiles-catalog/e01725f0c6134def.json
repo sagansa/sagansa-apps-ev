@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "hv_voltage",
+   "mode": 33,
+   "pid": "00",
+   "ecuHeader": "7E0",
+   "bytes": 2,
+   "formula": "(A*256+B)*10/10000",
+   "unit": "V",
+   "priority": 3,
+   "description": "Pack Voltage",
+   "minValue": 150.0,
+   "maxValue": 900.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 97,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",

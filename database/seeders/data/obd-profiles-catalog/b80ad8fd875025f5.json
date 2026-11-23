@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "hv_current",
+   "mode": 34,
+   "pid": "0101",
+   "ecuHeader": "7E0",
+   "bytes": 2,
+   "formula": "A*1000/10000",
+   "unit": "A",
+   "priority": 3,
+   "description": "Battery Current (mentah: + = keluar/beban, − = masuk/cas)",
+   "minValue": -500.0,
+   "maxValue": 500.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 32,
+   "udsStatusByte": false,
+   "signed": true,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",

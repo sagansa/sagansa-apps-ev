@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "temp_avg",
+   "mode": 34,
+   "pid": "E014",
+   "ecuHeader": "7E0",
+   "bytes": 2,
+   "formula": "(A*0.5)-40",
+   "unit": "°C",
+   "priority": 5,
+   "description": "Battery Temperature",
+   "minValue": -40.0,
+   "maxValue": 80.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 8,
+   "udsStatusByte": false,
+   "signed": true,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",

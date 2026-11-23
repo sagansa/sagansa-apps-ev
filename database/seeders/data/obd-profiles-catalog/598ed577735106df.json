@@ -270,7 +270,25 @@
    "cyclePhase": 0
   }
  ],
- "initCommands": [],
+ "initCommands": [
+  "ATZ",
+  "ATE0",
+  "ATH1",
+  "ATS0",
+  "ATM0",
+  "ATAT1",
+  "ATSP5",
+  "ATAL",
+  "ATSH817AF1",
+  "ATSW32",
+  "ATKW0",
+  "ATIB10",
+  "ATWM817AF13E",
+  "ATIB10",
+  "ATSP5",
+  "ATFI",
+  "10C0"
+ ],
  "usableKwh": null,
  "efficiencyKmPerKwh": null,
  "dtcEcuHeaders": []

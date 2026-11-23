@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "hv_current",
+   "mode": 34,
+   "pid": "2AF8",
+   "ecuHeader": "DACBF1",
+   "bytes": 3,
+   "formula": "((A*65536+B*256+C)*2/10000)-2000",
+   "unit": "A",
+   "priority": 3,
+   "description": "Pack Current (mentah: + = keluar/beban, − = masuk/cas)",
+   "minValue": -500.0,
+   "maxValue": 500.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 6,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "rpm",
    "mode": 1,
    "pid": "0C",
