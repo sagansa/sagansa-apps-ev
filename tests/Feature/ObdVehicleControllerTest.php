@@ -7,6 +7,7 @@ use App\Models\ObdVehicle;
 use App\Models\User;
 use Database\Factories\ModelVehicleFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Config;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -129,5 +130,66 @@ class ObdVehicleControllerTest extends TestCase
             'usable_kwh' => 500, // di luar 0..200
             'model_vehicle_id' => -3,
         ])->assertStatus(422);
+    }
+
+    /**
+     * Satu kendaraan garasi = satu baris OBD (2026-11-24). Create ulang untuk
+     * garage_vehicle_id yang sama — dua perangkat, atau respons create
+     * sebelumnya hilang di jaringan — MENGEMBALIKAN baris yang sudah ada,
+     * bukan menambah baris baru (dulu tiap create = kendaraan ganda).
+     */
+    public function test_store_idempoten_perKendaraanGarasi(): void
+    {
+        Config::set('obd.enabled', true);
+        $this->actingAsUser();
+
+        $first = $this->postJson('/api/v1/obd/vehicles', $this->validPayload())
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $again = $this->postJson('/api/v1/obd/vehicles', $this->validPayload())
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->assertSame($first->json('data.id'), $again->json('data.id'), 'baris yang sama dikembalikan');
+        $this->assertDatabaseCount('obd_vehicles', 1);
+    }
+
+    public function test_store_garasiSama_userBerbeda_tetapBarisSendiri(): void
+    {
+        Config::set('obd.enabled', true);
+        $this->actingAsUser();
+        $this->postJson('/api/v1/obd/vehicles', $this->validPayload())->assertStatus(201);
+
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/v1/obd/vehicles', $this->validPayload())
+            ->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseCount('obd_vehicles', 2);
+    }
+
+    public function test_store_tanpaGarasi_tidakDibatasi(): void
+    {
+        // Klien lama masih bisa membuat entri tanpa garasi (universal) —
+        // kendaraan tanpa profil katalog tetap bisa scan & mengirim laporan.
+        Config::set('obd.enabled', true);
+        $this->actingAsUser();
+
+        $this->postJson('/api/v1/obd/vehicles', ['nickname' => 'OBD2 Standar'])->assertStatus(201);
+        $this->postJson('/api/v1/obd/vehicles', ['nickname' => 'OBD2 Standar'])->assertStatus(201);
+
+        $this->assertDatabaseCount('obd_vehicles', 2);
+    }
+
+    public function test_unikUserDanGarasi_ditegakkanDiDatabase(): void
+    {
+        // Tulisan yang melewati controller (mis. admin) tetap ditolak DB.
+        $user = User::factory()->create();
+        $user->obdVehicles()->create($this->validPayload());
+
+        $this->expectException(QueryException::class);
+
+        $user->obdVehicles()->create($this->validPayload());
     }
 }

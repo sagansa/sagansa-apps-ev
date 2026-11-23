@@ -19,7 +19,9 @@ use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use App\Filament\Resources\Panel\ObdVehicleResource\Pages;
+use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rules\Unique;
 
 /**
  * Registry kendaraan OBD2 PER-USER (2026-11-20 — pindahan internal storage
@@ -65,7 +67,16 @@ class ObdVehicleResource extends Resource
 
                     TextInput::make('garage_vehicle_id')
                         ->label('Garage Vehicle ID (uuid)')
-                        ->maxLength(36),
+                        ->maxLength(36)
+                        // Satu kendaraan garasi = satu baris per user (2026-11-24) —
+                        // pelanggaran mendiapat error validasi, bukan error 500
+                        // dari unique index DB.
+                        ->unique(
+                            table: ObdVehicle::class,
+                            column: 'garage_vehicle_id',
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule, Get $get) => $rule->where('user_id', $get('user_id')),
+                        ),
 
                     TextInput::make('nickname')
                         ->label('Nickname')

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\ObdVehicle;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,19 +45,49 @@ class ObdVehicleController extends Controller
         }
 
         $validated = self::validatePayload($request);
+        $garageId = $validated['garage_vehicle_id'] ?? null;
 
-        $vehicle = ObdVehicle::create([
-            ...$validated,
-            'user_id' => Auth::id(),
-            'sort_order' => $validated['sort_order'] ?? 0,
-            'last_used_at' => $validated['last_used_at'] ?? null,
-        ]);
+        // Satu kendaraan garasi = satu baris (2026-11-24): create untuk
+        // garage_vehicle_id yang SUDAH dipunyai user — dua perangkat, atau
+        // respons create sebelumnya hilang di jaringan — mengembalikan baris
+        // yang sudah ada alih-alih menambah baris baru (dulu: tiap create
+        // melahirkan kendaraan ganda yang menetap di pemilih Cockpit).
+        if ($garageId !== null && ($existing = self::ownedByGarage($garageId)) !== null) {
+            return response()->json([
+                'success' => true,
+                'message' => 'OBD vehicle already exists',
+                'data' => self::serialize($existing),
+            ]);
+        }
+
+        try {
+            $vehicle = ObdVehicle::create([
+                ...$validated,
+                'user_id' => Auth::id(),
+                'sort_order' => $validated['sort_order'] ?? 0,
+                'last_used_at' => $validated['last_used_at'] ?? null,
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            // Dua create bersamaan lolos dari cek di atas — unique index
+            // (user_id, garage_vehicle_id) yang menahan; kembalikan pemenangnya.
+            $vehicle = ($garageId !== null ? self::ownedByGarage($garageId) : null) ?? throw $e;
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'OBD vehicle created',
             'data' => self::serialize($vehicle),
         ], 201);
+    }
+
+    /** Baris user login untuk satu kendaraan garasi (yang paling terakhir dipakai duluan — data prasesudah unique index). */
+    private static function ownedByGarage(string $garageId): ?ObdVehicle
+    {
+        return ObdVehicle::query()
+            ->where('user_id', Auth::id())
+            ->where('garage_vehicle_id', $garageId)
+            ->orderByDesc('last_used_at')
+            ->first();
     }
 
     public function update(Request $request, string $id): JsonResponse
