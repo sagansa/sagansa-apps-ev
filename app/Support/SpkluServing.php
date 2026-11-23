@@ -40,7 +40,7 @@ class SpkluServing
      *
      * Dipindai dari SpkluLocationController::computeSyncMarkers() (baris 136–152).
      *
-     * @return array{count: int, max_created_at: string|null, max_updated_at: string|null}
+     * @return array{count: int, max_created_at: string|null, max_updated_at: string|null, data_version: string}
      */
     public static function computeSyncMarkers(): array
     {
@@ -59,6 +59,12 @@ class SpkluServing
             'max_updated_at' => $stats->max_updated
                 ? \Illuminate\Support\Carbon::rawParse($stats->max_updated, 'UTC')->toISOString()
                 : null,
+            // Sensor drift identitas dataset (termasuk PENGHAPUSAN baris):
+            // md5(count|max_updated) berubah bila ada baris dihapus/ditambah/diedit,
+            // bahkan bila marker lain kebetulan tetap. Klien (SpkluRepository)
+            // membandingkan dgn SpkluCacheMeta.dataVersion → beda = full fetch
+            // (purge ghost station). Tanpa filter lat/lng — probe identitas saja.
+            'data_version' => self::computeDataVersion(),
         ];
     }
 

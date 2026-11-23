@@ -69,6 +69,31 @@ class SpkluSyncTest extends TestCase
             ->assertJsonPath('data.max_updated_at', null);
     }
 
+    public function test_manifest_menyertakan_data_version_yang_berubah_saat_dataset_berubah(): void
+    {
+        // Seed mengikuti pola test di file ini — minimal 2 stasiun source pln
+        // dengan latitude/longitude not-null.
+        $a = $this->seedStationWithTimes(1, '2026-01-01 00:00:00', '2026-01-01 00:00:00');
+        $this->seedStationWithTimes(2, '2026-02-01 00:00:00', '2026-02-01 00:00:00');
+
+        $v1 = $this->getJson('/api/v1/meta/spklu-sync')->json('data');
+
+        $this->assertArrayHasKey('data_version', $v1);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $v1['data_version']);
+        $this->assertSame(
+            \App\Support\SpkluServing::computeDataVersion(),
+            $v1['data_version'],
+            'data_version manifest = computeDataVersion()'
+        );
+
+        // Penghapusan satu baris harus mengubah data_version (inilah sensor
+        // penghapusan yang dipakai klien untuk purge ghost).
+        $a->delete();
+        $v2 = $this->getJson('/api/v1/meta/spklu-sync')->json('data');
+
+        $this->assertNotSame($v1['data_version'], $v2['data_version']);
+    }
+
     private function seedStationWithTimes(int $sourceId, string $created, string $updated): ChargingStation
     {
         $station = ChargingStation::create([
