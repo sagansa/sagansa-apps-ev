@@ -39,6 +39,10 @@ class ModelVehicleMergeService
                     ->where('model_vehicle_id', $duplicate->id)
                     ->where('type_vehicle_id', $merge['from']->id)
                     ->count(),
+                'stats_type_remapped' => DB::connection($this->connectionName())
+                    ->table('vehicle_sales_stats')
+                    ->where('type_vehicle_id', $merge['from']->id)
+                    ->count(),
                 'battery_filled' => $batteryFilled,
             ];
         }
@@ -149,23 +153,38 @@ class ModelVehicleMergeService
             ];
         }
 
-        // (3) Hapus varian dup yang ter-gabung (nol kendaraan menunjuknya).
+        // (3) Stats GAIKINDO: re-point model, lalu remap type hint varian
+        // gabungan — dilakukan sebelum (5) menghapus type ter-gabung.
+        $statsRowsMoved = VehicleSalesStat::where('model_vehicle_id', $duplicate->id)
+            ->update(['model_vehicle_id' => $keeper->id]);
+        foreach ($plan['merges'] as $merge) {
+            DB::connection($this->connectionName())
+                ->table('vehicle_sales_stats')
+                ->where('type_vehicle_id', $merge['from']->id)
+                ->update(['type_vehicle_id' => $merge['to']->id]);
+        }
+
+        // (4) Vehicle connecting: re-point model, lalu remap type hint varian
+        // gabungan — wajib sebelum (5) menghapus type ter-gabung, karena FK
+        // nullOnDelete akan meng-null hint yang belum diremap.
+        $connectingsMoved = VehicleConnecting::where('model_vehicle_id', $duplicate->id)
+            ->update(['model_vehicle_id' => $keeper->id]);
+        foreach ($plan['merges'] as $merge) {
+            DB::connection($this->connectionName())
+                ->table('vehicle_connectings')
+                ->where('type_vehicle_id', $merge['from']->id)
+                ->update(['type_vehicle_id' => $merge['to']->id]);
+        }
+
+        // (5) Hapus varian dup yang ter-gabung (nol kendaraan menunjuknya).
         foreach ($plan['merges'] as $merge) {
             $merge['from']->delete();
         }
 
-        // (4) Varian nama-beda pindah utuh ke keeper (id tetap).
+        // (6) Varian nama-beda pindah utuh ke keeper (id tetap).
         foreach ($plan['moves'] as $type) {
             $type->update(['model_vehicle_id' => $keeper->id]);
         }
-
-        // (5) Stats GAIKINDO.
-        $statsRowsMoved = VehicleSalesStat::where('model_vehicle_id', $duplicate->id)
-            ->update(['model_vehicle_id' => $keeper->id]);
-
-        // (6) Vehicle connecting.
-        $connectingsMoved = VehicleConnecting::where('model_vehicle_id', $duplicate->id)
-            ->update(['model_vehicle_id' => $keeper->id]);
 
         // (7) Profil OBD + pivot (hormati unique pivot).
         $obdProfilesMoved = DB::connection($this->connectionName())
