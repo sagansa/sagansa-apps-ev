@@ -8,7 +8,9 @@ use App\Models\ModelVehicle;
 use App\Models\TypeVehicle;
 use App\Models\User;
 use App\Models\Vehicle;
+use Filament\Notifications\Livewire\Notifications;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -25,6 +27,22 @@ class ModelVehicleMergeAuditTest extends TestCase
         $admin = User::factory()->create(['email' => 'admin@admin.com']);
         $admin->assignRole('super_admin');
         $this->actingAs($admin);
+    }
+
+    /**
+     * Snapshot seluruh notifikasi yang terkirim selama test (mengosongkan
+     * antrean sesi). assertNotified() bawaan Filament mem-pull antrean itu di
+     * tiap pemanggilan, jadi hanya assertion pertama yang bermakna — mekanisme
+     * yang sama dipakai di sini untuk menguji daftar lengkapnya sekaligus.
+     *
+     * @return Collection<int, \Filament\Notifications\Notification>
+     */
+    protected function pullSentNotifications(): Collection
+    {
+        $component = new Notifications;
+        $component->mount();
+
+        return $component->notifications->values();
     }
 
     protected function seedPair(): array
@@ -76,6 +94,8 @@ class ModelVehicleMergeAuditTest extends TestCase
 
         $this->assertDatabaseMissing('model_vehicles', ['id' => $dup->id]);
         $this->assertDatabaseHas('vehicles', ['model_vehicle_id' => $keeper->id]);
+        // Tanpa rename: hanya notifikasi sukses, tanpa peringatan bentrok nama.
+        $this->assertSame(['success'], $this->pullSentNotifications()->map(fn ($n) => $n->getStatus())->all());
     }
 
     public function test_preview_mereset_rename_dari_pasangan_sebelumnya(): void
@@ -112,9 +132,14 @@ class ModelVehicleMergeAuditTest extends TestCase
             ->call('previewMerge', 0)
             ->set('keeperChoice.0', $keeper->id)
             ->call('mergePair', 0)
-            ->assertNotified('Merge gagal')
-            ->assertNotNotified('Merge selesai')
             ->assertSet('previewIndex', 0); // state halaman tidak berubah
+
+        // Tepat satu notifikasi: bahaya "Merge gagal" (tanpa "Merge selesai"),
+        // berisi pesan penyebab dari service agar admin tahu apa yang harus dibereskan.
+        $sent = $this->pullSentNotifications();
+        $this->assertSame(['Merge gagal'], $sent->map(fn ($n) => $n->getTitle())->all());
+        $this->assertSame('danger', $sent->first()->getStatus());
+        $this->assertStringContainsString('masih dipakai kendaraan di luar model', (string) $sent->first()->getBody());
 
         $this->assertDatabaseHas('model_vehicles', ['id' => $dup->id]);
         $this->assertDatabaseHas('vehicles', ['model_vehicle_id' => $dup->id]);
@@ -129,7 +154,7 @@ class ModelVehicleMergeAuditTest extends TestCase
     public function test_rename_ke_nama_model_lain_memberi_peringatan(): void
     {
         [$mg, $keeper, $dup] = $this->seedPair();
-        ModelVehicle::create(['brand_vehicle_id' => $mg->id, 'name' => 'MG 4']);
+        $other = ModelVehicle::create(['brand_vehicle_id' => $mg->id, 'name' => 'MG 4']);
 
         // Merge tetap jalan (notifikasi sukses), lalu admin diperingatkan bahwa
         // nama barunya sama dengan model lain di brand yang sama — beda
@@ -137,9 +162,12 @@ class ModelVehicleMergeAuditTest extends TestCase
         Livewire::test(ModelVehicleMergeAudit::class)
             ->set('keeperChoice.0', $keeper->id)
             ->set('renameTo', 'mg 4')
-            ->call('mergePair', 0)
-            ->assertNotified('Merge selesai')
-            ->assertNotified('Nama baru bentrok dengan model lain');
+            ->call('mergePair', 0);
+
+        $sent = $this->pullSentNotifications();
+        $this->assertSame(['success', 'warning'], $sent->map(fn ($n) => $n->getStatus())->all());
+        $this->assertSame('Nama baru bentrok dengan model lain', $sent->last()->getTitle());
+        $this->assertStringContainsString(sprintf('#%d MG 4', $other->id), (string) $sent->last()->getBody());
 
         $this->assertDatabaseHas('model_vehicles', ['id' => $keeper->id, 'name' => 'mg 4']);
         $this->assertDatabaseMissing('model_vehicles', ['id' => $dup->id]);
