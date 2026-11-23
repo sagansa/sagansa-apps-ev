@@ -13,7 +13,10 @@ use App\Models\VehicleConnecting;
 use App\Models\VehicleNameMapping;
 use App\Models\VehicleSalesStat;
 use App\Services\ModelVehicleMergeService;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class ModelVehicleMergeServiceTest extends TestCase
@@ -21,7 +24,9 @@ class ModelVehicleMergeServiceTest extends TestCase
     use RefreshDatabase;
 
     protected BrandVehicle $mg;
+
     protected ModelVehicle $keeper;   // "MG S5 EV"
+
     protected ModelVehicle $dup;      // "S5 EV"
 
     protected function setUp(): void
@@ -139,5 +144,111 @@ class ModelVehicleMergeServiceTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         app(ModelVehicleMergeService::class)->dryRun($this->keeper, $bydModel);
+    }
+
+    public function test_merge_pindahkan_semua_relasi_dan_hapus_duplikat(): void
+    {
+        $keeperStandar = $this->makeType($this->keeper, 'Standar'); // battery null
+        $dupStandar = $this->makeType($this->dup, 'Standar', 61.4);
+        $dupLuxury = $this->makeType($this->dup, 'Luxury');
+
+        $v1 = $this->makeVehicle($this->dup, $dupStandar);
+        $v2 = $this->makeVehicle($this->dup);
+        $v3 = $this->makeVehicle($this->dup, $dupStandar, trashed: true);
+        $vKeeper = $this->makeVehicle($this->keeper, $keeperStandar);
+        $this->makeStat($this->dup);
+        $connecting = VehicleConnecting::create([
+            'raw_gabungan' => 'MG S5 EV Comfort',
+            'brand_vehicle_id' => $this->mg->id,
+            'model_vehicle_id' => $this->dup->id,
+            'type_vehicle_id' => null,
+        ]);
+
+        // Pivot: profil ter-link ke dup DAN keeper → baris dup harus dihapus.
+        $profile = ObdVehicleProfile::create([
+            'model_vehicle_id' => $this->dup->id,
+            'platform' => 'CS-test0001',
+            'grade' => 'community',
+            'version' => '1',
+            'status' => 'active',
+            'pid_list' => ['metrics' => []],
+            'metadata' => ['source' => 'test'],
+        ]);
+        DB::table('obd_profile_model_vehicles')->insert([
+            ['obd_vehicle_profile_id' => $profile->id, 'model_vehicle_id' => $this->dup->id],
+            ['obd_vehicle_profile_id' => $profile->id, 'model_vehicle_id' => $this->keeper->id],
+        ]);
+
+        // Mapping yang menunjuk dup (unique pair belum dipegang keeper).
+        VehicleNameMapping::create([
+            'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
+            'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
+            'brand_vehicle_id' => $this->mg->id,
+            'model_vehicle_id' => $this->dup->id,
+            'type_vehicle_id' => null,
+        ]);
+
+        $report = app(ModelVehicleMergeService::class)->merge($this->keeper, $this->dup);
+
+        $this->assertFalse($report->dryRun);
+        $this->assertDatabaseMissing('model_vehicles', ['id' => $this->dup->id]);
+        $this->assertDatabaseMissing('type_vehicles', ['id' => $dupStandar->id]);      // gabung → hapus
+        $this->assertDatabaseHas('type_vehicles', ['id' => $dupLuxury->id, 'model_vehicle_id' => $this->keeper->id]); // pindah utuh
+        $this->assertSame($keeperStandar->id, $v1->fresh()->type_vehicle_id);          // remap varian gabung
+        $this->assertSame(61.4, $keeperStandar->fresh()->battery_capacity);            // fill baterai dari dup
+        $this->assertSame($this->keeper->id, $v1->fresh()->model_vehicle_id);
+        $this->assertSame($this->keeper->id, $v2->fresh()->model_vehicle_id);
+        $this->assertSame($this->keeper->id, Vehicle::withTrashed()->find($v3->id)->model_vehicle_id);
+        $this->assertSame($this->keeper->id, VehicleSalesStat::where('raw_model', 'S5 EV')->first()->model_vehicle_id);
+        $this->assertSame($this->keeper->id, $connecting->fresh()->model_vehicle_id);
+        $this->assertSame($this->keeper->id, $profile->fresh()->model_vehicle_id);
+        $this->assertSame(1, DB::table('obd_profile_model_vehicles')->where('obd_vehicle_profile_id', $profile->id)->count());
+        $this->assertDatabaseHas('vehicle_name_mappings', [
+            'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV', 'model_vehicle_id' => $this->keeper->id,
+        ]);
+        // Auto-mapping dari raw stats → import berikutnya kena LAYER 1.
+        $this->assertDatabaseHas('vehicle_name_mappings', [
+            'raw_model_norm' => 'S5 EV', 'model_vehicle_id' => $this->keeper->id,
+        ]);
+        $this->assertSame(3, $report->vehiclesMoved);
+        $this->assertSame(1, $report->pivotRowsDeleted);
+    }
+
+    public function test_mapping_unik_keeper_menang_saat_bentrok(): void
+    {
+        // Baris duplikat norm-pair hanya mungkin ada pada data legacy
+        // (sebelum index unique) — buang index utk simulasi keeper menang.
+        Schema::table('vehicle_name_mappings', function (Blueprint $table) {
+            $table->dropUnique('vehicle_name_mappings_raw_unique');
+        });
+
+        VehicleNameMapping::create([
+            'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
+            'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
+            'brand_vehicle_id' => $this->mg->id,
+            'model_vehicle_id' => $this->dup->id,
+            'type_vehicle_id' => null,
+        ]);
+        VehicleNameMapping::create([
+            'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
+            'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
+            'brand_vehicle_id' => $this->mg->id,
+            'model_vehicle_id' => $this->keeper->id,
+            'type_vehicle_id' => null,
+        ]);
+
+        app(ModelVehicleMergeService::class)->merge($this->keeper, $this->dup);
+
+        // Baris dup dihapus; keputusan keeper tetap satu-satunya.
+        $rows = VehicleNameMapping::where('raw_model_norm', 'S5 EV')->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame($this->keeper->id, $rows[0]->model_vehicle_id);
+    }
+
+    public function test_rename_keeper_opsional(): void
+    {
+        app(ModelVehicleMergeService::class)->merge($this->keeper, $this->dup, 'S5 EV');
+
+        $this->assertDatabaseHas('model_vehicles', ['id' => $this->keeper->id, 'name' => 'S5 EV']);
     }
 }
