@@ -118,7 +118,7 @@
    "formula": "(A/2)-40",
    "unit": "°C",
    "priority": 5,
-   "description": "Battery Temperature",
+   "description": "Battery Average Temperature",
    "minValue": -40.0,
    "maxValue": 80.0,
    "category": "EV_SPECIFIC",

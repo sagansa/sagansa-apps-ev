@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "chg_limit",
+   "mode": 34,
+   "pid": "A912",
+   "ecuHeader": "745",
+   "bytes": 1,
+   "formula": "A",
+   "unit": "V",
+   "priority": 8,
+   "description": "Charge Limit",
+   "minValue": 0.0,
+   "maxValue": 1000.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 0,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "temp_inlet",
    "mode": 34,
    "pid": "000F",

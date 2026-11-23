@@ -10,6 +10,26 @@
  "version": 1,
  "metrics": [
   {
+   "key": "hv_current",
+   "mode": 34,
+   "pid": "200A",
+   "ecuHeader": "7E7",
+   "bytes": 2,
+   "formula": "((A*256+B)*0.1)-200",
+   "unit": "A",
+   "priority": 3,
+   "description": "Pack Current (mentah: + = keluar/beban, − = masuk/cas)",
+   "minValue": -500.0,
+   "maxValue": 500.0,
+   "category": "EV_SPECIFIC",
+   "byteOffset": 0,
+   "udsStatusByte": false,
+   "signed": false,
+   "cellArray": null,
+   "cyclePeriod": 1,
+   "cyclePhase": 0
+  },
+  {
    "key": "soc_bms",
    "mode": 34,
    "pid": "1033",
