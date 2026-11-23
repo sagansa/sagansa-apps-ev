@@ -202,13 +202,14 @@ class ModelVehicleMergeServiceTest extends TestCase
             ['obd_vehicle_profile_id' => $profile->id, 'model_vehicle_id' => $this->keeper->id],
         ]);
 
-        // Mapping yang menunjuk dup (unique pair belum dipegang keeper).
-        VehicleNameMapping::create([
+        // Mapping yang menunjuk dup (unique pair belum dipegang keeper), dengan
+        // hint varian yang akan ter-gabung (FK type_vehicle_id RESTRICT).
+        $mapping = VehicleNameMapping::create([
             'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
             'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
             'brand_vehicle_id' => $this->mg->id,
             'model_vehicle_id' => $this->dup->id,
-            'type_vehicle_id' => null,
+            'type_vehicle_id' => $dupStandar->id,
         ]);
 
         $report = app(ModelVehicleMergeService::class)->merge($this->keeper, $this->dup);
@@ -231,12 +232,48 @@ class ModelVehicleMergeServiceTest extends TestCase
         $this->assertDatabaseHas('vehicle_name_mappings', [
             'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV', 'model_vehicle_id' => $this->keeper->id,
         ]);
+        $this->assertSame($keeperStandar->id, $mapping->fresh()->type_vehicle_id); // remap hint varian mapping (FK RESTRICT, sebelum hapus varian)
         // Auto-mapping dari raw stats → import berikutnya kena LAYER 1.
         $this->assertDatabaseHas('vehicle_name_mappings', [
             'raw_model_norm' => 'S5 EV', 'model_vehicle_id' => $this->keeper->id,
         ]);
         $this->assertSame(3, $report->vehiclesMoved);
         $this->assertSame(1, $report->pivotRowsDeleted);
+    }
+
+    public function test_anomali_kendaraan_model_lain_rollback_total(): void
+    {
+        // Varian dup "Standar" dipakai kendaraan milik model KETIGA —
+        // guard pre-delete harus membatalkan seluruh transaksi (FK
+        // vehicles.type_vehicle_id cascade: tanpa guard kendaraan itu hilang).
+        $keeperStandar = $this->makeType($this->keeper, 'Standar');
+        $dupStandar = $this->makeType($this->dup, 'Standar', 61.4);
+        $other = ModelVehicle::create(['brand_vehicle_id' => $this->mg->id, 'name' => 'MG ZS EV']);
+        $vDup = $this->makeVehicle($this->dup, $dupStandar);
+        $vOther = $this->makeVehicle($other, $dupStandar); // anomali lintas model
+        $this->makeStat($this->dup);
+
+        // `fail()` adalah turunan RuntimeException di PHPUnit — jangan dipanggil
+        // di dalam try, atau catch menelannya dan test lolos tanpa membuktikan apa pun.
+        $thrown = false;
+        try {
+            app(ModelVehicleMergeService::class)->merge($this->keeper, $this->dup);
+        } catch (\RuntimeException) {
+            $thrown = true;
+        }
+        $this->assertTrue($thrown, 'RuntimeException tidak dilempar.');
+
+        // Transaksi rollback — tidak ada yang berubah.
+        $this->assertDatabaseHas('model_vehicles', ['id' => $this->dup->id]);
+        $this->assertDatabaseHas('type_vehicles', ['id' => $dupStandar->id]);
+        $this->assertDatabaseHas('type_vehicles', ['id' => $keeperStandar->id]);
+        $this->assertNull($keeperStandar->fresh()->battery_capacity); // tidak ter-backfill
+        $this->assertSame($this->dup->id, VehicleSalesStat::where('raw_model', 'S5 EV')->first()->model_vehicle_id);
+        $this->assertSame(0, VehicleNameMapping::count()); // auto-mapping tak bocor
+        // Kendaraan sisi dup tetap di dup; kendaraan model ketiga tidak ikut ter-cascade.
+        $this->assertSame($this->dup->id, $vDup->fresh()->model_vehicle_id);
+        $this->assertSame($dupStandar->id, $vDup->fresh()->type_vehicle_id);
+        $this->assertSame($dupStandar->id, $vOther->fresh()->type_vehicle_id);
     }
 
     public function test_mapping_unik_keeper_menang_saat_bentrok(): void
@@ -249,27 +286,46 @@ class ModelVehicleMergeServiceTest extends TestCase
             $table->dropUnique('vehicle_name_mappings_raw_unique');
         });
 
-        VehicleNameMapping::create([
-            'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
-            'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
-            'brand_vehicle_id' => $this->mg->id,
-            'model_vehicle_id' => $this->dup->id,
-            'type_vehicle_id' => null,
-        ]);
-        VehicleNameMapping::create([
-            'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
-            'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
-            'brand_vehicle_id' => $this->mg->id,
-            'model_vehicle_id' => $this->keeper->id,
-            'type_vehicle_id' => null,
-        ]);
+        try {
+            VehicleNameMapping::create([
+                'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
+                'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
+                'brand_vehicle_id' => $this->mg->id,
+                'model_vehicle_id' => $this->dup->id,
+                'type_vehicle_id' => null,
+            ]);
+            VehicleNameMapping::create([
+                'raw_brand' => 'MG', 'raw_model' => 'S5 EV',
+                'raw_brand_norm' => 'MG', 'raw_model_norm' => 'S5 EV',
+                'brand_vehicle_id' => $this->mg->id,
+                'model_vehicle_id' => $this->keeper->id,
+                'type_vehicle_id' => null,
+            ]);
 
-        app(ModelVehicleMergeService::class)->merge($this->keeper, $this->dup);
+            app(ModelVehicleMergeService::class)->merge($this->keeper, $this->dup);
 
-        // Baris dup dihapus; keputusan keeper tetap satu-satunya.
-        $rows = VehicleNameMapping::where('raw_model_norm', 'S5 EV')->get();
-        $this->assertCount(1, $rows);
-        $this->assertSame($this->keeper->id, $rows[0]->model_vehicle_id);
+            // Baris dup dihapus; keputusan keeper tetap satu-satunya.
+            $rows = VehicleNameMapping::where('raw_model_norm', 'S5 EV')->get();
+            $this->assertCount(1, $rows);
+            $this->assertSame($this->keeper->id, $rows[0]->model_vehicle_id);
+        } finally {
+            // Index dipulihkan di sini, bukan diasumsikan ikut rollback transaksi
+            // test: DDL di MySQL implicit-commit, sehingga tanpa ini index tetap
+            // hilang sepanjang proses PHPUnit. Norm-pair ganda milik test ini
+            // dibersihkan dulu agar CREATE UNIQUE tidak gagal — dan menyembunyikan
+            // error asli — saat body di atas gagal sebelum superseded-delete.
+            VehicleNameMapping::query()
+                ->whereIn('model_vehicle_id', [$this->keeper->id, $this->dup->id])
+                ->delete();
+
+            Schema::table('vehicle_name_mappings', function (Blueprint $table) {
+                $table->unique(['raw_brand_norm', 'raw_model_norm'], 'vehicle_name_mappings_raw_unique');
+            });
+        }
+
+        // Index wajib sudah pulih di titik ini — bukan menunggu rollback transaksi
+        // test, yang tidak mengembalikan DDL di MySQL.
+        $this->assertTrue(Schema::hasIndex('vehicle_name_mappings', 'vehicle_name_mappings_raw_unique', 'unique'));
     }
 
     public function test_rename_keeper_opsional(): void

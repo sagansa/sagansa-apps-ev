@@ -58,4 +58,22 @@ class VehicleSalesMatcherBrandStripTest extends TestCase
 
         $this->assertTrue($preview['model_new']);
     }
+
+    public function test_auto_create_lalu_match_lain_di_brand_sama_tidak_crash(): void
+    {
+        $mg = BrandVehicle::create(['name' => 'MG']);
+        $matcher = app(VehicleSalesMatcher::class);
+
+        $first = $matcher->match('MG', 'S5 EV');   // auto-create (fuzzy gagal)
+        $this->assertTrue($first['model_created']);
+
+        $second = $matcher->match('MG', 'ZS EV');  // iterasi cache dgn entry auto-create
+        $this->assertTrue($second['model_created']);
+        $this->assertNotSame($first['model_vehicle_id'], $second['model_vehicle_id']);
+
+        // Entry auto-create juga harus bisa dipakai ulang (bukan dibuat dua kali).
+        $again = $matcher->match('MG', 'S5 EV');
+        $this->assertFalse($again['model_created']);
+        $this->assertSame($first['model_vehicle_id'], $again['model_vehicle_id']);
+    }
 }

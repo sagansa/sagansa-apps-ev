@@ -12,7 +12,10 @@ use App\Models\TypeVehicle;
 final class MergeReport
 {
     /**
-     * @param array<int, array{from: ?TypeVehicle, to: ?TypeVehicle, vehicles_remapped: int, battery_filled: bool}> $typeMerges
+     * Bentuk entry `typeMerges`: `stats_type_remapped` hanya diisi jalur dryRun
+     * (pratinjau); jalur eksekusi `merge()` tidak melaporkan count tersebut.
+     *
+     * @param array<int, array{from: ?TypeVehicle, to: ?TypeVehicle, vehicles_remapped: int, stats_type_remapped?: int, battery_filled: bool}> $typeMerges
      * @param array<int, TypeVehicle> $typesMoved
      * @param array<int, array{raw_brand: string, raw_model: string}> $mappingsCreated
      */

@@ -178,7 +178,33 @@ class ModelVehicleMergeService
                 ->update(['type_vehicle_id' => $merge['to']->id]);
         }
 
-        // (5) Hapus varian dup yang ter-gabung (nol kendaraan menunjuknya).
+        foreach ($plan['merges'] as $merge) {
+            // Name mapping: FK type_vehicle_id RESTRICT — tanpa remap, (5)
+            // menghapus varian gagal (SQLSTATE 23000). Hanya re-point hint,
+            // baris mapping tidak dihapus di sini.
+            DB::connection($this->connectionName())
+                ->table('vehicle_name_mappings')
+                ->where('type_vehicle_id', $merge['from']->id)
+                ->update(['type_vehicle_id' => $merge['to']->id]);
+        }
+
+        // Guard pre-delete: FK vehicles.type_vehicle_id bersifat cascade. Remap
+        // varian di atas hanya menyentuh kendaraan keeper — kendaraan milik
+        // model LAIN yang menunjuk varian ter-gabung akan terhapus diam-diam
+        // bersama variannya. Ada sisa = anomali → seluruh transaksi dibatalkan
+        // (tidak ada data yang hilang).
+        foreach ($plan['merges'] as $merge) {
+            $stale = Vehicle::withTrashed()
+                ->where('type_vehicle_id', $merge['from']->id)
+                ->where('model_vehicle_id', '!=', $keeper->id)
+                ->exists();
+            if ($stale) {
+                throw new \RuntimeException("Varian #{$merge['from']->id} ({$merge['from']->name}) masih dipakai kendaraan di luar model #{$keeper->id} — merge dibatalkan.");
+            }
+        }
+
+        // (5) Hapus varian dup yang ter-gabung (nol kendaraan menunjuknya —
+        // dijamin guard pre-delete di atas).
         foreach ($plan['merges'] as $merge) {
             $merge['from']->delete();
         }
@@ -426,7 +452,8 @@ class ModelVehicleMergeService
     {
         $pairs = [];
 
-        $brands = BrandVehicle::query()->has('modelVehicles', '>=', 2)->get();
+        // Urutkan brand agar urutan pasangan di halaman audit deterministik.
+        $brands = BrandVehicle::query()->has('modelVehicles', '>=', 2)->orderBy('id')->get();
         foreach ($brands as $brand) {
             $brandNorm = $this->normalizeName($brand->name);
             $models = ModelVehicle::query()

@@ -4,8 +4,9 @@ namespace App\Filament\Pages;
 
 use App\Models\ModelVehicle;
 use App\Services\ModelVehicleMergeService;
-use Filament\Pages\Page;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Halaman "Audit Duplikat Model" — daftar pasangan model katalog kandidat
@@ -74,6 +75,10 @@ class ModelVehicleMergeAudit extends Page
 
     public function previewMerge(int $index): void
     {
+        // Reset rename di awal: nama yang diketik pada preview pasangan lain
+        // tidak boleh bocor ke pasangan ini saat admin langsung preview ulang.
+        $this->renameTo = '';
+
         [$keeper, $duplicate] = $this->resolvePair($index);
 
         $report = app(ModelVehicleMergeService::class)->dryRun($keeper, $duplicate);
@@ -93,11 +98,29 @@ class ModelVehicleMergeAudit extends Page
         [$keeper, $duplicate] = $this->resolvePair($index);
         $dupName = $duplicate->name; // simpan sebelum record dihapus
 
-        $report = app(ModelVehicleMergeService::class)->merge(
-            $keeper,
-            $duplicate,
-            $this->renameTo !== '' ? $this->renameTo : null,
-        );
+        try {
+            $report = app(ModelVehicleMergeService::class)->merge(
+                $keeper,
+                $duplicate,
+                $this->renameTo !== '' ? $this->renameTo : null,
+            );
+        } catch (\Throwable $e) {
+            // Transaksi di service sudah rollback — DB tidak berubah. State
+            // halaman dibiarkan (preview tetap terbuka) agar penyebabnya terbaca.
+            Notification::make()
+                ->title('Merge gagal')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            Log::warning('model_vehicle.merge_failed', [
+                'error' => $e->getMessage(),
+                'keeper' => $keeper->id,
+                'duplicate' => $duplicate->id,
+            ]);
+
+            return;
+        }
 
         Notification::make()
             ->title('Merge selesai')
@@ -110,6 +133,38 @@ class ModelVehicleMergeAudit extends Page
             ->success()
             ->send();
 
+        if ($report->renamedTo !== null) {
+            $this->warnRenameBentrok($keeper, $report->renamedTo);
+        }
+
         $this->loadCandidates();
+    }
+
+    /**
+     * Rename bisa membuat nama keeper sama dengan model LAIN di brand yang sama
+     * (mis. duplikat yang belum diaudit) — merge tidak dibatalkan, tapi admin
+     * harus tahu pasangan barunya.
+     */
+    protected function warnRenameBentrok(ModelVehicle $keeper, string $newName): void
+    {
+        $bentrok = ModelVehicle::query()
+            ->where('brand_vehicle_id', $keeper->brand_vehicle_id)
+            ->where('id', '!=', $keeper->id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($newName)])
+            ->get(['id', 'name']);
+
+        if ($bentrok->isEmpty()) {
+            return;
+        }
+
+        Notification::make()
+            ->title('Nama baru bentrok dengan model lain')
+            ->body(sprintf(
+                '"%s" kini sama dengan %s di brand ini — periksa pasangan barunya di daftar audit.',
+                $newName,
+                $bentrok->map(fn (ModelVehicle $m) => sprintf('#%d %s', $m->id, $m->name))->implode(', '),
+            ))
+            ->warning()
+            ->send();
     }
 }

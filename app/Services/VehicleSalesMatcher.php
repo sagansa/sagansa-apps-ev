@@ -24,7 +24,7 @@ class VehicleSalesMatcher
     /** @var array<string, ?VehicleNameMapping> cache lookup mapping eksplisit */
     protected array $mappingCache = [];
 
-    /** @var array<int, array<string, array{model: ModelVehicle, norm: string, nospace: string, score: int}>> */
+    /** @var array<int, array<string, array{model: ModelVehicle, norm: string, nospace: string, nobrand: string}>> */
     protected array $modelCacheByBrand = [];
 
     /** @var array<string, string> alias nama brand hasil normalisasi → nama kanonik ternormalisasi */
@@ -487,7 +487,7 @@ class VehicleSalesMatcher
             $score = 0;
             if ($entry['norm'] === $norm) {
                 $score = 100;
-            } elseif ($entry['nobrand'] !== '' && $entry['nobrand'] === $norm) {
+            } elseif (($entry['nobrand'] ?? '') !== '' && $entry['nobrand'] === $norm) {
                 // Katalog ber-prefix brand ("MG S5 EV") vs raw tanpa prefix
                 // ("S5 EV") — di bawah exact, di atas varian/prefix parsial.
                 $score = 95;
@@ -533,10 +533,17 @@ class VehicleSalesMatcher
             'brand_vehicle_id' => $brandId,
             'name' => $this->prettyName($rawModel),
         ]);
+
+        // Entry cache harus berbentuk sama dengan entry loadModelsForBrand():
+        // satu instance matcher dipakai sepanjang satu file import, dan baris
+        // berikutnya di brand yang sama mengiterasi entry auto-create ini.
+        $brandNorm = $this->normalize((string) BrandVehicle::find($brandId)?->name);
+
         $this->modelCacheByBrand[$brandId][] = [
             'model' => $model,
             'norm' => $norm,
             'nospace' => $nospace,
+            'nobrand' => VehicleNameNormalizer::stripBrandTokens($norm, $brandNorm),
         ];
         $this->createdModels++;
         $created = true;

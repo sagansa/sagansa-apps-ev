@@ -77,4 +77,71 @@ class ModelVehicleMergeAuditTest extends TestCase
         $this->assertDatabaseMissing('model_vehicles', ['id' => $dup->id]);
         $this->assertDatabaseHas('vehicles', ['model_vehicle_id' => $keeper->id]);
     }
+
+    public function test_preview_mereset_rename_dari_pasangan_sebelumnya(): void
+    {
+        $this->seedPair();
+
+        // Nama yang tertinggal di input preview pasangan lain tidak boleh
+        // ikut terbawa saat admin mem-preview pasangan ini.
+        Livewire::test(ModelVehicleMergeAudit::class)
+            ->set('renameTo', 'Nama Bocor')
+            ->call('previewMerge', 0)
+            ->assertSet('previewIndex', 0)
+            ->assertSet('renameTo', '');
+    }
+
+    public function test_merge_gagal_menampilkan_notifikasi_bahaya_tanpa_perubahan(): void
+    {
+        // Anomali: varian dup "Standar" dipakai kendaraan model KETIGA → guard
+        // pre-delete melempar RuntimeException. Halaman harus menampilkannya
+        // sebagai notifikasi bahaya (bukan error 500) dan DB tetap utuh.
+        [$mg, $keeper, $dup] = $this->seedPair();
+        TypeVehicle::create(['model_vehicle_id' => $keeper->id, 'name' => 'Standar', 'type_charger' => []]);
+        $dupStandar = TypeVehicle::where('model_vehicle_id', $dup->id)->firstOrFail();
+        $other = ModelVehicle::create(['brand_vehicle_id' => $mg->id, 'name' => 'MG ZS EV']);
+        $vOther = Vehicle::create([
+            'user_id' => User::factory()->create()->id,
+            'brand_vehicle_id' => $mg->id,
+            'model_vehicle_id' => $other->id,
+            'type_vehicle_id' => $dupStandar->id,
+            'status' => 1,
+        ]);
+
+        Livewire::test(ModelVehicleMergeAudit::class)
+            ->call('previewMerge', 0)
+            ->set('keeperChoice.0', $keeper->id)
+            ->call('mergePair', 0)
+            ->assertNotified('Merge gagal')
+            ->assertNotNotified('Merge selesai')
+            ->assertSet('previewIndex', 0); // state halaman tidak berubah
+
+        $this->assertDatabaseHas('model_vehicles', ['id' => $dup->id]);
+        $this->assertDatabaseHas('vehicles', ['model_vehicle_id' => $dup->id]);
+        // Kendaraan model ketiga tetap ada dan masih menunjuk variannya.
+        $this->assertDatabaseHas('vehicles', [
+            'id' => $vOther->id,
+            'model_vehicle_id' => $other->id,
+            'type_vehicle_id' => $dupStandar->id,
+        ]);
+    }
+
+    public function test_rename_ke_nama_model_lain_memberi_peringatan(): void
+    {
+        [$mg, $keeper, $dup] = $this->seedPair();
+        ModelVehicle::create(['brand_vehicle_id' => $mg->id, 'name' => 'MG 4']);
+
+        // Merge tetap jalan (notifikasi sukses), lalu admin diperingatkan bahwa
+        // nama barunya sama dengan model lain di brand yang sama — beda
+        // kapitalisasi pun tetap terdeteksi.
+        Livewire::test(ModelVehicleMergeAudit::class)
+            ->set('keeperChoice.0', $keeper->id)
+            ->set('renameTo', 'mg 4')
+            ->call('mergePair', 0)
+            ->assertNotified('Merge selesai')
+            ->assertNotified('Nama baru bentrok dengan model lain');
+
+        $this->assertDatabaseHas('model_vehicles', ['id' => $keeper->id, 'name' => 'mg 4']);
+        $this->assertDatabaseMissing('model_vehicles', ['id' => $dup->id]);
+    }
 }
