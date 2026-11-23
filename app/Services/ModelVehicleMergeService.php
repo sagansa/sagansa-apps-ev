@@ -495,10 +495,10 @@ class ModelVehicleMergeService
     /** @param array<string, mixed> $x @param array<string, mixed> $y */
     protected function suggestKeeper(array $x, array $y): int
     {
-        $score = fn (array $e) => ((int) $e['obd']) * 1000
+        $score = fn (array $e) => ((int) $e['obd']) * 1_000_000
             + ((int) $e['vehicles']) * 10
-            + ((int) $e['filled']) * 5
-            - ($e['age'] / 1_000_000_000); // lebih tua → skor sedikit lebih tinggi
+            + ((int) $e['filled'])
+            - ($e['age'] / 1_000_000_000_000); // usia hanya tie-breaker murni
 
         return $score($x) >= $score($y) ? $x['model']->id : $y['model']->id;
     }

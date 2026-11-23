@@ -311,4 +311,33 @@ class ModelVehicleMergeServiceTest extends TestCase
 
         $this->assertCount(1, $pairs); // satu pasangan MG S5 EV ↔ S5 EV, bukan dua
     }
+
+    public function test_audit_tier_keeper_ketat_obd_dan_user_mengalahkan_metadata(): void
+    {
+        // (a) 1 link OBD di sisi dup mengalahkan keeper bermetadata lengkap.
+        $profile = \App\Models\ObdVehicleProfile::create([
+            'model_vehicle_id' => $this->dup->id,
+            'platform' => 'CS-tier0001',
+            'grade' => 'community',
+            'version' => '1',
+            'status' => 'active',
+            'pid_list' => ['metrics' => []],
+            'metadata' => ['source' => 'test'],
+        ]);
+        DB::table('obd_profile_model_vehicles')->insert([
+            'obd_vehicle_profile_id' => $profile->id,
+            'model_vehicle_id' => $this->dup->id,
+        ]);
+        $this->keeper->update(['category' => 'SUV', 'size_class' => 'Medium']);
+        $pairs = app(ModelVehicleMergeService::class)->auditCandidates();
+        $mgPair = collect($pairs)->first(fn ($p) => $p['brand'] === 'MG');
+        $this->assertSame($this->dup->id, $mgPair['keeper_id']); // tier OBD menang
+
+        // (b) Tanpa OBD: 1 user di sisi keeper mengalahkan metadata dup maksimal.
+        DB::table('obd_profile_model_vehicles')->where('obd_vehicle_profile_id', $profile->id)->delete();
+        $this->makeVehicle($this->keeper);
+        $pairs = app(ModelVehicleMergeService::class)->auditCandidates();
+        $mgPair = collect($pairs)->first(fn ($p) => $p['brand'] === 'MG');
+        $this->assertSame($this->keeper->id, $mgPair['keeper_id']); // tier user menang
+    }
 }
