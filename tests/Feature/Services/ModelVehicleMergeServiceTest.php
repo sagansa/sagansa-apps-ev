@@ -278,4 +278,37 @@ class ModelVehicleMergeServiceTest extends TestCase
 
         $this->assertDatabaseHas('model_vehicles', ['id' => $this->keeper->id, 'name' => 'S5 EV']);
     }
+
+    public function test_audit_candidates_menemukan_pasangan_duplikat(): void
+    {
+        $wuling = BrandVehicle::create(['name' => 'Wuling']);
+        $cloud = ModelVehicle::create(['brand_vehicle_id' => $wuling->id, 'name' => 'Cloud']);
+        $cloudEv = ModelVehicle::create(['brand_vehicle_id' => $wuling->id, 'name' => 'Cloud EV']);
+        $byd = BrandVehicle::create(['name' => 'BYD']);
+        ModelVehicle::create(['brand_vehicle_id' => $byd->id, 'name' => 'Atto 3']); // tidak berpasangan
+
+        // Keeper S5 EV "lebih kaya": kategori + size terisi.
+        $this->keeper->update(['category' => 'SUV', 'size_class' => 'Medium']);
+
+        $pairs = app(ModelVehicleMergeService::class)->auditCandidates();
+
+        $this->assertCount(2, $pairs);
+
+        $mgPair = collect($pairs)->first(fn ($p) => $p['brand'] === 'MG');
+        $this->assertNotNull($mgPair);
+        $this->assertSame($this->keeper->id, $mgPair['keeper_id']); // metadata lengkap menang
+        $this->assertSame($this->keeper->id, min($mgPair['a']['model']->id, $mgPair['b']['model']->id));
+
+        $wulingPair = collect($pairs)->first(fn ($p) => $p['brand'] === 'Wuling');
+        $this->assertNotNull($wulingPair);
+        $ids = [$wulingPair['a']['model']->id, $wulingPair['b']['model']->id];
+        $this->assertEqualsCanonicalizing([$cloud->id, $cloudEv->id], $ids);
+    }
+
+    public function test_audit_candidates_tidak_menggandakan_pasangan(): void
+    {
+        $pairs = app(ModelVehicleMergeService::class)->auditCandidates();
+
+        $this->assertCount(1, $pairs); // satu pasangan MG S5 EV ↔ S5 EV, bukan dua
+    }
 }

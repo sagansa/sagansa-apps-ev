@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BrandVehicle;
 use App\Models\ModelVehicle;
 use App\Models\TypeVehicle;
 use App\Models\Vehicle;
@@ -9,6 +10,7 @@ use App\Models\VehicleConnecting;
 use App\Models\VehicleNameMapping;
 use App\Models\VehicleSalesStat;
 use App\Support\MergeReport;
+use App\Support\VehicleNameNormalizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -411,6 +413,94 @@ class ModelVehicleMergeService
             ->distinct()
             ->pluck('dup.id')
             ->all();
+    }
+
+    /**
+     * Deteksi pasangan model kandidat duplikat per brand: nobrand sama persis,
+     * ATAU nospace satu mengandung yang lain (min 4 char). Saran keeper:
+     * lebih banyak link OBD > lebih banyak user > metadata terisi > lebih tua.
+     *
+     * @return array<int, array{brand: string, a: array{model: ModelVehicle, vehicles: int, types: int, obd: int}, b: array{model: ModelVehicle, vehicles: int, types: int, obd: int}, keeper_id: int}>
+     */
+    public function auditCandidates(): array
+    {
+        $pairs = [];
+
+        $brands = BrandVehicle::query()->has('modelVehicles', '>=', 2)->get();
+        foreach ($brands as $brand) {
+            $brandNorm = $this->normalizeName($brand->name);
+            $models = ModelVehicle::query()
+                ->where('brand_vehicle_id', $brand->id)
+                ->withCount(['vehicles', 'typeVehicles', 'obdVehicleProfiles'])
+                ->orderBy('id')
+                ->get();
+
+            $entries = $models->map(fn (ModelVehicle $m) => [
+                'model' => $m,
+                'norm' => $this->normalizeName($m->name),
+                'nospace' => preg_replace('/\s+/', '', $this->normalizeName($m->name)),
+                'nobrand' => VehicleNameNormalizer::stripBrandTokens($this->normalizeName($m->name), $brandNorm),
+                'vehicles' => $m->vehicles_count,
+                'types' => $m->type_vehicles_count,
+                'obd' => $m->obd_vehicle_profiles_count,
+                'filled' => ($m->category !== null ? 1 : 0) + ($m->size_class !== null ? 1 : 0),
+                'age' => $m->created_at?->getTimestamp() ?? 0,
+            ])->all();
+
+            for ($i = 0; $i < count($entries); $i++) {
+                for ($j = $i + 1; $j < count($entries); $j++) {
+                    $x = $entries[$i];
+                    $y = $entries[$j];
+                    if (! $this->isDuplicateCandidate($x, $y)) {
+                        continue;
+                    }
+                    $pairs[] = [
+                        'brand' => $brand->name,
+                        'a' => $this->pairSide($x),
+                        'b' => $this->pairSide($y),
+                        'keeper_id' => $this->suggestKeeper($x, $y),
+                    ];
+                }
+            }
+        }
+
+        return $pairs;
+    }
+
+    /** @param array<string, mixed> $x @param array<string, mixed> $y */
+    protected function isDuplicateCandidate(array $x, array $y): bool
+    {
+        if ($x['nobrand'] !== '' && $x['nobrand'] === $y['nobrand']) {
+            return true;
+        }
+
+        $xNospace = (string) $x['nospace'];
+        $yNospace = (string) $y['nospace'];
+
+        return (mb_strlen($xNospace) >= 4 && str_contains($yNospace, $xNospace))
+            || (mb_strlen($yNospace) >= 4 && str_contains($xNospace, $yNospace));
+    }
+
+    /** @param array<string, mixed> $entry @return array{model: ModelVehicle, vehicles: int, types: int, obd: int} */
+    protected function pairSide(array $entry): array
+    {
+        return [
+            'model' => $entry['model'],
+            'vehicles' => (int) $entry['vehicles'],
+            'types' => (int) $entry['types'],
+            'obd' => (int) $entry['obd'],
+        ];
+    }
+
+    /** @param array<string, mixed> $x @param array<string, mixed> $y */
+    protected function suggestKeeper(array $x, array $y): int
+    {
+        $score = fn (array $e) => ((int) $e['obd']) * 1000
+            + ((int) $e['vehicles']) * 10
+            + ((int) $e['filled']) * 5
+            - ($e['age'] / 1_000_000_000); // lebih tua → skor sedikit lebih tinggi
+
+        return $score($x) >= $score($y) ? $x['model']->id : $y['model']->id;
     }
 
     /** Upper, trim, collapse spasi — kunci perbandingan nama varian/model. */
