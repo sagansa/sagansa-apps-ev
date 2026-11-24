@@ -11,6 +11,7 @@ use App\Support\VehicleCategories;
 use Filament\Actions;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -25,6 +26,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\HtmlString;
 
 class ModelVehicleResource extends Resource
 {
@@ -87,6 +89,43 @@ class ModelVehicleResource extends Resource
                         ->label('Ukuran')
                         ->badge()
                         ->placeholder('—'),
+                ]),
+
+            // Feedback owner 2026-11-24: detail model dulu tanpa info profil OBD
+            // — admin tak bisa melihat profil mana yang tertaut, apalagi apakah
+            // model ini model utama atau hanya pivot dari profil multi-model.
+            Section::make('Profil OBD')
+                ->description('Profil yang tertaut ke model ini. App versi lama hanya mengenali "model utama"; model lain dalam satu profil multi-model dikenali lewat daftar pivot.')
+                ->schema([
+                    RepeatableEntry::make('obdVehicleProfiles')
+                        ->hiddenLabel()
+                        ->state(fn (ModelVehicle $record) => $record->obdVehicleProfiles()->orderBy('platform')->get())
+                        ->schema([
+                            TextEntry::make('platform')
+                                ->label('Platform')
+                                ->badge()
+                                ->color('info')
+                                ->url(fn (ObdVehicleProfile $record) => ObdVehicleProfileResource::getUrl('edit', ['record' => $record]))
+                                ->openUrlInNewTab(),
+                            TextEntry::make('metadata.model_name')
+                                ->label('Nama sumber katalog')
+                                ->placeholder('—'),
+                            TextEntry::make('grade')->label('Grade')->badge(),
+                            TextEntry::make('version')->label('Versi'),
+                            TextEntry::make('jumlah_metrik')
+                                ->label('Jumlah metrik')
+                                ->state(fn (ObdVehicleProfile $record) => count($record->pid_list['metrics'] ?? [])),
+                            TextEntry::make('peran')
+                                ->label('Peran untuk model ini')
+                                ->badge()
+                                ->color(fn (string $state) => $state === 'model utama' ? 'success' : 'gray')
+                                ->state(fn (ObdVehicleProfile $record, $livewire) => self::obdRole($record, $livewire->getRecord())),
+                        ])
+                        ->columns(3),
+                    TextEntry::make('obd_tanpa_profil')
+                        ->hiddenLabel()
+                        ->placeholder('Belum ada profil OBD tertaut — gunakan aksi "Pilih Profil OBD".')
+                        ->visible(fn (ModelVehicle $record) => $record->obdVehicleProfiles()->doesntExist()),
                 ]),
         ]);
     }
@@ -151,8 +190,10 @@ class ModelVehicleResource extends Resource
             ->poll('60s')
             ->modifyQueryUsing(fn (Builder $query) => $query
                 // Cakupan profil OBD per model: total baris ter-mapping +
-                // berapa di antaranya seed resmi (grade official).
+                // berapa di antaranya seed resmi (grade official). Profilnya
+                // di-eager-load untuk deskripsi kolom "Profil OBD".
                 ->withCount('obdVehicleProfiles')
+                ->with('obdVehicleProfiles')
                 ->withCount(['obdVehicleProfiles as obd_official_count' => fn ($q) => $q->where('grade', 'official')]))
             ->columns([
                 ImageColumn::make('image')
@@ -221,6 +262,9 @@ class ModelVehicleResource extends Resource
                         $state > 0 => (string) $state,
                         default => 'belum ada',
                     })
+                    // Di bawah hitungan: profil mana yang tertaut (feedback
+                    // owner 2026-11-24 — "1" saja tidak memberi informasi).
+                    ->description(fn (ModelVehicle $record) => self::obdProfileLinksDescription($record))
                     ->sortable(),
             ])
             ->filters([
@@ -273,6 +317,47 @@ class ModelVehicleResource extends Resource
         return [
             RelationManagers\TypeVehiclesRelationManager::class,
         ];
+    }
+
+    /**
+     * Peran sebuah model dalam satu profil: `model_vehicle_id` profil = model
+     * UTAMA (satu-satunya yang dikenali app versi lama); link pivot lain =
+     * model PIVOT (dikenali app lewat `model_vehicle_ids`).
+     */
+    public static function obdRole(ObdVehicleProfile $profile, ModelVehicle $model): string
+    {
+        return (int) $profile->model_vehicle_id === (int) $model->id ? 'model utama' : 'model pivot';
+    }
+
+    /**
+     * Satu baris per profil OBD yang tertaut ke model — bahan deskripsi kolom
+     * "Profil OBD" di daftar (nama sumber dipotong agar baris tetap ringkas).
+     *
+     * @return list<string>
+     */
+    public static function obdProfileLinkLines(ModelVehicle $model): array
+    {
+        return $model->obdVehicleProfiles
+            ->sortBy('platform')
+            ->map(fn (ObdVehicleProfile $profile) => sprintf(
+                '%s · %s [%s, %d metrik, %s]',
+                (string) $profile->platform,
+                mb_strimwidth((string) ($profile->metadata['model_name'] ?? '—'), 0, 60, '…'),
+                (string) $profile->grade,
+                count($profile->pid_list['metrics'] ?? []),
+                self::obdRole($profile, $model),
+            ))
+            ->all();
+    }
+
+    /** Deskripsi kolom daftar: baris profil tertaut (null bila tidak ada). */
+    public static function obdProfileLinksDescription(ModelVehicle $model): ?HtmlString
+    {
+        $lines = self::obdProfileLinkLines($model);
+
+        return $lines === []
+            ? null
+            : new HtmlString(implode('<br>', array_map(fn (string $line) => e($line), $lines)));
     }
 
     /** Katalog hanya lahir dari CONNECTING — create manual ditutup. */
