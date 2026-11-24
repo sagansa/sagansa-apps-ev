@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ModelVehicle;
 use App\Models\ObdVehicle;
 use App\Models\User;
+use App\Models\Vehicle;
 use Database\Factories\ModelVehicleFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\QueryException;
@@ -73,6 +74,18 @@ class ObdVehicleControllerTest extends TestCase
         $user = $this->actingAsUser();
 
         $model = ModelVehicle::factory()->create(['name' => 'IONIQ 5']);
+
+        // Rekonsiliasi di GET (spec penyatuan 2026-11-24 §4) menghapus baris
+        // yatim (garage_vehicle_id menunjuk kendaraan tak-ada) — sediakan garasi
+        // nyata ber-id sama supaya baris POST tetap terlihat di index.
+        $garage = new Vehicle([
+            'user_id' => $user->id,
+            'brand_vehicle_id' => $model->brand_vehicle_id,
+            'model_vehicle_id' => $model->id,
+            'status' => 1,
+        ]);
+        $garage->id = '0f7d1c2e-1111-4222-8333-444455556666';
+        $garage->save();
 
         $this->postJson('/api/v1/obd/vehicles', $this->validPayload($model->id))
             ->assertStatus(201)

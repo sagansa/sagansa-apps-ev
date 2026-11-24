@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Services\Obd\VehicleRegistryReconciler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
@@ -125,5 +127,20 @@ class ObdVehicleReconcileTest extends TestCase
 
         $this->assertSame(1, ObdVehicle::where('user_id', $this->user->id)->count());
         $this->assertSame(1, ObdVehicle::where('user_id', $other->id)->count(), 'baris user lain tidak disentuh');
+    }
+
+    public function test_get_obd_vehicles_merekonsiliasi(): void
+    {
+        Sanctum::actingAs($this->user);
+        Config::set('obd.enabled', true);
+        $g = $this->garageVehicle();
+        $this->assertSame(0, ObdVehicle::where('user_id', $this->user->id)->count());
+
+        $this->getJson('/api/v1/obd/vehicles')
+            ->assertSuccessful()
+            ->assertJsonPath('success', true);
+
+        $row = ObdVehicle::where('user_id', $this->user->id)->sole();
+        $this->assertSame((string) $g->id, $row->garage_vehicle_id);
     }
 }

@@ -26,6 +26,16 @@ class ObdVehicleController extends Controller
             return response()->json(['message' => 'Not found'], 404);
         }
 
+        // Rekonsiliasi registry (spec penyatuan 2026-11-24 §4): satu kendaraan
+        // garasi = satu baris. Fail-open — kegagalan rekonsiliasi tidak boleh
+        // menggagalkan daftar (app versi lama juga memanggil endpoint ini).
+        try {
+            app(\App\Services\Obd\VehicleRegistryReconciler::class)
+                ->reconcileFor((int) Auth::id());
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         $vehicles = ObdVehicle::query()
             ->where('user_id', Auth::id())
             ->orderBy('sort_order')
