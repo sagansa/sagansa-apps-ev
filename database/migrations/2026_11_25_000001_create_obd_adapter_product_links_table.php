@@ -9,8 +9,9 @@ return new class extends Migration {
     {
         // Multi-link marketplace per produk (2026-11-25 — 1 produk bisa punya
         // beberapa link toko: Shopee/Tokopedia/Lazada; pengganti affiliate_url tunggal).
-        // Idempoten: DB lokal 2026-11-25 sudah memuat tabel ini tanpa catatan
-        // migrasi (drift percobaan lama) — lewati bila skemanya sudah ada.
+        // Idempoten: produksi 2026-11-25 sempat setengah jadi — CREATE berhasil
+        // lalu ALTER index gagal (nama index otomatis Laravel >64 karakter,
+        // limit identifier MySQL hosting shared) — lewati bila tabel sudah ada.
         if (Schema::connection('ev')->hasTable('obd_adapter_product_links')) {
             return;
         }
@@ -27,7 +28,10 @@ return new class extends Migration {
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamps();
 
-            $table->index(['obd_adapter_product_id', 'is_active', 'sort_order']);
+            // TANPA index komposit tambahan: nama otomatis Laravel melebihi
+            // limit 64 karakter identifier MySQL shared hosting (1059). Index
+            // FK pada obd_adapter_product_id (otomatis MySQL) cukup utk pola
+            // akses per-produk — tabel ini hanya beberapa baris per produk.
         });
     }
 
