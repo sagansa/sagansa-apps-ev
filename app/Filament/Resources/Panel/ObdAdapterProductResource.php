@@ -7,6 +7,7 @@ use Filament\Actions;
 use Filament\Forms;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -61,16 +62,52 @@ class ObdAdapterProductResource extends Resource
                 ]),
             ]),
 
-            Section::make('Media & Links')->schema([
+            Section::make('Media')->schema([
                 Grid::make(['default' => 2])->schema([
                     TextInput::make('image_url')
                         ->label('Image URL')
                         ->url(),
-
-                    TextInput::make('affiliate_url')
-                        ->label('Affiliate URL')
-                        ->url(),
                 ]),
+            ]),
+
+            // Multi-link marketplace (2026-11-25): 1 produk bisa dibeli di
+            // beberapa toko — app menampilkan tombol keranjang per baris
+            // produk yang membuka pemilih toko. Kolom affiliate_url lama
+            // diisi otomatis dari link aktif pertama (fallback app lama).
+            Section::make('Marketplace Links')->schema([
+                Repeater::make('links')
+                    ->relationship()
+                    ->label('Links')
+                    ->schema([
+                        Grid::make(['default' => 2])->schema([
+                            Select::make('marketplace')
+                                ->label('Marketplace')
+                                ->options([
+                                    'shopee' => 'Shopee',
+                                    'tokopedia' => 'Tokopedia',
+                                    'lazada' => 'Lazada',
+                                    'other' => 'Other',
+                                ])
+                                ->required(),
+
+                            TextInput::make('url')
+                                ->label('Product URL')
+                                ->url()
+                                ->required(),
+
+                            Toggle::make('is_active')
+                                ->label('Active')
+                                ->default(true),
+
+                            TextInput::make('sort_order')
+                                ->label('Sort Order')
+                                ->numeric()
+                                ->default(0),
+                        ]),
+                    ])
+                    ->defaultItems(0)
+                    ->addActionLabel('Add marketplace link')
+                    ->itemLabel(fn (array $state) => strtoupper($state['marketplace'] ?? 'Link')),
             ]),
 
             Section::make('Description')->schema([
@@ -121,6 +158,11 @@ class ObdAdapterProductResource extends Resource
                 TextColumn::make('price_idr')
                     ->money('IDR')
                     ->sortable(),
+
+                TextColumn::make('links_count')
+                    ->label('Links')
+                    ->counts('links')
+                    ->badge(fn (string $state) => $state > 0 ? 'success' : 'danger'),
 
                 ToggleColumn::make('is_active')
                     ->label('Active'),
