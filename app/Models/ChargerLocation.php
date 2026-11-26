@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\NormalizesLoopbackMediaUrl;
 use App\Models\Concerns\UsesDefaultConnectionWhenTesting;
 
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 
 class ChargerLocation extends Model
 {
+    use NormalizesLoopbackMediaUrl;
     use UsesDefaultConnectionWhenTesting;
 
     use HasUuids;
@@ -77,6 +79,8 @@ class ChargerLocation extends Model
         if ($trimmed === '' || in_array($trimmed, ['/images/ev-charging.png', 'images/ev-charging.png', '/images/ev-station.png', 'images/ev-station.png'])) {
             return null;
         }
+
+        $trimmed = static::withoutLoopbackOrigin($trimmed) ?? $trimmed;
 
         if (Str::startsWith($trimmed, ['http://', 'https://', '//'])) {
             return $trimmed;
@@ -248,6 +252,8 @@ class ChargerLocation extends Model
         if ($trimmed === '') {
             return null;
         }
+
+        $trimmed = static::withoutLoopbackOrigin($trimmed) ?? $trimmed;
 
         if (Str::startsWith($trimmed, ['http://', 'https://'])) {
             return $trimmed;

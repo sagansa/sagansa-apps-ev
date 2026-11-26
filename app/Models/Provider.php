@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\NormalizesLoopbackMediaUrl;
 use App\Models\Concerns\UsesDefaultConnectionWhenTesting;
 
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 
 class Provider extends Model
 {
+    use NormalizesLoopbackMediaUrl;
     use UsesDefaultConnectionWhenTesting;
 
     use HasUuids;
@@ -78,6 +80,8 @@ class Provider extends Model
             return null;
         }
 
+        $trimmed = static::withoutLoopbackOrigin($trimmed) ?? $trimmed;
+
         if (Str::startsWith($trimmed, ['http://', 'https://', '//'])) {
             return $trimmed;
         }
@@ -109,6 +113,8 @@ class Provider extends Model
         if ($trimmed === '') {
             return null;
         }
+
+        $trimmed = static::withoutLoopbackOrigin($trimmed) ?? $trimmed;
 
         // Full URLs (any external host) — return as-is
         if (Str::startsWith($trimmed, ['http://', 'https://', '//'])) {
