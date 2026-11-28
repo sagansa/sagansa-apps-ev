@@ -115,8 +115,11 @@ class ProviderResource extends Resource
                     ->defaultImageUrl(fn () => asset('/images/ev-charging.png')),
 
                 TextColumn::make('name')
+                    ->label('Provider')
+                    ->searchable()
                     ->sortable()
-                    ->searchable(),
+                    ->weight('semibold')
+                    ->description(fn ($record) => $record->contact ?: $record->email),
 
                 TextColumn::make('lokasi_total')
                     ->label('Lokasi')
@@ -124,23 +127,29 @@ class ProviderResource extends Resource
                     ->color(fn ($state) => ((int) $state) === 0 ? 'danger' : 'success')
                     ->sortable(),
 
-                TextColumn::make('contact')
-                    ->searchable(),
-
-                TextColumn::make('email')
-                    ->searchable(),
-
-                TextColumn::make('price'),
-
-                TextColumn::make('admin_fee'),
-
-                TextColumn::make('tax'),
-
-                Tables\Columns\IconColumn::make('public')
-                    ->boolean(),
-
                 StatusActiveColumn::make('status')
                     ->visible(fn() => auth()->user() instanceof \App\Models\User && auth()->user()->hasRole('super_admin')),
+
+                Tables\Columns\IconColumn::make('public')
+                    ->label('Publik')
+                    ->boolean(),
+
+                TextColumn::make('price')
+                    ->label('Tarif')
+                    ->formatStateUsing(function ($record) {
+                        $parts = [];
+                        if (filled($record->price)) {
+                            $parts[] = "Rp {$record->price}";
+                        }
+                        if (filled($record->admin_fee)) {
+                            $parts[] = "admin Rp {$record->admin_fee}";
+                        }
+                        if (filled($record->tax)) {
+                            $parts[] = "pajak {$record->tax}";
+                        }
+
+                        return $parts === [] ? '—' : implode(' · ', $parts);
+                    }),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -150,26 +159,25 @@ class ProviderResource extends Resource
                         '2' => 'Nonaktif',
                     ])
                     ->query(function (Builder $query, array $data) {
-                        // "Nonaktif" memakai != 1 agar menangkap juga nilai
-                        // legacy 0 di produksi (hasil command versi lama).
-                        return match ($data['status'] ?? null) {
+                        // Kunci state form SelectFilter adalah 'value', bukan
+                        // nama filter — salah kunci membuat filter tak pernah
+                        // jalan. "Nonaktif" memakai != 1 agar menangkap juga
+                        // nilai legacy 0 di produksi (command versi lama).
+                        return match ($data['value'] ?? null) {
                             '1' => $query->where('providers.status', 1),
                             '2' => $query->where('providers.status', '!=', 1),
                             default => $query,
                         };
                     }),
 
+                // Tanpa ->query(): Filament otomatis menerapkan
+                // where(providers.public, value) — lihat SelectFilter::apply().
                 SelectFilter::make('public')
                     ->label('Publik')
                     ->options([
                         '1' => 'Publik',
                         '0' => 'Non-publik',
-                    ])
-                    ->query(function (Builder $query, array $data) {
-                        return isset($data['public']) && $data['public'] !== ''
-                            ? $query->where('providers.public', (int) $data['public'])
-                            : $query;
-                    }),
+                    ]),
 
                 Filter::make('tanpa_lokasi')
                     ->label('Tanpa lokasi (0 terhubung)')
@@ -234,7 +242,7 @@ class ProviderResource extends Resource
                         }),
                 ]),
             ])
-            ->defaultSort('id', 'desc');
+            ->defaultSort('lokasi_total', 'desc');
     }
 
     public static function getRelations(): array
