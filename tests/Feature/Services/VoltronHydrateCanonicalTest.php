@@ -152,4 +152,15 @@ class VoltronHydrateCanonicalTest extends TestCase
         $this->assertSame(0, $stats['processed']);
         $this->assertSame(0, $stats['created']);
     }
+
+    public function test_titik_tanpa_konektor_valid_dilewati_sebagai_skipped(): void
+    {
+        $this->seedTitik(500144, ['konektor' => []]);
+
+        $stats = app(CanonicalStationHydrateService::class)->hydrateFromVoltron();
+
+        $this->assertSame(1, $stats['processed']);
+        $this->assertSame(1, $stats['skipped']);
+        $this->assertNull(ChargingStation::where('source_station_id', 500144)->first());
+    }
 }
