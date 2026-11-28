@@ -28,12 +28,22 @@ class Provider extends Model
         'image',
         'status',
         'contact',
+        'email',
         'address',
         'province_id',
         'city_id',
         'district_id',
         'subdistrict_id',
         'postal_code_id',
+        // Kolom yang dulu hanya ditambahkan manual di produksi (tanpa
+        // migrasi) — tanpa ini, fill() Filament diam-diam membuangnya.
+        'public',
+        'price',
+        'admin_fee',
+        'tax',
+        'web',
+        'google',
+        'ios',
     ];
 
     public function chargerLocations()
