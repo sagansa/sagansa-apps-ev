@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * Lokasi yang masih menunjuk provider sampah dipindahkan ke provider yang
  * benar (dicocokkan dari nama lokasi; default PLN Mobile), lalu provider
- * sampah dinonaktifkan (status=0) — tidak dihapus, agar bisa ditinjau.
+ * sampah dinonaktifkan (status=2) — tidak dihapus, agar bisa ditinjau.
  * Dry-run default; --apply untuk mengeksekusi.
  */
 class FixJunkProviders extends Command
@@ -86,7 +86,7 @@ class FixJunkProviders extends Command
 
         $this->info("Provider sampah terdeteksi ({$junk->count()}):");
         foreach ($junk->sortBy('name') as $p) {
-            $this->line("  - {$p->name}".($p->status == 0 ? ' (sudah nonaktif)' : ''));
+            $this->line("  - {$p->name}".($p->status == 2 ? ' (sudah nonaktif)' : ''));
         }
 
         $sahByNorm = $sah->keyBy(fn ($p) => $this->norm($p->name));
@@ -135,7 +135,7 @@ class FixJunkProviders extends Command
             }
 
             if ($apply) {
-                DB::table('providers')->whereIn('id', $junkIds)->update(['status' => 0]);
+                DB::table('providers')->whereIn('id', $junkIds)->update(['status' => 2]);
             }
         });
 
@@ -152,7 +152,7 @@ class FixJunkProviders extends Command
         }
 
         $this->info($apply
-            ? '✓ Selesai — provider sampah dinonaktifkan (status=0).'
+            ? '✓ Selesai — provider sampah dinonaktifkan (status=2).'
             : 'Dry-run selesai. Jalankan ulang dengan --apply untuk mengeksekusi.');
 
         return 0;

@@ -22,7 +22,12 @@ use App\Tables\Columns\StatusActiveColumn;
 use Filament\Schemas\Components\Group;
 use Filament\Forms\Components\Toggle;
 use Filament\Actions\ActionGroup;
+use Filament\Notifications\Notification;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ProviderResource extends Resource
 {
@@ -90,6 +95,14 @@ class ProviderResource extends Resource
     {
         return $table
             ->poll('60s')
+            // Total referensi lokasi di empat tabel — dipakai kolom
+            // "Lokasi" dan filter "tanpa lokasi" untuk mengendus provider
+            // sampah (mis. "Mall", "Kantor" hasil import lama).
+            ->modifyQueryUsing(fn (Builder $query) => $query->selectRaw('providers.*,
+                (SELECT COUNT(*) FROM spklu_locations WHERE spklu_locations.provider_id = providers.id)
+                + (SELECT COUNT(*) FROM pln_charger_locations WHERE pln_charger_locations.provider_id = providers.id)
+                + (SELECT COUNT(*) FROM charging_stations WHERE charging_stations.provider_id = providers.id)
+                + (SELECT COUNT(*) FROM charger_locations WHERE charger_locations.provider_id = providers.id) as lokasi_total'))
             ->columns([
                 // Read the raw DB path instead of the model accessor, which
                 // returns a web URL ("/storage/..."). The disk existence check
@@ -104,6 +117,12 @@ class ProviderResource extends Resource
                 TextColumn::make('name')
                     ->sortable()
                     ->searchable(),
+
+                TextColumn::make('lokasi_total')
+                    ->label('Lokasi')
+                    ->badge()
+                    ->color(fn ($state) => ((int) $state) === 0 ? 'danger' : 'success')
+                    ->sortable(),
 
                 TextColumn::make('contact')
                     ->searchable(),
@@ -124,7 +143,17 @@ class ProviderResource extends Resource
                     ->visible(fn() => auth()->user() instanceof \App\Models\User && auth()->user()->hasRole('super_admin')),
             ])
             ->filters([
-                // Tambahkan filter jika diperlukan
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options([
+                        '1' => 'Aktif',
+                        '2' => 'Nonaktif',
+                    ]),
+
+                Filter::make('tanpa_lokasi')
+                    ->label('Tanpa lokasi (0 terhubung)')
+                    ->toggle()
+                    ->query(fn (Builder $query) => $query->havingRaw('lokasi_total = 0')),
             ])
             ->recordActions([
                 ActionGroup::make([
@@ -134,7 +163,45 @@ class ProviderResource extends Resource
             ])
             ->toolbarActions([
                 Actions\BulkActionGroup::make([
-                    Actions\DeleteBulkAction::make(),
+                    Actions\BulkAction::make('nonaktifkan')
+                        ->label('Nonaktifkan')
+                        ->icon('heroicon-o-eye-slash')
+                        ->requiresConfirmation()
+                        ->modalDescription('Set status provider terpilih menjadi nonaktif (status=2)?')
+                        ->action(fn ($records) => DB::table('providers')->whereIn('id', $records->pluck('id'))->update(['status' => 2])),
+
+                    Actions\DeleteBulkAction::make()
+                        ->requiresConfirmation()
+                        ->modalDescription('Lokasi yang masih terhubung akan dilepas (provider_id dikosongkan). Provider yang masih dipakai lokasi milik pengguna TIDAK bisa dihapus.')
+                        ->before(function (Actions\DeleteBulkAction $action, $records) {
+                            $diblokir = [];
+
+                            foreach ($records as $record) {
+                                // Lepas referensi master/kanonik — kolomnya nullable.
+                                DB::table('spklu_locations')->where('provider_id', $record->id)->update(['provider_id' => null]);
+                                DB::table('charging_stations')->where('provider_id', $record->id)->update(['provider_id' => null]);
+                                DB::table('pln_charger_locations')->where('provider_id', $record->id)->update(['provider_id' => null]);
+                                DB::table('spklu_scrape_raw')->where('guessed_provider_id', $record->id)->update(['guessed_provider_id' => null]);
+
+                                // charger_locations (data pengguna) punya ON DELETE
+                                // CASCADE — jangan biarkan hapus provider menghapus
+                                // data pengguna; blok dan minta dipindah dulu.
+                                $dipakai = DB::table('charger_locations')->where('provider_id', $record->id)->count();
+                                if ($dipakai > 0) {
+                                    $diblokir[] = "{$record->name} ({$dipakai} lokasi milik pengguna)";
+                                }
+                            }
+
+                            if ($diblokir !== []) {
+                                Notification::make()
+                                    ->title('Beberapa provider tidak bisa dihapus')
+                                    ->body('Masih dipakai lokasi milik pengguna: '.implode(', ', $diblokir))
+                                    ->danger()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        }),
                 ]),
             ])
             ->defaultSort('id', 'desc');
