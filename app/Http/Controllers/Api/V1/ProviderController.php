@@ -11,19 +11,39 @@ class ProviderController extends Controller
 {
     public function index(Request $request)
     {
+        // Hitung dari komposisi SERVING (SpkluServing) — bukan spklu_locations —
+        // agar angka "lokasi" = stasiun yang benar-benar tayang di peta:
+        // master PLN minus slice ter-override (mis. (VOLTRON)) plus hasil
+        // adaptor fetch (source='voltron' dst.). Count dari spklu_locations
+        // membuat layar "Daftar Provider SPKLU" mobile menampilkan angka basi.
+        $counts = \App\Support\SpkluServing::applyComposition(
+            \App\Models\ChargingStation::query()
+        )
+            ->whereNotNull('latitude')   // filter koordinat SAMA dgn baseQuery
+            ->whereNotNull('longitude')  // & computeSyncMarkers — count = tayang
+            ->whereNotNull('provider_id')
+            ->selectRaw('provider_id, COUNT(*) AS jumlah')
+            ->groupBy('provider_id')
+            ->pluck('jumlah', 'provider_id');
+
         $query = Provider::where('status', 1)
-            ->whereHas('spkluLocations')
-            ->withCount('spkluLocations');
+            ->whereIn('id', $counts->keys());
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('name', 'like', "%{$search}%");
         }
 
-        $providers = $query->orderByDesc('spklu_locations_count')->get();
+        $providers = $query->get();
 
-        return ProviderResource::collection($providers)
-            ->additional(['status' => 'success']);
+        // Attribute yang sama dibaca ProviderResource (location_count).
+        $providers->each(
+            fn (Provider $p) => $p->spklu_locations_count = (int) ($counts[$p->id] ?? 0)
+        );
+
+        return ProviderResource::collection(
+            $providers->sortByDesc('spklu_locations_count')->values()
+        )->additional(['status' => 'success']);
     }
 
     /**
