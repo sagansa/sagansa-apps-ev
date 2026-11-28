@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\ContributorController;
 use App\Http\Controllers\Api\V1\DualSourceLocationController;
 use App\Http\Controllers\Api\V1\FuelPriceController;
 use App\Http\Controllers\Api\V1\HomeChargingDiscountController;
+use App\Http\Controllers\Api\V1\InternalSpkluIngestController;
 use App\Http\Controllers\Api\V1\LocationCategoryController;
 use App\Http\Controllers\Api\V1\LocationReportController;
 use App\Http\Controllers\Api\V1\MonetizationController;
@@ -59,6 +60,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/spklu/{id}', [SpkluLocationController::class, 'show']);
     Route::get('/meta/filters', [SpkluLocationController::class, 'metaFilters']);
     Route::get('/meta/spklu-sync', [SpkluLocationController::class, 'syncManifest']);
+
+    // Ingest machine-to-machine (pipeline runner → backend) — token bearer
+    // SPKLU_INGEST_TOKEN, bukan Sanctum. Auth dicek di controller.
+    Route::post('/internal/spklu/voltron-import', [InternalSpkluIngestController::class, 'storeVoltron'])
+        ->middleware('throttle:10,1');
 
     // OpenChargeMap nearby — serve lokal + auto-harvest titik baru (lazy-sync)
     Route::get('/ocm/nearby', [OcmNearbyController::class, 'nearby']);
