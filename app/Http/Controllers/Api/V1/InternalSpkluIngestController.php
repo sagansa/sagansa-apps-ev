@@ -6,7 +6,6 @@ use App\Services\VoltronSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Throwable;
 
 /**
  * Ingest machine-to-machine — pipeline runner (Mac, APScheduler) meng-upload
@@ -49,14 +48,15 @@ class InternalSpkluIngestController extends Controller
                 'message' => 'snapshot ditolak',
                 'detail' => $e->errors(),
             ], 422);
-        } catch (Throwable $e) {
-            // Payload body valid secara JSON tapi gagal diproses service —
-            // mis. metadata.diambil_pada bukan tanggal (Carbon InvalidFormatException).
-            // Balas 422 agar runner tahu snapshot-nya yang bermasalah, bukan 500.
+        } catch (\Carbon\Exceptions\InvalidFormatException $e) {
+            // metadata.diambil_pada bukan tanggal valid — masalah snapshot,
+            // bukan masalah server: balas 422 agar runner tahu payload-nya
+            // yang bermasalah. Kegagalan lain (DB down, dll) bubble ke handler
+            // 500 framework agar incident server tetap tampak sebagai 5xx.
             return response()->json([
                 'status' => 'error',
                 'message' => 'snapshot ditolak',
-                'detail' => ['error' => $e->getMessage()],
+                'detail' => ['metadata.diambil_pada' => 'bukan tanggal valid'],
             ], 422);
         }
 
