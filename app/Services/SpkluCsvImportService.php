@@ -696,15 +696,23 @@ class SpkluCsvImportService
             return $this->resolvedProviders[$cacheKey] = $matchedProvider->id;
         }
 
-        $fallbackProviderName = $this->extractProviderNameFromSpklu($spkluName)
-            ?: $this->cleanName($ownerMachine)
-            ?: $this->cleanName($spkluName);
+        // Fallback terakhir: provider PLN yang sudah ada. Dulu fallback-nya
+        // menjadikan nama lokasi sebagai provider baru — inilah sumber
+        // provider sampah "Mall", "Kantor", "Hotel", "Rumah", dst. di app.
+        // Jangan pernah membuat baris provider dari nama lokasi.
+        return $this->resolvedProviders[$cacheKey] = $this->plnProviderId($providers);
+    }
 
-        return $this->resolvedProviders[$cacheKey] = $this->resolveUuidMasterId(
-            'providers',
-            $fallbackProviderName,
-            ['status' => 1],
-        );
+    /**
+     * Id provider PLN yang sudah ada di tabel providers (tanpa membuat baru):
+     * "PLN Mobile" persis, lalu nama yang mengandung PLN. Null bila tidak ada.
+     */
+    private function plnProviderId($providers): ?string
+    {
+        $pln = $providers->first(fn ($p) => $this->normalizeLookup($p->name) === $this->normalizeLookup('PLN Mobile'))
+            ?? $providers->first(fn ($p) => str_contains($this->normalizeLookup($p->name), $this->normalizeLookup('PLN')));
+
+        return $pln?->id;
     }
 
     private function resolveLocationCategoryId(array $row): ?int
@@ -784,17 +792,6 @@ class SpkluCsvImportService
         ], $this->timestampColumns($table)));
 
         return $id;
-    }
-
-    private function extractProviderNameFromSpklu(string $spkluName): string
-    {
-        $name = $this->cleanName(preg_replace('/^SPKLU\s+/i', '', $spkluName) ?? $spkluName);
-
-        if (preg_match('/^PLN(?:\s|$)/i', $name)) {
-            return 'PLN';
-        }
-
-        return $name;
     }
 
     private function cleanCandidates(array $values): array
