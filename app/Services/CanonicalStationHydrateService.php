@@ -13,6 +13,7 @@ use App\Models\PlnChargerLocation;
 use App\Models\PlnChargerLocationDetail;
 use App\Models\PlnEsdmStationMatch;
 use App\Models\Provider;
+use App\Models\VoltronPoint;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -48,6 +49,8 @@ class CanonicalStationHydrateService
     public const SOURCE_PLN = 'pln';
 
     public const SOURCE_OCM = 'ocm';
+
+    public const SOURCE_VOLTRON = 'voltron';
 
     /** BPS kode_provinsi → nama provinsi (title case, konsisten dgn data historis). */
     public const PROVINCE_BY_BPS_CODE = [
@@ -1247,6 +1250,268 @@ class CanonicalStationHydrateService
             ->where('source', self::SOURCE_OCM)
             ->when($activeOcmIds !== [], fn ($query) => $query->whereNotIn('source_station_id', $activeOcmIds))
             ->delete();
+    }
+
+    // ─── Voltron (voltron_points) ───────────────────────────────────────────
+
+    /**
+     * Hydrate stasiun Voltron (voltron_points) ke charging_stations
+     * (source='voltron'). Pola sama dgn hydrateFromOcm: upsert change-aware
+     * by (source, source_station_id), child charger replace-if-changed,
+     * stasiun stale (titik hilang dari adaptor) di-prune.
+     *
+     * Bedanya dgn OCM: Voltron punya status snapshot per konektor —
+     * availability diisi dari counts (Available/Charging), ditulis TANPA
+     * menaikkan updated_at (upsertCanonicalStation menangani itu).
+     *
+     * @return array{processed: int, created: int, updated: int, unchanged: int, skipped: int, chargers: int, pruned: int}
+     */
+    public function hydrateFromVoltron(): array
+    {
+        $stats = ['processed' => 0, 'created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'chargers' => 0, 'pruned' => 0];
+        $activeVoltronIds = [];
+
+        $points = VoltronPoint::query()
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->orderBy('id')
+            ->get();
+
+        DB::connection('ev')->transaction(function () use ($points, &$stats, &$activeVoltronIds): void {
+            foreach ($points as $point) {
+                $stats['processed']++;
+
+                $data = $this->buildVoltronStationData($point);
+                if ($data === null) {
+                    $stats['skipped']++;
+
+                    continue;
+                }
+
+                [$canonical, $masterChanged] = $this->upsertCanonicalStation(
+                    self::SOURCE_VOLTRON,
+                    $point->external_id,
+                    $data
+                );
+                $stats[$canonical->wasRecentlyCreated
+                    ? 'created'
+                    : ($masterChanged ? 'updated' : 'unchanged')]++;
+
+                [$chargersWritten, $chargersChanged] = $this->replaceVoltronChargersIfChanged($canonical, $point);
+                $stats['chargers'] += $chargersWritten;
+
+                if ($chargersChanged && ! $canonical->wasRecentlyCreated) {
+                    $canonical->touch();
+                }
+
+                $activeVoltronIds[] = $point->external_id;
+            }
+        });
+
+        $stats['pruned'] = ChargingStation::query()
+            ->where('source', self::SOURCE_VOLTRON)
+            ->when($activeVoltronIds !== [], fn ($q) => $q->whereNotIn('source_station_id', $activeVoltronIds))
+            ->delete();
+
+        return $stats;
+    }
+
+    /**
+     * Bangun data kanonik untuk satu titik Voltron. Return null bila tidak
+     * layak di-serving (tanpa nama / tanpa konektor valid).
+     */
+    private function buildVoltronStationData(VoltronPoint $point): ?array
+    {
+        $namaLokasi = trim((string) $point->nama);
+        if ($namaLokasi === '') {
+            return null;
+        }
+
+        $rows = $this->voltronChargerGroups($point->konektor);
+        $totalKonektor = (int) array_sum(array_map(fn ($row) => $row['jumlah_konektor'], $rows));
+        if ($totalKonektor === 0) {
+            return null;
+        }
+
+        $primaryType = $this->resolvePrimaryTypeCharge(
+            array_map(fn ($row) => $row['type_charge'], $rows)
+        );
+
+        $counts = $this->voltronAvailabilityCounts($point->konektor);
+
+        [$providerId, $providerName] = $this->resolveVoltronProvider($point->operator);
+
+        return [
+            'nama_lokasi' => $namaLokasi,
+            'alamat' => $point->alamat,
+            'latitude' => $point->latitude,
+            'longitude' => $point->longitude,
+            'kode_provinsi' => null, // Voltron tidak menyediakan kode BPS
+            'provinsi' => $this->normalizeOcmRegion($point->provinsi),
+            'kabupaten_kota' => $this->normalizeOcmRegion($point->kota),
+            'kategori_tol' => null,
+            'kategori_lokasi' => null,
+            'toll_category' => $this->resolveTollCategory(null, $namaLokasi, $point->alamat),
+            'location_category' => $this->resolveLocationCategory(null, $namaLokasi, $point->alamat),
+            'type_charge' => $primaryType,
+            'watt' => $primaryType !== null ? (self::TYPE_CHARGE_WATT[$primaryType] ?? null) : null,
+            'total_charger' => count($rows),
+            'total_konektor' => $totalKonektor,
+            'nama_badan_usaha' => $point->operator,
+            'provider_id' => $providerId,
+            'provider_name' => $providerName,
+            'harga_pengisian' => null, // Voltron tidak menyediakan tarif di snapshot
+            'harga_layanan' => null,
+            'availability_level' => $this->computeAvailabilityLevel(
+                $counts['available'], 0, $counts['charging'], $totalKonektor
+            ),
+            'available_count' => $counts['available'],
+            'charging_count' => $counts['charging'],
+            'finishing_count' => 0,
+            'status_updated_at' => $point->diambil_pada, // waktu snapshot, bukan live
+            'country_code' => 'ID',
+            'raw_payload' => $point->raw_payload ?? ['external_id' => $point->external_id],
+        ];
+    }
+
+    /**
+     * Group konektor snapshot Voltron per (nama, daya) menjadi baris charger
+     * — dua entry konektor identik digabung menjadi satu box dgn jumlah.
+     *
+     * @return list<array{nama: string, daya_kw: float|null, jumlah_konektor: int, type_charge: string|null}>
+     */
+    private function voltronChargerGroups($konektor): array
+    {
+        $groups = [];
+
+        foreach ((array) $konektor as $kon) {
+            if (! is_array($kon)) {
+                continue;
+            }
+
+            $nama = trim((string) ($kon['nama'] ?? ''));
+            $dayaKw = is_numeric($kon['daya_kw'] ?? null) ? (float) $kon['daya_kw'] : null;
+            $key = strtolower($nama).'|'.($dayaKw === null ? '' : number_format($dayaKw, 2, '.', ''));
+
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'nama' => $nama,
+                    'daya_kw' => $dayaKw,
+                    'jumlah_konektor' => 0,
+                ];
+            }
+            $groups[$key]['jumlah_konektor'] += max(1, (int) ($kon['jumlah'] ?? 1));
+        }
+
+        return array_map(function ($group) {
+            return array_merge($group, [
+                'type_charge' => $this->deriveCanonicalTypeFromPower($group['daya_kw']),
+            ]);
+        }, array_values($groups));
+    }
+
+    /**
+     * Hitung jumlah konektor per status snapshot (Available/Charging).
+     * Status lain (Unavailable/Offline/unknown) hanya masuk total.
+     */
+    private function voltronAvailabilityCounts($konektor): array
+    {
+        $available = 0;
+        $charging = 0;
+
+        foreach ((array) $konektor as $kon) {
+            if (! is_array($kon)) {
+                continue;
+            }
+            $jumlah = max(1, (int) ($kon['jumlah'] ?? 1));
+            $status = strtolower(trim((string) ($kon['status'] ?? '')));
+
+            if ($status === 'available') {
+                $available += $jumlah;
+            } elseif ($status === 'charging') {
+                $charging += $jumlah;
+            }
+        }
+
+        return ['available' => $available, 'charging' => $charging];
+    }
+
+    /**
+     * Row provider Voltron — auto-create bila belum ada (id UUID via HasUuids).
+     * Operator snapshot selalu 'Voltron', tapi tetap dipakai verbatim agar
+     * rename operator di sumber ikut.
+     *
+     * @return array{0: string|null, 1: string}
+     */
+    private function resolveVoltronProvider(?string $operator): array
+    {
+        $nama = trim((string) $operator) ?: 'Voltron';
+
+        $provider = Provider::query()->where('name', $nama)->first();
+        if ($provider === null) {
+            $provider = Provider::query()->create(['name' => $nama, 'status' => 1]);
+        }
+
+        return [$provider->id, $provider->name];
+    }
+
+    /**
+     * Replace child charger Voltron HANYA bila berbeda — pola
+     * replaceOcmChargersIfChanged. Identik → nol penulisan (idempoten).
+     *
+     * @return array{0: int, 1: bool}
+     */
+    private function replaceVoltronChargersIfChanged(ChargingStation $canonical, VoltronPoint $point): array
+    {
+        $desired = $this->buildDesiredVoltronChargers($point);
+
+        if ($this->buildExistingChargerSnapshot($canonical) == $desired) {
+            return [count($desired), false];
+        }
+
+        $canonical->chargers()->delete();
+
+        foreach ($desired as $row) {
+            ChargingStationCharger::create(
+                array_merge($row['charger'], ['station_id' => $canonical->id])
+            );
+        }
+
+        return [count($desired), true];
+    }
+
+    /**
+     * Charger box kanonik dari grup konektor Voltron — pola
+     * buildDesiredOcmChargers: daya aktual lebih akurat daripada label tier.
+     *
+     * @return list<array{charger: array<string, mixed>}>
+     */
+    private function buildDesiredVoltronChargers(VoltronPoint $point): array
+    {
+        $desired = [];
+
+        foreach ($this->voltronChargerGroups($point->konektor) as $row) {
+            $desired[] = [
+                'charger' => [
+                    'source_charger_id' => null,
+                    'chargerbox_id' => null,
+                    'type_charge' => $row['type_charge'],
+                    'nama' => $row['nama'],
+                    'watt' => $row['daya_kw'] !== null
+                        ? rtrim(rtrim(number_format($row['daya_kw'], 1, '.', ''), '0'), '.').' kW'
+                        : ($row['type_charge'] !== null ? (self::TYPE_CHARGE_WATT[$row['type_charge']] ?? null) : null),
+                    'jumlah_charger' => 1,
+                    'jumlah_konektor' => $row['jumlah_konektor'],
+                    'icon' => null,
+                    'gambar' => null,
+                    'harga_pengisian' => null,
+                    'harga_layanan' => null,
+                ],
+                'connectors' => [], // plug individual tidak di-tracking snapshot Voltron
+            ];
+        }
+
+        return $desired;
     }
 
     /**
