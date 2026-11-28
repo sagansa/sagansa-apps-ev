@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Panel;
 
 use App\Filament\Forms\BaseSelect;
 use App\Filament\Forms\ImageFileUpload;
+use App\Models\ChargingStation;
+use App\Support\SpkluServing;
 use Filament\Tables;
 use Filament\Actions;
 use Filament\Schemas\Schema;
@@ -95,14 +97,23 @@ class ProviderResource extends Resource
     {
         return $table
             ->poll('60s')
-            // Total referensi lokasi di empat tabel — dipakai kolom
-            // "Lokasi" dan filter "tanpa lokasi" untuk mengendus provider
-            // sampah (mis. "Mall", "Kantor" hasil import lama).
-            ->modifyQueryUsing(fn (Builder $query) => $query->selectRaw('providers.*,
-                (SELECT COUNT(*) FROM spklu_locations WHERE spklu_locations.provider_id = providers.id)
-                + (SELECT COUNT(*) FROM pln_charger_locations WHERE pln_charger_locations.provider_id = providers.id)
-                + (SELECT COUNT(*) FROM charging_stations WHERE charging_stations.provider_id = providers.id)
-                + (SELECT COUNT(*) FROM charger_locations WHERE charger_locations.provider_id = providers.id) as lokasi_total'))
+            ->modifyQueryUsing(function (Builder $query) {
+                // Kolom "Lokasi" menghitung dari tabel KANONIK charging_stations
+                // dengan komposisi serving yang sama dengan app (ProviderController)
+                // — bukan jumlah referensi lintas tabel. SPKLU yang sama memang
+                // ada di master (pln_charger_locations), kanonik, dan legacy
+                // (spklu_locations); dijumlahkan langsung, titik yang sama
+                // terhitung 2–3 kali (mis. PLN Mobile tampak 7.719).
+                $hitung = SpkluServing::applyComposition(ChargingStation::query())
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->selectRaw('provider_id, COUNT(*) as total')
+                    ->groupBy('provider_id');
+
+                return $query
+                    ->selectRaw('providers.*, COALESCE(lokasi_hitung.total, 0) as lokasi_total')
+                    ->leftJoinSub($hitung, 'lokasi_hitung', 'lokasi_hitung.provider_id', '=', 'providers.id');
+            })
             ->columns([
                 // Read the raw DB path instead of the model accessor, which
                 // returns a web URL ("/storage/..."). The disk existence check
@@ -138,14 +149,17 @@ class ProviderResource extends Resource
                     ->label('Tarif')
                     ->formatStateUsing(function ($record) {
                         $parts = [];
-                        if (filled($record->price)) {
-                            $parts[] = "Rp {$record->price}";
-                        }
-                        if (filled($record->admin_fee)) {
-                            $parts[] = "admin Rp {$record->admin_fee}";
-                        }
-                        if (filled($record->tax)) {
-                            $parts[] = "pajak {$record->tax}";
+                        foreach (['price' => '', 'admin_fee' => 'admin ', 'tax' => 'pajak '] as $field => $label) {
+                            $val = trim((string) ($record->{$field} ?? ''));
+                            if ($val === '') {
+                                continue;
+                            }
+                            // Nilai di DB sering sudah berformat ("Rp 2.467 /kWh",
+                            // "free", "2% - 8%") — hanya angka murni yang diberi awalan Rp.
+                            if (is_numeric($val)) {
+                                $val = 'Rp '.number_format((float) $val, 0, ',', '.');
+                            }
+                            $parts[] = $label.$val;
                         }
 
                         return $parts === [] ? '—' : implode(' · ', $parts);
