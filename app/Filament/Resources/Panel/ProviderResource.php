@@ -148,7 +148,28 @@ class ProviderResource extends Resource
                     ->options([
                         '1' => 'Aktif',
                         '2' => 'Nonaktif',
-                    ]),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        // "Nonaktif" memakai != 1 agar menangkap juga nilai
+                        // legacy 0 di produksi (hasil command versi lama).
+                        return match ($data['status'] ?? null) {
+                            '1' => $query->where('providers.status', 1),
+                            '2' => $query->where('providers.status', '!=', 1),
+                            default => $query,
+                        };
+                    }),
+
+                SelectFilter::make('public')
+                    ->label('Publik')
+                    ->options([
+                        '1' => 'Publik',
+                        '0' => 'Non-publik',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return isset($data['public']) && $data['public'] !== ''
+                            ? $query->where('providers.public', (int) $data['public'])
+                            : $query;
+                    }),
 
                 Filter::make('tanpa_lokasi')
                     ->label('Tanpa lokasi (0 terhubung)')
@@ -172,34 +193,43 @@ class ProviderResource extends Resource
 
                     Actions\DeleteBulkAction::make()
                         ->requiresConfirmation()
-                        ->modalDescription('Lokasi yang masih terhubung akan dilepas (provider_id dikosongkan). Provider yang masih dipakai lokasi milik pengguna TIDAK bisa dihapus.')
-                        ->before(function (Actions\DeleteBulkAction $action, $records) {
+                        ->modalDescription('Lokasi yang masih terhubung akan dilepas (provider_id dikosongkan). Provider yang masih dipakai lokasi milik pengguna dilewati, bukan dihapus.')
+                        ->using(function (Actions\DeleteBulkAction $action, $records) {
                             $diblokir = [];
+                            $dihapus = 0;
 
                             foreach ($records as $record) {
+                                // charger_locations (data pengguna) punya ON DELETE
+                                // CASCADE — jangan biarkan hapus provider menghapus
+                                // data pengguna; lewati provider ini saja.
+                                $dipakai = DB::table('charger_locations')->where('provider_id', $record->id)->count();
+                                if ($dipakai > 0) {
+                                    $diblokir[] = "{$record->name} ({$dipakai} lokasi milik pengguna)";
+
+                                    continue;
+                                }
+
                                 // Lepas referensi master/kanonik — kolomnya nullable.
                                 DB::table('spklu_locations')->where('provider_id', $record->id)->update(['provider_id' => null]);
                                 DB::table('charging_stations')->where('provider_id', $record->id)->update(['provider_id' => null]);
                                 DB::table('pln_charger_locations')->where('provider_id', $record->id)->update(['provider_id' => null]);
                                 DB::table('spklu_scrape_raw')->where('guessed_provider_id', $record->id)->update(['guessed_provider_id' => null]);
 
-                                // charger_locations (data pengguna) punya ON DELETE
-                                // CASCADE — jangan biarkan hapus provider menghapus
-                                // data pengguna; blok dan minta dipindah dulu.
-                                $dipakai = DB::table('charger_locations')->where('provider_id', $record->id)->count();
-                                if ($dipakai > 0) {
-                                    $diblokir[] = "{$record->name} ({$dipakai} lokasi milik pengguna)";
-                                }
+                                $record->delete();
+                                $dihapus++;
                             }
 
                             if ($diblokir !== []) {
                                 Notification::make()
-                                    ->title('Beberapa provider tidak bisa dihapus')
+                                    ->title("{$dihapus} provider dihapus, ".count($diblokir).' dilewati')
                                     ->body('Masih dipakai lokasi milik pengguna: '.implode(', ', $diblokir))
-                                    ->danger()
+                                    ->warning()
                                     ->send();
-
-                                $action->halt();
+                            } elseif ($dihapus > 0) {
+                                Notification::make()
+                                    ->title("{$dihapus} provider dihapus")
+                                    ->success()
+                                    ->send();
                             }
                         }),
                 ]),

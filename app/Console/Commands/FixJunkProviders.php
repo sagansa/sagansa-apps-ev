@@ -104,6 +104,12 @@ class FixJunkProviders extends Command
         $ringkasan = []; // [provider sampah][tujuan] => jumlah
 
         DB::transaction(function () use ($apply, $junkIds, $junkById, $sahByNorm, $plnId, &$ringkasan) {
+            // Normalisasi nilai status legacy (0 dari command versi lama)
+            // ke konvensi app: 1 = aktif, 2 = nonaktif.
+            if ($apply) {
+                DB::table('providers')->whereNotIn('status', [1, 2])->update(['status' => 2]);
+            }
+
             foreach (self::TABEL_LOKASI as $tabel => $kolomNama) {
                 if (! Schema::hasTable($tabel) || ! Schema::hasColumn($tabel, $kolomNama)) {
                     continue;
@@ -161,6 +167,12 @@ class FixJunkProviders extends Command
     private function providerSah(string $name): bool
     {
         $n = $this->norm($name);
+
+        // Nama bergaya nama lokasi — mis. "(iGreen +) Jtown, Jatinegara" —
+        // selalu sampah walau mengandung kata brand (igreen, dsb.).
+        if (str_contains($n, '(') || str_contains($n, ',')) {
+            return false;
+        }
 
         foreach (self::POLA_PROVIDER_SAH as $pola) {
             if ($n !== '' && str_contains($n, $pola)) {
